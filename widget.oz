@@ -165,6 +165,17 @@ MapWidget = td( canvas( height:470 width:470
 	      )
 
 %%%%%%% FIGHTWIDGET %%%%%%%%
+fun{DrawBar Canvas Act Max X0 Y0}
+   Tag ={Canvas newTag($)}
+   Tag2={Canvas newTag($)}
+   W = 100
+   H = 10
+   Size = (W*Act) div Max
+in
+   {Canvas create(rectangle X0 Y0 X0+W    Y0+H fill:white tags:Tag2)}
+   {Canvas create(rectangle X0 Y0 X0+Size Y0+H fill:green tags:Tag)}
+   rect(Tag Tag2)
+end
 fun{FightScene Canvash Play Adv }
    fun{DrawImg}
       Disk  = {LoadImage "Fight_disk"}
@@ -183,6 +194,8 @@ fun{FightScene Canvash Play Adv }
       pokemoz(diskPl:TagD1 diskAd:TagD2 player:TagP1 advers:TagP2)
    end
    fun{DrawAttr}
+      {Canvash create(text 350 200-35 text:Play.name font:{Font type(16)})}
+      _={DrawBar Canvash Play.health.1 Play.health.2 300 200-20}
       nil
    end
 in
