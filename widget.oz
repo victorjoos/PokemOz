@@ -9,7 +9,9 @@ export
    DrawMap
    canvasH: CANVASH
    TopWidget
+   ExitWindow
 define
+   ExitWindow
 % This function will load a given image from the library and return it
 % @pre: Name is a list of strings for a valid image:
 %            ex: ["Bulboz" "_back"]
@@ -206,5 +208,6 @@ define
 		       handle:PLACEH)
 		    geometry:geometry(height:470 width:470)
 		    resizable:resizable(width:false height:false)
+		    return:ExitWindow
 		  )
 end

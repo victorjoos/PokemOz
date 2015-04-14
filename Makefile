@@ -8,3 +8,7 @@ Widget.ozf : widget.oz
 	ozc -c widget.oz -o Widget.ozf
 run : main.oza
 	ozengine main.oza
+clean :
+	rm PortObject.ozf
+	rm AnimatePort.ozf
+	rm Widget.ozf

@@ -5,6 +5,7 @@ import
    Widget
    PortObject
    AnimatePort
+   System
    Application
 define
 % Function that creates a trainer
@@ -41,4 +42,6 @@ define
    {Window bind(event:"<Left>" action:{GenerateMoveProc left})}
    {Window bind(event:"<Right>" action:{GenerateMoveProc right})}
    {Window bind(event:"<Down>" action:{GenerateMoveProc down})}
+   {Wait Widget.exitWindow}
+   {Application.exit 0}
 end
