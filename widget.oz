@@ -187,16 +187,24 @@ fun{FightScene Canvash Play Adv }
       TagP2 = {Canvash newTag($)}
    in
       %                                   X          Y 
-      {Canvash create(image image:Disk  40+85     200-10 tags:TagD1)}
+      {Canvash create(image image:Disk  40+95        210 tags:TagD1)}
       {Canvash create(image image:Disk  470-40-85     60 tags:TagD2)}
-      {Canvash create(image image:Im_pl 40+85     200-38 tags:TagP1)}
+      {Canvash create(image image:Im_pl 40+85     200-57 tags:TagP1)}
       {Canvash create(image image:Im_ad 470-40-85     45 tags:TagP2)}
       pokemoz(diskPl:TagD1 diskAd:TagD2 player:TagP1 advers:TagP2)
    end
    fun{DrawAttr}
-      {Canvash create(text 350 200-35 text:Play.name font:{Font type(16)})}
-      _={DrawBar Canvash Play.health.1 Play.health.2 300 200-20}
-      nil
+      Tag1 = {Canvash newTag($)}
+      Tag2 = {Canvash newTag($)}
+      Bar1 Bar2
+   in
+      {Canvash create(text 320 200-35 text:Play.name font:{Font type(16)}
+		      tags:Tag1)}
+      {Canvash create(text 160     20 text:Adv.name  font:{Font type(16)}
+		      tags:Tag2)}
+      Bar1={DrawBar Canvash Play.health.1 Play.health.2 270 200-20}
+      Bar2={DrawBar Canvash Adv.health.1  Adv.health.2  110     35}
+      tags(text(Tag1 Tag2) bars(Bar1 Bar2))
    end
 in
    tags(poke:{DrawImg} attrib:{DrawAttr})
