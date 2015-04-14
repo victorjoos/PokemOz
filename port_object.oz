@@ -93,9 +93,10 @@ end
 
 %%%%%%% MAPRELATED PORTOBJECTS %%%%%%%%%%%%
 
-%@pre: C     = coord(x:X y:Y) with X and Y integers
-%      Init  = state(occupied) or state(empty)
-%      Mapid = Pid of the MapControler
+%@pre:  C     = coord(x:X y:Y) with X and Y integers
+%       Init  = state(occupied) or state(empty)
+%       Mapid = Pid of the MapControler
+%@post: Returns the Pid of the tile
 fun{Tile Init C Mapid}
    Tilid
    proc{SignalArrival}
@@ -138,6 +139,9 @@ fun{Tile Init C Mapid}
 in
    Tilid
 end
+%
+%@post: Returns the pid of the controller (through which every command
+%       to the tiles passes)
 fun{MapController}
    MapRec
    fun{CheckEdges X Y}
@@ -216,7 +220,7 @@ in
 end
 %@pre : Mapid = the Pid of the mapControler
 %       Trid  = the Pid of the trainer this controller is destined to
-%@post: 
+%@post: Returns the controler of the trainer
 fun{TrainerController Mapid Trid Speed}
    Wid  = {Waiter}
    Plid = {NewPortObject state(still)
@@ -271,8 +275,8 @@ in
    Plid
 end
 \insert 'animate_port.oz'
-%TODO: Function that creates a trainer (and returns the id of the
-% PlayerController)
+% Function that creates a trainer
+%@post: returns the id of the PlayerController
 fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash}
    Anid = {AnimateTrainer Canvash X0-1 Y0-1 Speed Name}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
