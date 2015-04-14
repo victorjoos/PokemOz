@@ -11,23 +11,30 @@ Window = {QTk.build TopWidget}
 					{Window close}
 					{Application.exit 0}
 				     end)}
-Map = map(r(1 1 1 0 0 0 0)
-	  r(1 1 1 0 0 1 1)
-	  r(1 1 1 0 0 1 1)
-	  r(0 0 0 0 0 1 1)
-	  r(0 0 0 1 1 1 1)
-	  r(0 0 0 1 1 0 0)
-	  r(0 0 0 0 0 0 0))
-_={DrawMap CANVASH Map 7 7 $}
-MAPID  = {MapController}
-PLAYER = {CreateTrainer "Red" 6 6 SPEED MAPID CANVASH}
-fun{GenerateMoveProc Dir}
-   proc{$}
-      {Send PLAYER move(Dir)}
-   end
-end
-{Window bind(event:"<Up>" action:{GenerateMoveProc up})}
-{Window bind(event:"<Left>" action:{GenerateMoveProc left})}
-{Window bind(event:"<Right>" action:{GenerateMoveProc right})}
-{Window bind(event:"<Down>" action:{GenerateMoveProc down})}
+
+%%%%% FIGHT-RELATED %%%%
+P2=pokemoz(name:"Bulbasoz")
+P1=pokemoz(name:"Charmandoz")
+_={FightScene F_CANVASH P1 P2}
+
+%%%% MAP-RELATED %%%%
+% Map = map(r(1 1 1 0 0 0 0)
+% 	  r(1 1 1 0 0 1 1)
+% 	  r(1 1 1 0 0 1 1)
+% 	  r(0 0 0 0 0 1 1)
+% 	  r(0 0 0 1 1 1 1)
+% 	  r(0 0 0 1 1 0 0)
+% 	  r(0 0 0 0 0 0 0))
+% _={DrawMap CANVASH Map 7 7 $}
+% MAPID  = {MapController}
+% PLAYER = {CreateTrainer "Red" 6 6 SPEED MAPID CANVASH}
+% fun{GenerateMoveProc Dir}
+%    proc{$}
+%       {Send PLAYER move(Dir)}
+%    end
+% end
+% {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
+% {Window bind(event:"<Left>" action:{GenerateMoveProc left})}
+% {Window bind(event:"<Right>" action:{GenerateMoveProc right})}
+% {Window bind(event:"<Down>" action:{GenerateMoveProc down})}
 

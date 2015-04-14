@@ -2,7 +2,7 @@
 declare
 %%%%% CONSTANTS %%%%%%%%%
 SPEED = 5
-DELAY = 200
+DELAY = 100
 MAXX  = 7
 MAXY  = 7
 fun{GETDIR Dir}

@@ -49,6 +49,16 @@ for I in 1..Trw do
    end
 end
 
+%%%%%% Others %%%%%%
+
+OTHERS = others("Fight_disk")
+Ow     = {Width OTHERS}
+for I in 1..Ow do Name Name2 in
+   Name  = OTHERS.I
+   Name2 = {Flatten [DIRECTORY Name EXTENSION]}
+   {LoadImage Name Name2}
+end
+
 
 
 {QTk.saveImageLibrary Lib "LibImg.ozf"}

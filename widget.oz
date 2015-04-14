@@ -165,18 +165,31 @@ MapWidget = td( canvas( height:470 width:470
 	      )
 
 %%%%%%% FIGHTWIDGET %%%%%%%%
-fun{FightScene Canvash}
+fun{FightScene Canvash Play Adv }
    fun{DrawImg}
-      nil
+      Disk  = {LoadImage "Fight_disk"}
+      Im_pl = {LoadImage [Play.name "_back" ]}
+      Im_ad = {LoadImage [Adv.name  "_front"]}
+      TagD1 = {Canvash newTag($)}
+      TagD2 = {Canvash newTag($)}
+      TagP1 = {Canvash newTag($)}
+      TagP2 = {Canvash newTag($)}
+   in
+      %                                   X          Y 
+      {Canvash create(image image:Disk  40+85     200-10 tags:TagD1)}
+      {Canvash create(image image:Disk  470-40-85     60 tags:TagD2)}
+      {Canvash create(image image:Im_pl 40+85     200-38 tags:TagP1)}
+      {Canvash create(image image:Im_ad 470-40-85     45 tags:TagP2)}
+      pokemoz(diskPl:TagD1 diskAd:TagD2 player:TagP1 advers:TagP2)
    end
-   fun{DrawName}
+   fun{DrawAttr}
       nil
    end
 in
-   nil
+   tags(poke:{DrawImg} attrib:{DrawAttr})
 end
 FIGHTH F_CANVASH
-FightWidget = td( canvas( height:350 width:470
+FightWidget = td( canvas( height:200 width:470
 			  handle:F_CANVASH
 			  bg:white
 			)
@@ -194,7 +207,8 @@ FightWidget = td( canvas( height:350 width:470
 %%%%%%% TOPWIDGET %%%%%%%%%%
 PLACEH
 TopWidget  = td( placeholder(
-		    MapWidget
+		    %MapWidget
+		    FightWidget
 		    handle:PLACEH)
 		 geometry:geometry(height:470 width:470)
 		 resizable:resizable(width:false height:false)
