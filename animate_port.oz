@@ -130,13 +130,19 @@ in
    end
    {NTag delete}
 end
+%Intern
+proc{ChangeBar Tag Health X0 Y0}
+   Size = {IntToFloat Health.act} / {IntToFloat Health.old}
+in
+   {Tag scale(X0 Y0 Size 1.0) }
+end
 
 %Extern
 fun{DrawFight Canvas Play Adv B}
    AllTags
    LTagsAdv
    LTagsPlay
-   Fid={NewPortObjectKillable state(alive)
+   Fid={NewPortObjectKillable state(play:Play.health.1 adv:Adv.health.1)
 	fun{$ Msg State}
 	   case Msg
 	   of exit then
@@ -149,7 +155,7 @@ fun{DrawFight Canvas Play Adv B}
 	      {Apply LTagsAdv  proc{$ T} {T delete} end}
 	      {Apply LTagsPlay proc{$ T} {T delete} end}
 	      state(killed)
-	   [] attack(P B) then
+	   [] attack(P B) then PlH AdvH in
 	      case P
 	      of pnj then NTag = {Canvas newTag($)} in
 		 {MoveBack    AllTags.plateau.2.2 ~1}
@@ -157,6 +163,9 @@ fun{DrawFight Canvas Play Adv B}
 		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
 				125 143)}
 		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
+		 {ChangeBar AllTags.attrib.2.1.act
+		  health(act:State.play-3 old:State.play) 270 180}
+		 PlH=3 AdvH=0
 	      [] player then NTag = {Canvas newTag($)} in
 		 %Show attack
 		 {MoveBack    AllTags.plateau.2.1  1}
@@ -164,11 +173,13 @@ fun{DrawFight Canvas Play Adv B}
 		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
 				345 45)}
 		 {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
-		 %Show damage taken on health bar
-
+		 %Show damage taken on enemy health bar
+		 {ChangeBar AllTags.attrib.2.2.act
+		  health(act:State.adv-3 old:State.adv) 110 35}
+		 PlH=0 AdvH=3
 	      end
 	      B = unit
-	      State
+	      state(play:State.play-PlH adv:State.adv-AdvH)
 	   end
 	end}
 in
