@@ -84,9 +84,54 @@ proc{Apply L F}
       {Apply T F}
    end
 end
+%Intern
 proc{MoveFight LTags Dx}
    {Apply LTags {GetMove Dx}}
 end
+%Intern
+proc{MoveBack Tag Diff} %Diff = 1 for player, ~1 for adv
+   DT = 1000 div 20
+   Cst = 10
+   Dx = ~Diff*Cst
+   Dy =  Diff*Cst
+in
+   for _ in 1..10 do
+      {Tag move(Dx Dy)}
+      {Delay DT}
+   end
+end
+%Intern
+proc{MoveForward Tag Diff}
+   DT = 1000 div 20
+   Cst = 25
+   Dx =  Diff*Cst
+   Dy = ~Diff*Cst
+in
+   for _ in 1..4 do
+      {Tag move(Dx Dy)}
+      {Delay DT}
+   end
+end
+%Intern
+proc{MoveDamage Tag Diff NTag Ty}%NTag will be destroyed
+   DT  = 1000 div 20
+   Cst = 25
+   Dx  = dx(5  ~25  15  15 ~10)
+   Dy  = dy(20  10 ~15 ~5  ~10)
+   Type = {AtomToString Ty}
+in
+   for I in 1..5 do
+      {Show I}
+      {Tag move(Diff*Dx.I Diff*Dy.I)}
+      if I\=1 then
+	 {NTag set(image:{LoadImage [ Type "_" {IntToString I}]})}
+      end
+      {Delay DT}
+   end
+   {NTag delete}
+end
+
+%Extern
 fun{DrawFight Canvas Play Adv B}
    AllTags
    LTagsAdv
@@ -101,13 +146,26 @@ fun{DrawFight Canvas Play Adv B}
 		 {MoveFight LTagsPlay  1}
 		 {Delay DT}
 	      end
+	      {Apply LTagsAdv  proc{$ T} {T delete} end}
+	      {Apply LTagsPlay proc{$ T} {T delete} end}
 	      state(killed)
 	   [] attack(P B) then
 	      case P
-	      of pnj then
-		 skip
-	      [] player then
-		 skip
+	      of pnj then NTag = {Canvas newTag($)} in
+		 {MoveBack    AllTags.plateau.2.2 ~1}
+		 {MoveForward AllTags.plateau.2.2 ~1}
+		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
+				125 143)}
+		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
+	      [] player then NTag = {Canvas newTag($)} in
+		 %Show attack
+		 {MoveBack    AllTags.plateau.2.1  1}
+		 {MoveForward AllTags.plateau.2.1  1}
+		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
+				345 45)}
+		 {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
+		 %Show damage taken on health bar
+
 	      end
 	      B = unit
 	      State
@@ -117,12 +175,14 @@ in
    thread
       AllTags={FightScene Canvas Play Adv}
       {AllTagsToList AllTags LTagsAdv LTagsPlay}
+
       for _ in 1..25 do DT = 1000 div 40 in
-	 {QTk.flush} 
 	 {MoveFight LTagsAdv  ~1}
 	 {MoveFight LTagsPlay  1}
+	 {QTk.flush} 
 	 {Delay DT}
       end
+
       B=unit
    end
    Fid
