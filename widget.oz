@@ -174,9 +174,10 @@ fun{DrawBar Canvas Act Max X0 Y0}
 in
    {Canvas create(rectangle X0 Y0 X0+W    Y0+H fill:white tags:Tag2)}
    {Canvas create(rectangle X0 Y0 X0+Size Y0+H fill:green tags:Tag)}
-   rect(Tag Tag2)
+   bar(act:Tag Tag2)
 end
 fun{FightScene Canvash Play Adv }
+   XST = 500
    fun{DrawImg}
       Disk  = {LoadImage "Fight_disk"}
       Im_pl = {LoadImage [Play.name "_back" ]}
@@ -186,29 +187,31 @@ fun{FightScene Canvash Play Adv }
       TagP1 = {Canvash newTag($)}
       TagP2 = {Canvash newTag($)}
    in
-      %                                   X          Y 
-      {Canvash create(image image:Disk  40+95        210 tags:TagD1)}
-      {Canvash create(image image:Disk  470-40-85     60 tags:TagD2)}
-      {Canvash create(image image:Im_pl 40+85     200-57 tags:TagP1)}
-      {Canvash create(image image:Im_ad 470-40-85     45 tags:TagP2)}
-      pokemoz(diskPl:TagD1 diskAd:TagD2 player:TagP1 advers:TagP2)
+      %                                  X       Y
+      {Canvash create(image image:Disk  345-XST  60 tags:TagD2)}
+      {Canvash create(image image:Im_ad 345-XST  45 tags:TagP2)}
+      {Canvash create(image image:Disk  135+XST 210 tags:TagD1)}
+      {Canvash create(image image:Im_pl 125+XST 143 tags:TagP1)}
+      
+      plateau(disk(TagD1 TagD2) pokemoz(TagP1 TagP2))
    end
    fun{DrawAttr}
       Tag1 = {Canvash newTag($)}
       Tag2 = {Canvash newTag($)}
       Bar1 Bar2
    in
-      {Canvash create(text 320 200-35 text:Play.name font:{Font type(16)}
+      {Canvash create(text 320+XST 165 text:Play.name font:{Font type(16)}
 		      tags:Tag1)}
-      {Canvash create(text 160     20 text:Adv.name  font:{Font type(16)}
+      {Canvash create(text 160-XST  20 text:Adv.name  font:{Font type(16)}
 		      tags:Tag2)}
-      Bar1={DrawBar Canvash Play.health.1 Play.health.2 270 200-20}
-      Bar2={DrawBar Canvash Adv.health.1  Adv.health.2  110     35}
-      tags(text(Tag1 Tag2) bars(Bar1 Bar2))
+      Bar1={DrawBar Canvash Play.health.1 Play.health.2 270+XST 180}
+      Bar2={DrawBar Canvash Adv.health.1  Adv.health.2  110-XST  35}
+      attrib(text(Tag1 Tag2) bars(Bar1 Bar2))
    end
 in
-   tags(poke:{DrawImg} attrib:{DrawAttr})
+   tags(plateau:{DrawImg} attrib:{DrawAttr})
 end
+
 FIGHTH F_CANVASH
 FightWidget = td( canvas( height:200 width:470
 			  handle:F_CANVASH

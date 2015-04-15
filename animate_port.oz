@@ -1,6 +1,8 @@
 declare
 
 
+%%%%%%% TRAINER ON MAP %%%%%%
+
 % Commands sent to this port are guaranteed to change the state of
 % the trainer (to avoid useless animation)
 % This isn't redundant bc it creates a separate thread for the
@@ -52,8 +54,76 @@ fun{AnimateTrainer Canvash X0 Y0 Speed Name}
 	       end
 	    end}
 in
-   %TODO : draw initial state
    {Canvash create(image image:{LoadImage [Name "_up" "_still"]}
 		   X0*67+33 Y0*67+33 tags:TagIm)}
    Anid
+end
+
+
+%%%%%%% FIGHT SCENE %%%%%%%
+% Intern
+proc{AllTagsToList AllTags L1 L2}
+   case AllTags
+   of tags(plateau:plateau(disk(D1 D2) pokemoz(P1 P2))
+	   attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
+					  bar(act:Ba2 Bb2)))) then
+      L1 = [D1 P1 T1 Ba1 Bb1]
+      L2 = [D2 P2 T2 Ba2 Bb2]
+   end
+end
+%Intern
+fun{GetMove Dx} Cst = 20 in
+   if     Dx ==  1 then proc{$ Tag} {Tag move( Cst 0)} end
+   elseif Dx == ~1 then proc{$ Tag} {Tag move(~Cst 0)} end end
+end
+%Intern
+proc{Apply L F}
+   case L of nil then skip
+   [] H|T then
+      {F H}
+      {Apply T F}
+   end
+end
+proc{MoveFight LTags Dx}
+   {Apply LTags {GetMove Dx}}
+end
+fun{DrawFight Canvas Play Adv B}
+   AllTags
+   LTagsAdv
+   LTagsPlay
+   Fid={NewPortObjectKillable state(alive)
+	fun{$ Msg State}
+	   case Msg
+	   of exit then
+	      for _ in 1..25 do DT = 1000 div 40 in
+		 {QTk.flush} 
+		 {MoveFight LTagsAdv  ~1}
+		 {MoveFight LTagsPlay  1}
+		 {Delay DT}
+	      end
+	      state(killed)
+	   [] attack(P B) then
+	      case P
+	      of pnj then
+		 skip
+	      [] player then
+		 skip
+	      end
+	      B = unit
+	      State
+	   end
+	end}
+in
+   thread
+      AllTags={FightScene Canvas Play Adv}
+      {AllTagsToList AllTags LTagsAdv LTagsPlay}
+      for _ in 1..25 do DT = 1000 div 40 in
+	 {QTk.flush} 
+	 {MoveFight LTagsAdv  ~1}
+	 {MoveFight LTagsPlay  1}
+	 {Delay DT}
+      end
+      B=unit
+   end
+   Fid
 end
