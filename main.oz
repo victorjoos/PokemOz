@@ -19,6 +19,7 @@ MAPID = {MapController}
 % Player = {CreateTrainer "Red" 6 6 SPEED MAPID CANVASH}
 FightId = {CreateFight P1 P2 F_CANVASH}
 % _={FightScene F_CANVASH P1 P2}
+%{Send FightId attack(pnj _)}
 
 %%%% MAP-RELATED %%%%
 % Map = map(r(1 1 1 0 0 0 0)

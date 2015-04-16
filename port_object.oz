@@ -314,7 +314,7 @@ fun {FightController TrainerP EnemyP FightAnim}
 	 {Send FightAnim attack(pnj Ack)}
 	 {Send WaitAnimation wait(FightPort Ack endmove)}
 	 {Max Health-TrainerHitted 0}
-      else Health % TODO : add animation
+      else Health % TODO : add animation/text description failed attack
       end
    end
    TrainerHitted#EnemyHitted = {CheckDamage TrainerP.type EnemyP.type}
@@ -383,7 +383,7 @@ fun{CreateFight Player NPC CanvasH}
    Ack
    Animation = {DrawFight CanvasH Player NPC Ack}
    Fight = {FightController Player NPC Animation}
-   _={FightScene CanvasH Player NPC}
+  % _={FightScene CanvasH Player NPC}
 in
    {BFIGHTH bind(event:"<1>" action:
 				proc{$}
