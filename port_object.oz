@@ -280,9 +280,9 @@ fun {FightController TrainerP EnemyP Trainer FightAnim}
       if TType == EType then 2#2
       else
 	 case TType
-	 of red then if EType==green then 1#3 else 3#1 end
-	 [] green then if EType==red then 3#1 else 1#3 end
-	 [] blue then if EType==red then 1#3 else 3#1 end
+	 of fire then if EType==grass then 1#3 else 3#1 end
+	 [] grass then if EType==fire then 3#1 else 1#3 end
+	 [] water then if EType==fire then 1#3 else 3#1 end
 	 end
       end
    end
@@ -363,8 +363,6 @@ fun {FightController TrainerP EnemyP Trainer FightAnim}
 		      end
 		   [] endmove then
 		      state(trainerH:State.trainerH enemyH:State.EnemyH fighting:false)
-		   else
-		      {Show fightError}
 		   end
 		end}
 in
