@@ -90,7 +90,6 @@ fun{Waiter}
 			  end
 		       end}   
 end
-
 %%%%%%% MAPRELATED PORTOBJECTS %%%%%%%%%%%%
 
 %@pre:  C     = coord(x:X y:Y) with X and Y integers
@@ -275,7 +274,9 @@ in
    Plid
 end
 
-fun {FightController TrainerP EnemyP FightAnim}
+
+%%%%%%% FIGHT PORTOBJECTS %%%%%%%%%%%
+fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
    fun {CheckDamage TType EType}
       if TType == EType then 2#2
       else
@@ -372,6 +373,57 @@ in
 end
 
 \insert 'animate_port.oz'
+
+%%%%%%% THE EXTERN FUNCTIONS %%%%%%
+EXPER = exp(5:5 6:12 7:20 8:30 9:50 10:~0)
+fun{GETTYPE Name}
+   case Name
+   of "Bulbasoz"   then grass
+   [] "Charmandoz" then fire
+   [] "Oztirtle"   then water
+   end
+end
+proc{GetLevel Exp Lvl Ne Le}
+   if Lvl < 10 andthen Exp >= EXPER.Lvl then
+      {GetLevel Exp-EXPER.Lvl Lvl+1 Ne Le}
+   else
+      Ne = Exp Le = Lvl
+   end
+end
+Function that creates a Pokemoz
+fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
+   Type = {GETTYPE Name}
+   HealthMax = 20+(Lvl-5)*2
+   ExpMax = EXPER.(Lvl+1)
+   %Send Kill signal when the wild pokemoz vanishes, trainer is defeated or pokemoz is released back into the wild
+   Pokid = {NewPortObjectKilleable state(health:h(act:HealthMax max:HealthMax) exp:e(act:0 max:ExpMax) lvl:Lvl)
+	    fun{$ Msg state(health:He exp:Exp lvl:Lvl)}
+	       case Msg
+	       of getHealth(X) then
+		  X=He
+		  state(health:He exp:Exp lvl:Lvl)
+	       [] getExp(X) then
+		  X=Exp
+		  state(health:He exp:Exp lvl:Lvl)
+	       [] getLvl(X) then
+		  X=Lvl
+		  state(health:He exp:Exp lvl:Lvl)
+	       [] addExp(AddExp) then %will replenish Health automatically in
+                                      %case of evolution
+		  NewExp = AddExp+Exp.act
+	       in
+		  if NewExp >= Exp.max then
+		     if Lvl < 10 then NExp NLvl in
+			{GetLevel NewExp Lvl NExp NLvl}
+		     else
+			state(health:He exp:Exp lvl:Lvl)
+		     end
+		  else
+		     state(health:h(act:He.max max:He.max) exp:e(act:RemExp max: ) lvl:Lvl+N)
+		  end
+	       end
+	    end}%add replenishing function for hospital later on
+end
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
 fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash}
@@ -379,6 +431,7 @@ fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
 in
    {TrainerController Mapid Trid Speed}
+   %Todo trainer(poke:<PokemOz> pid:<TrainerController>) + add speed to state of trainer?
 end
 
 % Function that creates a fight
