@@ -207,6 +207,7 @@ fun{FightScene Canvash Play Adv }
       Bar1={DrawBar Canvash Play.health.1 Play.health.2 270+XST 180}
       Bar2={DrawBar Canvash Adv.health.1  Adv.health.2  110-XST  35}
       attrib(text(Tag1 Tag2) bars(Bar1 Bar2))
+
    end
 in
    tags(plateau:{DrawImg} attrib:{DrawAttr})
