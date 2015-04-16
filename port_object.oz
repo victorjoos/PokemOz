@@ -274,6 +274,100 @@ in
    %      -need to add smth for the AI of other players
    Plid
 end
+
+fun {FightController TrainerP EnemyP FightAnim}
+   fun {CheckDamage TType EType}
+      if TType == EType then 2#2
+      else
+	 case TType
+	 of fire then if EType==grass then 1#3 else 3#1 end
+	 [] grass then if EType==fire then 3#1 else 1#3 end
+	 [] water then if EType==fire then 1#3 else 3#1 end
+	 end
+      end
+   end
+   fun {AttackSuccessful Attacker}
+      case Attacker
+      of player then
+	 Probability = (6+TrainerP.lvl-EnemyP.lvl)*9
+	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+      in
+	 if Rand =< Probability then true
+	 else false
+	 end
+      [] npc then
+	 Probability = (6+EnemyP.lvl-TrainerP.lvl)*9
+	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+      in
+	 if Rand =< Probability then true
+	 else false
+	 end
+      end
+   end
+   fun {RunSuccessful}
+      true % TODO(victor) : add probability
+   end
+   fun {Attack Health}
+      if {AttackSuccessful npc} then
+	 Ack
+      in
+	 {Send FightAnim attack(pnj Ack)}
+	 {Send WaitAnimation wait(FightPort Ack endmove)}
+	 {Max Health-TrainerHitted 0}
+      else Health % TODO : add animation
+      end
+   end
+   TrainerHitted#EnemyHitted = {CheckDamage TrainerP.type EnemyP.type}
+   WaitAnimation = {Waiter}
+   FightPort = {NewPortObject
+		state(trainerH:TrainerP.health.1 enemyH:EnemyP.health.1 fighting:false)
+		fun {$ Msg State}
+		   case Msg
+		   of run then
+		      if State.fighting then state(State)
+		      else
+			 NewTrH Fighting in
+			 if {RunSuccessful} then
+			    {Send FightAnim exit}
+			    % {Send Trainer endFight}
+			    NewTrH = State.trainerH 
+			 else NewTrH = {Attack State.trainerH}
+			    if NewTrH == State.trainerH then Fighting=false
+			    else Fighting=true end
+			 end
+			 state(trainerH:NewTrH enemyH:State.enemyH fighting:Fighting)
+		      end
+		   [] fight then
+		      if State.fighting then State(state)
+		      else
+			 NewTrH NewNPCH
+		      in
+			 if (State.trainerH == 0) then skip % {Send Trainer endfight}
+			 elseif (State.enemyH == 0) then skip % {Send Trainer endfight}
+			 else
+			    if {AttackSuccessful player} then
+			       Ack 
+			    in
+			       {Send FightAnim attack(player Ack)}
+			       {Wait Ack}
+			    % {Send WaitAnimation wait(FightPort Ack endmove)}
+			       NewNPCH = {Max State.enemyH-EnemyHitted 0}
+			       NewTrH = {Attack State.trainerH}
+			    else
+			       NewNPCH = State.enemyH
+			       NewTrH = {Attack State.trainerH}
+			    end
+			 end
+			 state(trainerH:NewTrH enemyH:NewNPCH fighting:true)
+		      end
+		   [] endmove then
+		      state(trainerH:State.trainerH enemyH:State.enemyH fighting:false)
+		   end
+		end}
+in
+   FightPort
+end
+
 \insert 'animate_port.oz'
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
@@ -282,4 +376,24 @@ fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
 in
    {TrainerController Mapid Trid Speed}
+end
+
+% Function that creates a fight
+fun{CreateFight Player NPC CanvasH}
+   Ack
+   Animation = {DrawFight CanvasH Player NPC Ack}
+   Fight = {FightController Player NPC Animation}
+   _={FightScene CanvasH Player NPC}
+in
+   {BFIGHTH bind(event:"<1>" action:
+				proc{$}
+				   {Show gotfight}
+				   {Send Fight fight}
+				end)}
+   {BRUNH bind(event:"<1>" action:
+			      proc{$}
+				 {Show gotrun}
+				 {Send Fight run}
+			      end)}
+   Fight
 end
