@@ -340,7 +340,7 @@ fun {FightController TrainerP EnemyP FightAnim}
 		   [] fight then
 		      if State.fighting then State(state)
 		      else
-			 NewTrH NewNPCH
+			 NewTrH NewNPCH Fighting
 		      in
 			 if (State.trainerH == 0) then skip % {Send Trainer endfight}
 			 elseif (State.enemyH == 0) then skip % {Send Trainer endfight}
@@ -348,6 +348,7 @@ fun {FightController TrainerP EnemyP FightAnim}
 			    if {AttackSuccessful player} then
 			       Ack 
 			    in
+			       {Show attackChar}
 			       {Send FightAnim attack(player Ack)}
 			       {Wait Ack}
 			    % {Send WaitAnimation wait(FightPort Ack endmove)}
@@ -358,7 +359,9 @@ fun {FightController TrainerP EnemyP FightAnim}
 			       NewTrH = {Attack State.trainerH}
 			    end
 			 end
-			 state(trainerH:NewTrH enemyH:NewNPCH fighting:true)
+			 if NewTrH == State.trainerH then Fighting=false
+			 else Fighting=true end
+			 state(trainerH:NewTrH enemyH:NewNPCH fighting:Fighting)
 		      end
 		   [] endmove then
 		      state(trainerH:State.trainerH enemyH:State.enemyH fighting:false)
