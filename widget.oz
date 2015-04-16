@@ -213,15 +213,17 @@ in
 end
 
 FIGHTH F_CANVASH
+BFIGHTH % will bind the "FIGHT" button widget to an action
+BRUNH   % will bind the "RUN" button widget to an action
 FightWidget = td( canvas( height:200 width:470
 			  handle:F_CANVASH
 			  bg:white
 			)
 		  lrspace(width:15)
 		  lr( tdspace(width:5)
-		      button(text:"FIGHT" font:{Font type(48)} width:6)
+		      button(text:"FIGHT" font:{Font type(48)} width:6 handle:BFIGHTH)
 		      tdspace(width:5)
-		      button(text:" RUN " font:{Font type(48)} width:6)
+		      button(text:" RUN " font:{Font type(48)} width:6 handle:BRUNH)
 		      tdspace(width:5)
 		    )
 		  lrspace(width:30)
