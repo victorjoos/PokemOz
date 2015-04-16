@@ -275,7 +275,7 @@ in
    Plid
 end
 
-fun {FightController TrainerP EnemyP Trainer FightAnim}
+fun {FightController TrainerP EnemyP FightAnim}
    fun {CheckDamage TType EType}
       if TType == EType then 2#2
       else
@@ -292,14 +292,14 @@ fun {FightController TrainerP EnemyP Trainer FightAnim}
 	 Probability = (6+TrainerP.lvl-EnemyP.lvl)*9
 	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
       in
-	 if Rand <= Probability then true
+	 if Rand =< Probability then true
 	 else false
 	 end
       [] npc then
 	 Probability = (6+EnemyP.lvl-TrainerP.lvl)*9
 	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
       in
-	 if Rand <= Probability then true
+	 if Rand =< Probability then true
 	 else false
 	 end
       end
@@ -307,13 +307,13 @@ fun {FightController TrainerP EnemyP Trainer FightAnim}
    fun {RunSuccessful}
       true % TODO(victor) : add probability
    end
-   fun {Attack NPC Trainer Health}
-      if {AttackSuccesful npc} then
+   fun {Attack Health}
+      if {AttackSuccessful npc} then
 	 Ack
       in
-	 {Send FightAnim fight(pnj Ack)}
+	 {Send FightAnim attack(pnj Ack)}
 	 {Send WaitAnimation wait(FightPort Ack endmove)}
-	 Health-TrainerHitted
+	 {Max Health-TrainerHitted 0}
       else Health % TODO : add animation
       end
    end
@@ -321,18 +321,19 @@ fun {FightController TrainerP EnemyP Trainer FightAnim}
    WaitAnimation = {Waiter}
    FightPort = {NewPortObject
 		state(trainerH:TrainerP.health.1 enemyH:EnemyP.health.1 fighting:false)
-		fun {$ Msg state(State)}
+		fun {$ Msg State}
 		   {Show Msg}
+		   {Show State}
 		   case Msg
-		   of run(X) then
+		   of run then
 		      if State.fighting then state(State)
 		      else
 			 NewTrH Fighting in
 			 if {RunSuccessful} then
 			    {Send FightAnim exit}
-			    {Send Trainer endFight}
+			    % {Send Trainer endFight}
 			    NewTrH = State.trainerH 
-			 else NewTrH = {Attack EnemyP TrainerP State.trainerH}
+			 else NewTrH = {Attack State.trainerH}
 			    if NewTrH == State.trainerH then Fighting=false
 			    else Fighting=true end
 			 end
@@ -343,26 +344,26 @@ fun {FightController TrainerP EnemyP Trainer FightAnim}
 		      else
 			 NewTrH NewNPCH
 		      in
-			 if (State.trainerH == 0) then {Send Trainer endfight}
-			 elseif (State.enemyH == 0) then {Send Trainer endfight}
+			 if (State.trainerH == 0) then skip % {Send Trainer endfight}
+			 elseif (State.enemyH == 0) then skip % {Send Trainer endfight}
 			 else
-			    if {AttackSuccessful TrainerP EnemyP} then
-			       Ack
+			    if {AttackSuccessful player} then
+			       Ack 
 			    in
 			       {Send FightAnim attack(player Ack)}
 			       {Wait Ack}
 			    % {Send WaitAnimation wait(FightPort Ack endmove)}
-			       NewNPCH = State.enemyH-EnemyHitted
-			       NewTrH = {Attack EnemyP TrainerP State.trainerH}
+			       NewNPCH = {Max State.enemyH-EnemyHitted 0}
+			       NewTrH = {Attack State.trainerH}
 			    else
 			       NewNPCH = State.enemyH
-			       NewTrH = {Attack EnemyP TrainerP State.trainerH}
+			       NewTrH = {Attack State.trainerH}
 			    end
 			 end
 			 state(trainerH:NewTrH enemyH:NewNPCH fighting:true)
 		      end
 		   [] endmove then
-		      state(trainerH:State.trainerH enemyH:State.EnemyH fighting:false)
+		      state(trainerH:State.trainerH enemyH:State.enemyH fighting:false)
 		   end
 		end}
 in
@@ -380,18 +381,22 @@ in
 end
 
 % Function that creates a fight
-fun{CreateFight Player NPC Trainer CanvasH}
+fun{CreateFight Player NPC CanvasH}
    Ack
    Animation = {DrawFight CanvasH Player NPC Ack}
-   Fight = {FightController Player NPC Trainer Animation}
+   Fight = {FightController Player NPC Animation}
+   _={FightScene CanvasH Player NPC}
 in
+   {Show gotHere}
    {BFIGHTH bind(event:"<1>" action:
 				proc{$}
+				   {Show gotfight}
 				   {Send Fight fight}
 				end)}
    {BRUNH bind(event:"<1>" action:
-				proc{$}
-				   {Send Fight run}
-				end)}
-   
+			      proc{$}
+				 {Show gotrun}
+				 {Send Fight run}
+			      end)}
+   Fight
 end

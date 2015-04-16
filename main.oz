@@ -15,8 +15,11 @@ Window = {QTk.build TopWidget}
 %%%%% FIGHT-RELATED %%%%
 P2=pokemoz(name:"Bulbasoz" type:grass  health:health(20 30) lvl:10)
 P1=pokemoz(name:"Charmandoz" type:fire health:health(20 40) lvl:5)
-Player = {CreateTrainer "Red" 6 6 SPEED MAPID CANVASH}
-{CreateFight P1 P2 Player F_CANVASH}
+MAPID = {MapController}
+{Show aftermap}
+% Player = {CreateTrainer "Red" 6 6 SPEED MAPID CANVASH}
+{Show afterplayer}
+FightId = {CreateFight P1 P2 F_CANVASH}
 % _={FightScene F_CANVASH P1 P2}
 
 %%%% MAP-RELATED %%%%
