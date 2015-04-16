@@ -322,8 +322,6 @@ fun {FightController TrainerP EnemyP FightAnim}
    FightPort = {NewPortObject
 		state(trainerH:TrainerP.health.1 enemyH:EnemyP.health.1 fighting:false)
 		fun {$ Msg State}
-		   {Show Msg}
-		   {Show State}
 		   case Msg
 		   of run then
 		      if State.fighting then state(State)
@@ -387,7 +385,6 @@ fun{CreateFight Player NPC CanvasH}
    Fight = {FightController Player NPC Animation}
    _={FightScene CanvasH Player NPC}
 in
-   {Show gotHere}
    {BFIGHTH bind(event:"<1>" action:
 				proc{$}
 				   {Show gotfight}
