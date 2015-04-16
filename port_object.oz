@@ -274,6 +274,86 @@ in
    %      -need to add smth for the AI of other players
    Plid
 end
+
+fun {FightController TrainerP EnemyP Trainer FightAnim}
+   fun {CheckDamage TType EType}
+      if TType == EType then 2#2
+      else
+	 case TType
+	 of red then if EType==green then 1#3 else 3#1 end
+	 [] green then if EType==red then 3#1 else 1#3 end 
+	 [] blue then if EType==red then 1#3 else 3#1 end
+	 end
+      end
+   end
+   fun {AttackSuccessful Attacker}
+      case Attacker
+      of player then
+	 Probability = (6+TrainerP.lvl-EnemyP.lvl)*9
+	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+      in
+	 if Rand <= Probability then true
+	 else false
+	 end
+      [] npc then
+	 Probability = (6+EnemyP.lvl-TrainerP.lvl)*9
+	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+      in
+	 if Rand <= Probability then true
+	 else false
+	 end
+      end
+   end
+   fun {RunSuccessful}
+      true % TODO(victor) : add probability
+   end
+   fun {Attack NPC Trainer Health}
+      if {AttackSuccesful npc} then
+	 Ack
+      in
+	 {Send FightAnim fight(pnj Ack)}
+	 Health-TrainerHitted
+      else Health % TODO : add animation
+      end
+   end
+   TrainerHitted#EnemyHitted = {CheckDamage TrainerP.type EnemyP.type}
+   FightPort = {NewPortObject state(trainerH:TrainerP.health.1 enemyH:EnemyP.health.1)
+		fun {$ Msg state(State)}
+		   {Show Msg}
+		   case Msg
+		   of run(X) then
+		      if {RunSuccessful} then
+			 {Send FightAnim exit}
+			 {Send Trainer endFight}
+		      else NewTrH{Attack EnemyP TrainerP State.trainerH}
+		      end
+		      state(trainerH:NewTrH enemyH:State.enemyH)
+		   [] fight(X) then
+		      NewTrH NewNPCH
+		   in
+		      if (State.trainerH == 0) then {Send Game endgame}
+		      elseif (State.enemyH == 0) then {Send Trainer endfight}
+		      else
+			 if {AttackSuccessful TrainerP EnemyP} then
+			    Ack
+			 in
+			    {Send FightAnim attack(player Ack)}
+			    NewNPCH = State.enemyH-EnemyHitted
+			    NewTrH = {Attack EnemyP TrainerP State.trainerH}
+			 else
+			    NewNPCH = State.enemyH
+			    NewTrH = {Attack EnemyP TrainerP State.trainerH}
+			 end
+		      end
+		      state(trainerH:NewTrH enemyH:NewNPCH)
+		   else
+		      {Show fightError}
+		   end
+		end}
+in
+   FightPort
+end
+
 \insert 'animate_port.oz'
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
