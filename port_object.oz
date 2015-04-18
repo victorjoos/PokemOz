@@ -19,7 +19,7 @@ fun{GETDIRSIDE Dir}
    [] left then ~1
    else 1 end
 end
-CreateFight %intern
+CreateFight = _ %intern
 
 %%%%% DEFINITION OF PORTOBJECTS' CREATION %%%%%%
 fun {NewPortObject Init Func}
@@ -111,7 +111,6 @@ fun{Tile Init C Mapid Ground}
    Tid   = {Timer}
    Tilid = {NewPortObject Init
 	    fun{$ Msg Plop}
-	       {Show plop#Msg}
 	       State = Plop.1 in
 	       case Msg
 	       of get(X) then
@@ -133,12 +132,18 @@ fun{Tile Init C Mapid Ground}
 		  of occupied(Y) then LblY = {Label Y} in
 		     if LblY\={Label Trainer} andthen
 			{Send Y.pid getDir($)} == Dir then
+			{Show 'I want to fight!!!'}
 			if LblY==player then
+			   {Show here}
 			   {CreateFight Y Trainer}
 			else
+			   {Show there}
+			   %thread
 			   {CreateFight Trainer Y}
+			   %end
 			end
 		     end
+		     {Show done}
 		     state(State)
 		  else
 		     % We don't care
@@ -244,7 +249,6 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
    Wid  = {Waiter}
    Plid = {NewPortObject state(still)
 	   fun{$ Msg state(State)}
-	      {Show Msg}
 	      case Msg
 	      of endfight then
 		 state(still)
@@ -266,7 +270,6 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
 		       %Check for boundaries and if the tile is free
 		       %then send arriving signal
 		       if {Send Mapid checksig(x:NewX y:NewY $ sig:Sig)} then
-			  {Show moving}
  			  {Send Trid moveTo(x:NewX y:NewY)}
 
 			  {Send Wid wait(Plid  Val arrived)}
@@ -274,11 +277,9 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
 					 send(x:Pos.x y:Pos.y left))}
 			  state(moving)
 		       else
-			  {Show frontier#NewX#NewY}
 			  state(still)
 		       end
 		    else
-		       {Show turned}
 		       {Send Trid turn(NewDir)}
 		       state(still)
 		    end
@@ -513,15 +514,19 @@ in
 end
 
 % Function that creates a fight
-fun{CreateFight Player NPC}
+proc{CreateFight Player NPC}
+   {Show called}
    CanvasH = CANVAS.map
    Ack
+   {Show anim#called}
    Animation = {DrawFight CanvasH Player NPC Ack}
+   {Show fight#called}
    Fight = {FightController Player NPC Animation}
 in
    {Send MAINPO set(fight)}
-   Animation = {DrawFight CanvasH Player NPC Ack}
-   Fight = {FightController Player NPC Animation}
+   %Animation = {DrawFight CanvasH Player NPC Ack}
+   %Fight = {FightController Player NPC Animation}
+   {Wait Ack}
    {BUTTONS.fight.fight bind(event:"<1>" action:
 					    proc{$}
 					       {Show gotfight}
@@ -532,7 +537,7 @@ in
 					     {Show gotrun}
 					     {Send Fight run}
 					  end)}
-   Fight
+   %Fight
 end
 
 %%%%% MAIN THREAD %%%%%%%
@@ -548,10 +553,13 @@ fun{MAIN Init Frames PlaceH MapName Handles}
    %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
    Main = {NewPortObjectKillable state(Init false)
 	   fun{$ Msg state(Frame I0)}
+	      {Show main#Msg}
 	      case Msg
 	      of set(NewFrame) then
-		 if NewFrame == Frame then state(Frame I0)
+		 if NewFrame == Frame then {Show error#NewFrame}
+		    state(Frame I0)
 		 else
+		    {Show set#NewFrame}
 		    {PlaceH set(Handles.NewFrame)}
 		    state(NewFrame I0)
 		 end
@@ -563,12 +571,12 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		    Name2 = {AtomToString Name}
 		    Name3 = (Name2.1-32)|Name2.2
 		    Map = {ReadMap MapName}
-		    %Enemy
+		    Enemy
 		    Pokemoz = {CreatePokemoz Name3 5 player}
-		    %Pokemoz2 = {CreatePokemoz "Charmandoz" 5 player}
+		    Pokemoz2 = {CreatePokemoz "Charmandoz" 5 player}
 		 in
 		    MAPID = {MapController Map}
-		    _={DrawMap CANVAS.map Map 7 7}%should NOT NEVER
+		    _={DrawMap CANVAS.map Map 7 7}%should NOT EVER
 		                                  % be threaded!!!
 		    {PlaceH set(Handles.map)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
@@ -576,9 +584,9 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		    {Show PLAYER}
 		    {Send MAPID init(x:7 y:7 player)}
 		    %TODO:add ennemies to the map
-		    %Enemy = {CreateTrainer "Red" 3 2 SPEED MAPID
-		    %	     CANVAS.map Pokemoz2 trainer}
-		    %{Send MAPID init(x:3 y:2 Enemy)}
+		    Enemy = {CreateTrainer "Red" 6 6 SPEED MAPID
+		    	     CANVAS.map Pokemoz2 trainer}
+		    {Send MAPID init(x:6 y:6 Enemy)}
 		    state(map true)
 		 end
 	      end
