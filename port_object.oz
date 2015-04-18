@@ -370,7 +370,9 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 		   [] fight then
 		      if OK then
 			 state(trainer:TState enemy:EState fighting:OK)
-		      else NEState Ack in
+		      else
+			 NEState Ack
+		      in
 			 if {AttackSuccessful player} then
 			    {Show attackChar}
 			    {Send EnemyP.pid damage(EnemyHitted NEState)}
@@ -380,6 +382,7 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 			    {Send FightAnim attack(player Ack)}
 			 else
 			    {Send FightAnim attackFail(player Ack)}
+			    NEState = alive
 			 end
 			 {Send WaitAnim wait(FightPort Ack fightIA)}
 			 %even thread will be killed, this isn't a problem
@@ -388,6 +391,7 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 			    state(trainer:TState enemy:NEState fighting:OK)
 			 else B in
 			 %TODO set you won text before exit
+			    {Show error#exit}
 			    {Send FightAnim exit(B)}
 			 %sends signal to  mainthread
 			    {Send WaitAnim wait(MAINPO B set(map))}
@@ -395,28 +399,30 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 			 end
 		      end
 		   [] fightIA then NTState Ack in
-			 if {AttackSuccessful npc} then
-			    {Send TrainerP.pid damage(TrainerHitted NTState)}
-			    {Wait NTState}
+		      {Show ia#received}
+		      if {AttackSuccessful npc} then
+			 {Send TrainerP.pid damage(TrainerHitted NTState)}
+			 {Wait NTState}
                             % ^ to avoid concurrency issues (even if they are
 			    %   VERY unlikely)
-			    {Send FightAnim attack(pnj Ack)}
-			 else
-			    {Send FightAnim attackFail(pnj Ack)}
-			 end
-			 {Send WaitAnim wait(FightPort Ack input)}
+			 {Send FightAnim attack(pnj Ack)}
+		      else
+			 {Send FightAnim attackFail(pnj Ack)}
+			 NTState = alive
+		      end
+		      {Send WaitAnim wait(FightPort Ack input)}
 			 %even thread will be killed, this isn't a problem
 			 %or at least shouldn't be
-			 if NTState == alive then
-			    state(trainer:NTState enemy:EState fighting:OK)
-			 else B in
+		      if NTState == alive then
+			 state(trainer:NTState enemy:EState fighting:OK)
+		      else B in
 			 %TODO set 'you lost' frame before exit
-			    {Send FightAnim exit(B)}
+			 {Send FightAnim exit(B)}
 			 %send signal to waiter to send signal to mainthread
 			 %TODO: add 'lost' screen
-			    {Send WaitAnim wait(MAINPO B set(map))}
-			    state(killed)
-			 end
+			 {Send WaitAnim wait(MAINPO B set(map))}
+			 state(killed)
+		      end
 		   [] input then
 		      state(trainer:TState enemy:EState fighting:false)
 		   end
@@ -453,6 +459,7 @@ fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
    Pokid = {NewPortObjectKillable state(health:h(act:HealthMax max:HealthMax)
 					exp:e(act:0 max:ExpMax) lvl:Lvl)
 	    fun{$ Msg state(health:He exp:Exp lvl:Lvl)}
+	       {Show poke#Msg}
 	       % released == kill
 	       case Msg
 	       of getHealth(X) then
@@ -462,7 +469,7 @@ fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
 		  X=Exp
 		  state(health:He exp:Exp lvl:Lvl)
 	       [] getLvl(X) then
-		  X=Lvl
+		  X=Lvl  
 		  state(health:He exp:Exp lvl:Lvl)
 	       [] addExp(AddExp) then %will replenish Health automatically in
                                       %case of evolution
@@ -489,11 +496,11 @@ fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
 		  NHealth ={Max He.act - X 0}
 	       in
 		  if NHealth == 0 then State = dead
-		  else State = alive end
+		  else State = alive {Show alive} end
 		  state(health:he(act:NHealth max:He.max) exp:Exp lvl:Lvl)
 	       [] refill then
 		  state(health:he(act:He.max max:He.max) exp:Exp lvl:Lvl)
-	       [] kill then state(killed)
+	       %[] kill then state(killed)
 	       end
 	    end}%add replenishing function for hospital later on
 in
@@ -516,15 +523,12 @@ end
 
 % Function that creates a fight
 proc{CreateFight Player NPC}
-   {Show called}
-   CanvasH = CANVAS.map
+   {Send MAINPO set(fight)}
+   CanvasH = CANVAS.fight
    Ack
-   {Show anim#called}
    Animation = {DrawFight CanvasH Player.poke NPC.poke Ack}
-   {Show fight#called}
    Fight = {FightController Player.poke NPC.poke Animation}
 in
-   {Send MAINPO set(fight)}
    %Animation = {DrawFight CanvasH Player NPC Ack}
    %Fight = {FightController Player NPC Animation}
    {Wait Ack}

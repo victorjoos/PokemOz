@@ -199,7 +199,7 @@ fun{FightScene Canvash Play Adv }
       {Canvash create(image image:Im_ad 345-XST  45 tags:TagP2)}
       {Canvash create(image image:Disk  135+XST 210 tags:TagD1)}
       {Canvash create(image image:Im_pl 125+XST 143 tags:TagP1)}
-      
+
       plateau(disk(TagD1 TagD2) pokemoz(TagP1 TagP2))
    end
    fun{DrawAttr}
@@ -215,8 +215,8 @@ fun{FightScene Canvash Play Adv }
 		      tags:Tag2)}
       Bar1={DrawBar Canvash HPlay.act HPlay.max 270+XST 180}
       Bar2={DrawBar Canvash HAdv.act  HAdv.max  110-XST  35}
-      attrib(text(Tag1 Tag2) bars(Bar1 Bar2))
 
+      attrib(text(Tag1 Tag2) bars(Bar1 Bar2))
    end
 in
    tags(plateau:{DrawImg} attrib:{DrawAttr})

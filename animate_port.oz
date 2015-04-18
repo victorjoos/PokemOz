@@ -210,11 +210,9 @@ in
       {AllTagsToList AllTags LTagsAdv LTagsPlay}
 
       for _ in 1..25 do DT = 1000 div 40 in
-	 {Show 'should move'}
 	 {MoveFight LTagsAdv  ~1}
 	 {MoveFight LTagsPlay  1}
 	 {Delay DT}
-	
       end
 
       B=unit
