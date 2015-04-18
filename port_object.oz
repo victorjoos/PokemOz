@@ -384,14 +384,12 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 			    {Send FightAnim attackFail(player Ack)}
 			    NEState = alive
 			 end
-			 {Send WaitAnim wait(FightPort Ack fightIA)}
-			 %even thread will be killed, this isn't a problem
-			 %or at least shouldn't be
+
 			 if NEState == alive then
+			    {Send WaitAnim wait(FightPort Ack fightIA)}
 			    state(trainer:TState enemy:NEState fighting:OK)
 			 else B in
 			 %TODO set you won text before exit
-			    {Show error#exit}
 			    {Send FightAnim exit(B)}
 			 %sends signal to  mainthread
 			    {Send WaitAnim wait(MAINPO B set(map))}
@@ -399,7 +397,6 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 			 end
 		      end
 		   [] fightIA then NTState Ack in
-		      {Show ia#received}
 		      if {AttackSuccessful npc} then
 			 {Send TrainerP.pid damage(TrainerHitted NTState)}
 			 {Wait NTState}
@@ -410,10 +407,9 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 			 {Send FightAnim attackFail(pnj Ack)}
 			 NTState = alive
 		      end
-		      {Send WaitAnim wait(FightPort Ack input)}
-			 %even thread will be killed, this isn't a problem
-			 %or at least shouldn't be
+
 		      if NTState == alive then
+			 {Send WaitAnim wait(FightPort Ack input)}	 
 			 state(trainer:NTState enemy:EState fighting:OK)
 		      else B in
 			 %TODO set 'you lost' frame before exit

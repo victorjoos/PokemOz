@@ -128,7 +128,12 @@ in
 end
 %Intern
 proc{ChangeBar Tag Health X0 Y0}
-   Size = {IntToFloat Health.act} / {IntToFloat Health.old}
+   Size
+   if Health.act \=0 andthen Health.old \= 0then
+      Size = {IntToFloat Health.act} / {IntToFloat Health.old}
+   else
+      Size = 0.0001
+   end
 in
    {Tag scale(X0 Y0 Size 1.0) }
 end
