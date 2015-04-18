@@ -31,6 +31,7 @@ in
    P={NewPort S}
    thread {Loop S Init} end 
    P
+   %replace by proc{$ X} {Send P X} end ?
 end
 fun {NewPortObjectKillable Init Func}
    proc {Loop S State}
@@ -319,53 +320,88 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
       end
    end
    TrainerHitted#EnemyHitted = {CheckDamage TrainerP.type EnemyP.type}
-   WaitAnimation = {Waiter}
-   FightPort = {NewPortObject
-		state(trainerH:TrainerP.health.1 enemyH:EnemyP.health.1 fighting:false)
-		fun {$ Msg State}
+   WaitAnim = {Waiter}
+   FightPort = {NewPortObjectKillable
+		state(trainer:alive enemy:alive fighting:false)
+		fun{$ Msg state(trainer:TState enemy:EState fighting:OK)}
 		   case Msg
 		   of run then
-		      if State.fighting then state(State)
+		      if OK then
+			 state(trainer:TState enemy:EState fighting:OK)
 		      else
 			 NewTrH Fighting in
-			 if {RunSuccessful} then
-			    {Send FightAnim exit}
-			    % {Send Trainer endFight}
-			    NewTrH = State.trainerH 
-			 else NewTrH = {Attack State.trainerH}
-			    if NewTrH == State.trainerH then Fighting=false
-			    else Fighting=true end
+			 if {RunSuccessful} then B in
+			    {Send EnemyP.pid refill}
+			    % send signal to set exit text
+			    {Send FightAnim  exit(B)}
+			    %Send signal to waiter to send to mainthread
+			    state(killed)
+			 else
+			    % Send signal to itself for IA turn = automatic
+			    % attack
+			    {Send FightPort fightIA}
+			    state(trainerH:NewTrH enemyH:State.enemyH
+				  fighting:true)
 			 end
-			 state(trainerH:NewTrH enemyH:State.enemyH fighting:Fighting)
 		      end
 		   [] fight then
-		      if State.fighting then State(state)
-		      else
-			 NewTrH NewNPCH Fighting
-		      in
-			 if (State.trainerH == 0) then skip % {Send Trainer endfight}
-			 elseif (State.enemyH == 0) then skip % {Send Trainer endfight}
+		      if OK then
+			 state(trainer:TState enemy:EState fighting:OK)
+		      else NEState Ack in
+			 if {AttackSuccessful player} then
+			    {Show attackChar}
+			    {Send EnnemyP.pid damage(EnnemyHitted NEState)}
+			    {Wait NEState}
+                            % ^ to avoid concurrency issues (even if they are
+			    %   VERY unlikely)
+			    {Send FightAnim attack(player Ack)}
+			    NewNPCH = {Max State.enemyH-EnemyHitted 0}
+			    NewTrH  = {Attack State.trainerH}
 			 else
-			    if {AttackSuccessful player} then
-			       Ack 
-			    in
-			       {Show attackChar}
-			       {Send FightAnim attack(player Ack)}
-			       {Wait Ack}
-			    % {Send WaitAnimation wait(FightPort Ack endmove)}
-			       NewNPCH = {Max State.enemyH-EnemyHitted 0}
-			       NewTrH = {Attack State.trainerH}
-			    else
-			       NewNPCH = State.enemyH
-			       NewTrH = {Attack State.trainerH}
-			    end
+			    %Todo:add failed attack anim
+			    NewNPCH = State.enemyH
+			    NewTrH = {Attack State.trainerH}
 			 end
-			 if NewTrH == State.trainerH then Fighting=false
-			 else Fighting=true end
-			 state(trainerH:NewTrH enemyH:NewNPCH fighting:Fighting)
+			 {Send WaitAnim wait(FightPort Ack fightIA)}
+			 %even thread will be killed, this isn't a problem
+			 %or at least shouldn't be
 		      end
-		   [] endmove then
-		      state(trainerH:State.trainerH enemyH:State.enemyH fighting:false)
+		      if NEState == alive then
+			 state(trainer:TState enemy:NEState fighting:OK)
+		      else B in
+			 %TODO set you won text before exit
+			 {Send FightAnim exit(in)}
+			 %send signal to waiter to send signal to mainthread
+			 state(killed)
+		      end
+		   [] fightIA then NTState Ack in
+			 if {AttackSuccessful npc} then
+			    {Send TrainerP.pid damage(TrainerHitted NEState)}
+			    {Wait NTState}
+                            % ^ to avoid concurrency issues (even if they are
+			    %   VERY unlikely)
+			    {Send FightAnim attack( Ack)}
+			    NewNPCH = {Max State.enemyH-EnemyHitted 0}
+			    NewTrH  = {Attack State.trainerH}
+			 else
+			    %Todo:add failed attack anim
+			    NewNPCH = State.enemyH
+			    NewTrH  = {Attack State.trainerH}
+			 end
+			 {Send WaitAnim wait(FightPort Ack input)}
+			 %even thread will be killed, this isn't a problem
+			 %or at least shouldn't be
+		      end
+		      if NTState == alive then
+			 state(trainer:NTState enemy:EState fighting:OK)
+		      else B in
+			 %TODO set 'you lost' frame before exit
+			 {Send FightAnim exit(B)}
+			 %send signal to waiter to send signal to mainthread
+			 state(killed)
+		      end
+		   [] input then
+		      state(trainer:TState enemy:EState fighting:false)
 		   end
 		end}
 in
@@ -394,10 +430,12 @@ Function that creates a Pokemoz
 fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
    Type = {GETTYPE Name}
    HealthMax = 20+(Lvl-5)*2
-   ExpMax = EXPER.(Lvl+1)
-   %Send Kill signal when the wild pokemoz vanishes, trainer is defeated or pokemoz is released back into the wild
+   ExpMax = EXPER.Lvl
+   %Send Kill signal when the wild pokemoz vanishes, trainer is defeated
+   %or pokemoz is released back into the wild
    Pokid = {NewPortObjectKilleable state(health:h(act:HealthMax max:HealthMax) exp:e(act:0 max:ExpMax) lvl:Lvl)
 	    fun{$ Msg state(health:He exp:Exp lvl:Lvl)}
+	       %TODO : add released
 	       case Msg
 	       of getHealth(X) then
 		  X=He
@@ -415,23 +453,45 @@ fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
 		  if NewExp >= Exp.max then
 		     if Lvl < 10 then NExp NLvl in
 			{GetLevel NewExp Lvl NExp NLvl}
-		     else
+			if Lvl == NLvl then
+			   state(health:He exp:e(act:NExp max:Exp.max)
+				 lvl:Lvl)
+			else NMaxH = (NLvl-5)*2 + 20 in
+			   state(health:he(act:NMaxH max:NMaxH)
+				 exp:e(act:NExp max:EXPER.NLvl) lvl:NLvl)
+			end			   
+		     else % if at maxLvl allready
 			state(health:He exp:Exp lvl:Lvl)
 		     end
 		  else
-		     state(health:h(act:He.max max:He.max) exp:e(act:RemExp max: ) lvl:Lvl+N)
+		     state(health:He exp:e(act:NewExp max:Exp.max)
+			   lvl:Lvl+N)
 		  end
+	       [] damage(X State) then %State is unbound
+		  NHealth ={Max He.act - X 0}
+	       in
+		  if NHealth == 0 then State == dead
+		  else State == alive end
+		  state(health:he(act:NHealth max:He.max) exp:Exp lvl:Lvl)
+	       [] refill then
+		  state(health:he(act:He.max max:He.max) exp:Exp lvl:Lvl)
+	       [] kill then state(killed)
 	       end
 	    end}%add replenishing function for hospital later on
+in
+   %pokemoz(name:<String> type:<Atom> pid:<PokemozPID>)
+   pokemoz(name:Name type:Type pid:Pokid)
 end
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
-fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash}
+fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash Pokemoz}
    Anid = {AnimateTrainer Canvash X0-1 Y0-1 Speed Name}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
+   Trpid = {TrainerController Mapid Trid Speed}
+
 in
-   {TrainerController Mapid Trid Speed}
-   %Todo trainer(poke:<PokemOz> pid:<TrainerController>) + add speed to state of trainer?
+   %trainer(poke:<PokemOz> pid:<TrainerController>) + Todo:add speed to state of trainer?
+   trainer(poke:Pokemoz pid:Trpid)
 end
 
 % Function that creates a fight
@@ -439,7 +499,6 @@ fun{CreateFight Player NPC CanvasH}
    Ack
    Animation = {DrawFight CanvasH Player NPC Ack}
    Fight = {FightController Player NPC Animation}
-  % _={FightScene CanvasH Player NPC}
 in
    {BFIGHTH bind(event:"<1>" action:
 				proc{$}

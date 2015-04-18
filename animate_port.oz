@@ -121,14 +121,13 @@ proc{MoveDamage Tag Diff NTag Ty}%NTag will be destroyed
    Type = {AtomToString Ty}
 in
    for I in 1..5 do
-      {Show I}
       {Tag move(Diff*Dx.I Diff*Dy.I)}
-      if I\=1 then
+      if I\=1 andthen NTag\=nil then
 	 {NTag set(image:{LoadImage [ Type "_" {IntToString I}]})}
       end
       {Delay DT}
    end
-   {NTag delete}
+   if NTag\=nil then {NTag delete} end
 end
 %Intern
 proc{ChangeBar Tag Health X0 Y0}
@@ -142,31 +141,41 @@ fun{DrawFight Canvas Play Adv B}
    AllTags
    LTagsAdv
    LTagsPlay
-   Fid={NewPortObjectKillable state(play:Play.health.1 adv:Adv.health.1)
+   Fid={NewPortObjectKillable
+	state(play:{Send Play.pid.getHealth($)}.act
+	       adv:{Send Play.pid.getHealth($)}.act)
 	fun{$ Msg State}
 	   case Msg
-	   of exit then
+	   of exit(B) then
 	      for _ in 1..25 do DT = 1000 div 40 in
 		 {QTk.flush} 
 		 {MoveFight LTagsAdv  ~1}
 		 {MoveFight LTagsPlay  1}
-		 {Delay DT}
+		 {Delay 1}
 	      end
 	      {Apply LTagsAdv  proc{$ T} {T delete} end}
 	      {Apply LTagsPlay proc{$ T} {T delete} end}
+	      B = unit
 	      state(killed)
 	   [] attack(P B) then PlH AdvH in
 	      case P
-	      of pnj then NTag = {Canvas newTag($)} in
+	      of pnj then
+		 NTag = {Canvas newTag($)}
+		   NH = {Send Play.pid.getHealth($)}.act
+	      in
 		 {MoveBack    AllTags.plateau.2.2 ~1}
 		 {MoveForward AllTags.plateau.2.2 ~1}
 		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
 				125 143)}
 		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
 		 {ChangeBar AllTags.attrib.2.1.act
-		  health(act:State.play-3 old:State.play) 270 180}
-		 PlH=3 AdvH=0
-	      [] player then NTag = {Canvas newTag($)} in
+		  health(act:NH old:State.play) 270 180}
+		 PlH  = NH-State.play
+		 AdvH = 0
+	      [] player then
+		 NTag = {Canvas newTag($)}
+		   NH = {Send Adv.pid.getHealth($)}.act
+	      in
 		 %Show attack
 		 {MoveBack    AllTags.plateau.2.1  1}
 		 {MoveForward AllTags.plateau.2.1  1}
@@ -175,11 +184,27 @@ fun{DrawFight Canvas Play Adv B}
 		 {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
 		 %Show damage taken on enemy health bar
 		 {ChangeBar AllTags.attrib.2.2.act
-		  health(act:State.adv-3 old:State.adv) 110 35}
-		 PlH=0 AdvH=3
+		  health(act:NH old:State.adv) 110 35}
+
+		 PlH  = 0
+		 AdvH = NH-State.adv
 	      end
 	      B = unit
 	      state(play:State.play-PlH adv:State.adv-AdvH)
+	   [] attackFail(P B) then
+	      case P
+	      of pnj then NTag = {Canvas newTag($)} in
+		 {MoveBack    AllTags.plateau.2.2 ~1}
+		 {MoveForward AllTags.plateau.2.2 ~1}
+		 {MoveDamage  AllTags.plateau.2.1  1 nil grass}
+	      [] player then
+		 %Show attack
+		 {MoveBack    AllTags.plateau.2.1  1}
+		 {MoveForward AllTags.plateau.2.1  1}
+		 {MoveDamage  AllTags.plateau.2.2 ~1 nil grass}
+	      end
+	      B = unit
+	      state(play:State.play adv:State.adv)
 	   end
 	end}
 in
