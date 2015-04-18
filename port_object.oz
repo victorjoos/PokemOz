@@ -19,6 +19,8 @@ fun{GETDIRSIDE Dir}
    [] left then ~1
    else 1 end
 end
+CreateFight %intern
+
 %%%%% DEFINITION OF PORTOBJECTS' CREATION %%%%%%
 fun {NewPortObject Init Func}
    proc {Loop S State}
@@ -96,20 +98,22 @@ end
 %@pre:  C     = coord(x:X y:Y) with X and Y integers
 %       Init  = state(occupied) or state(empty)
 %       Mapid = Pid of the MapControler
+%       Ground= {grass,road}
 %@post: Returns the Pid of the tile
-fun{Tile Init C Mapid}
+fun{Tile Init C Mapid Ground}
    Tilid
-   proc{SignalArrival}
+   proc{SignalArrival Trainer}
       %Signals arrival of someone to cases around
-      % BUT!!! Only Player VS PNJ !!!!
-      {Send Mapid send(x:C.x   y:C.y+1 new(up))}
-      {Send Mapid send(x:C.x+1 y:C.y   new(right))}
-      {Send Mapid send(x:C.x-1 y:C.y   new(left))}
-      {Send Mapid send(x:C.x   y:C.y-1 new(down))}
+      {Send Mapid send(x:C.x   y:C.y+1 new(up Trainer))}
+      {Send Mapid send(x:C.x+1 y:C.y   new(right Trainer))}
+      {Send Mapid send(x:C.x-1 y:C.y   new(left Trainer))}
+      {Send Mapid send(x:C.x   y:C.y-1 new(down Trainer))}
    end
    Tid   = {Timer}
    Tilid = {NewPortObject Init
-	    fun{$ Msg state(State)}
+	    fun{$ Msg Plop}
+	       {Show plop#Plop}
+	       State = Plop.1
 	       case Msg
 	       of get(X) then
 		  X=State
@@ -119,14 +123,23 @@ fun{Tile Init C Mapid}
 		  state(reserved)
 	       [] arrived(Plid Val) then
 		  Val=unit
-		  %TODO wild pokemoz
-		  {SignalArrival}
+		  if Ground == grass andthen {Label Plid} == player then
+		     %Todo: wild pokemoz
+		     skip
+		  end
+		  {SignalArrival Plid}
 		  state(occupied(Plid))
-	       [] new(X) then
+	       [] new(Dir Trainer) then
 		  case State
-		  of occupied(Y) then
-		     %TODO!!
-		     %Si le temps implémenter le 2 Vs 1
+		  of occupied(Y) then LblY = {Label Y} in
+		     if LblY\={Label Trainer} andthen
+			{Send Y.pid getDir($)} == Dir then
+			if LblY==player then
+			   {CreateFight Y Trainer}
+			else
+			   {CreateFight Trainer Y}
+			end
+		     end
 		     state(State)
 		  else
 		     % We don't care
@@ -134,6 +147,8 @@ fun{Tile Init C Mapid}
 		  end
 	       [] left then
 		  state(empty)
+	       [] init(X) then
+		  state(occupied(X))
 	       end
 	    end}
 in
@@ -142,8 +157,9 @@ end
 %
 %@post: Returns the pid of the controller (through which every command
 %       to the tiles passes)
-fun{MapController}
+fun{MapController Map}
    MapRec
+   Ground = ground(0:road 1:grass)
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
 	 Y>0 andthen Y=<MAXY then
@@ -175,15 +191,19 @@ fun{MapController}
 		  else
 		     B=false
 		  end
+	       [] init(x:X y:Y Plid) then
+		  {Send MapRec.Y.X init(Plid)}
 	       end
 	    end}
    
 in
+   %better to thread drawmap function
    MapRec = {MakeTuple 'mapids' MAXY}
    for J in 1..MAXY do
       MapRec.J = {MakeTuple 'mapids' MAXX}
       for I in 1..MAXX do
-	 MapRec.J.I = {Tile state(empty) coord(x:I y:J) Mapid}
+	 MapRec.J.I = {Tile state(empty) coord(x:I y:J) Mapid
+		       Ground.(Map.J.I)}
       end
    end
    Mapid
@@ -229,6 +249,9 @@ fun{TrainerController Mapid Trid Speed}
 	      case Msg
 	      of endfight then
 		 state(still)
+	      [] getDir(X) then
+		 {Send Trid getDir(X)}
+		 state(State)
 	      [] move(NewDir) then
 		 if State == still then
 		    ActDir = {Send Trid getDir($)}
@@ -309,16 +332,16 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
    fun {RunSuccessful}
       true % TODO(victor) : add probability
    end
-   fun {Attack Health}
-      if {AttackSuccessful npc} then
-	 Ack
-      in
-	 {Send FightAnim attack(pnj Ack)}
-	 {Send WaitAnimation wait(FightPort Ack endmove)}
-	 {Max Health-TrainerHitted 0}
-      else Health % TODO : add animation/text description failed attack
-      end
-   end
+   % fun {Attack Health}
+   %    if {AttackSuccessful npc} then
+   % 	 Ack
+   %    in
+   % 	 {Send FightAnim attack(pnj Ack)}
+   % 	 {Send WaitAnim wait(FightPort Ack endmove)}
+   % 	 {Max Health-TrainerHitted 0}
+   %    else Health % TODO : add animation/text description failed attack
+   %    end
+   % end
    TrainerHitted#EnemyHitted = {CheckDamage TrainerP.type EnemyP.type}
    WaitAnim = {Waiter}
    FightPort = {NewPortObjectKillable
@@ -329,19 +352,18 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 		      if OK then
 			 state(trainer:TState enemy:EState fighting:OK)
 		      else
-			 NewTrH Fighting in
 			 if {RunSuccessful} then B in
 			    {Send EnemyP.pid refill}
-			    % send signal to set exit text
+			    %TODO: send signal to set exit text
 			    {Send FightAnim  exit(B)}
-			    %Send signal to waiter to send to mainthread
+			    %Sends signal to mainthread to change placeH
+			    {Send WaitAnim wait(MAINPO B set(map))}
 			    state(killed)
 			 else
 			    % Send signal to itself for IA turn = automatic
 			    % attack
 			    {Send FightPort fightIA}
-			    state(trainerH:NewTrH enemyH:State.enemyH
-				  fighting:true)
+			    state(trainer:TState enemy:EState fighting:true)
 			 end
 		      end
 		   [] fight then
@@ -350,56 +372,50 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 		      else NEState Ack in
 			 if {AttackSuccessful player} then
 			    {Show attackChar}
-			    {Send EnnemyP.pid damage(EnnemyHitted NEState)}
+			    {Send EnemyP.pid damage(EnemyHitted NEState)}
 			    {Wait NEState}
                             % ^ to avoid concurrency issues (even if they are
 			    %   VERY unlikely)
 			    {Send FightAnim attack(player Ack)}
-			    NewNPCH = {Max State.enemyH-EnemyHitted 0}
-			    NewTrH  = {Attack State.trainerH}
 			 else
-			    %Todo:add failed attack anim
-			    NewNPCH = State.enemyH
-			    NewTrH = {Attack State.trainerH}
+			    {Send FightAnim attackFail(player Ack)}
 			 end
 			 {Send WaitAnim wait(FightPort Ack fightIA)}
 			 %even thread will be killed, this isn't a problem
 			 %or at least shouldn't be
-		      end
-		      if NEState == alive then
-			 state(trainer:TState enemy:NEState fighting:OK)
-		      else B in
+			 if NEState == alive then
+			    state(trainer:TState enemy:NEState fighting:OK)
+			 else B in
 			 %TODO set you won text before exit
-			 {Send FightAnim exit(in)}
-			 %send signal to waiter to send signal to mainthread
-			 state(killed)
+			    {Send FightAnim exit(B)}
+			 %sends signal to  mainthread
+			    {Send WaitAnim wait(MAINPO B set(map))}
+			    state(killed)
+			 end
 		      end
 		   [] fightIA then NTState Ack in
 			 if {AttackSuccessful npc} then
-			    {Send TrainerP.pid damage(TrainerHitted NEState)}
+			    {Send TrainerP.pid damage(TrainerHitted NTState)}
 			    {Wait NTState}
                             % ^ to avoid concurrency issues (even if they are
 			    %   VERY unlikely)
-			    {Send FightAnim attack( Ack)}
-			    NewNPCH = {Max State.enemyH-EnemyHitted 0}
-			    NewTrH  = {Attack State.trainerH}
+			    {Send FightAnim attack(pnj Ack)}
 			 else
-			    %Todo:add failed attack anim
-			    NewNPCH = State.enemyH
-			    NewTrH  = {Attack State.trainerH}
+			    {Send FightAnim attackFail(pnj Ack)}
 			 end
 			 {Send WaitAnim wait(FightPort Ack input)}
 			 %even thread will be killed, this isn't a problem
 			 %or at least shouldn't be
-		      end
-		      if NTState == alive then
-			 state(trainer:NTState enemy:EState fighting:OK)
-		      else B in
+			 if NTState == alive then
+			    state(trainer:NTState enemy:EState fighting:OK)
+			 else B in
 			 %TODO set 'you lost' frame before exit
-			 {Send FightAnim exit(B)}
+			    {Send FightAnim exit(B)}
 			 %send signal to waiter to send signal to mainthread
-			 state(killed)
-		      end
+			 %TODO: add 'lost' screen
+			    {Send WaitAnim wait(MAINPO B set(map))}
+			    state(killed)
+			 end
 		   [] input then
 		      state(trainer:TState enemy:EState fighting:false)
 		   end
@@ -426,16 +442,17 @@ proc{GetLevel Exp Lvl Ne Le}
       Ne = Exp Le = Lvl
    end
 end
-Function that creates a Pokemoz
+%Function that creates a Pokemoz
 fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
    Type = {GETTYPE Name}
    HealthMax = 20+(Lvl-5)*2
    ExpMax = EXPER.Lvl
    %Send Kill signal when the wild pokemoz vanishes, trainer is defeated
    %or pokemoz is released back into the wild
-   Pokid = {NewPortObjectKilleable state(health:h(act:HealthMax max:HealthMax) exp:e(act:0 max:ExpMax) lvl:Lvl)
+   Pokid = {NewPortObjectKillable state(health:h(act:HealthMax max:HealthMax)
+					exp:e(act:0 max:ExpMax) lvl:Lvl)
 	    fun{$ Msg state(health:He exp:Exp lvl:Lvl)}
-	       %TODO : add released
+	       % released == kill
 	       case Msg
 	       of getHealth(X) then
 		  X=He
@@ -465,13 +482,13 @@ fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
 		     end
 		  else
 		     state(health:He exp:e(act:NewExp max:Exp.max)
-			   lvl:Lvl+N)
+			   lvl:Lvl)
 		  end
 	       [] damage(X State) then %State is unbound
 		  NHealth ={Max He.act - X 0}
 	       in
-		  if NHealth == 0 then State == dead
-		  else State == alive end
+		  if NHealth == 0 then State = dead
+		  else State = alive end
 		  state(health:he(act:NHealth max:He.max) exp:Exp lvl:Lvl)
 	       [] refill then
 		  state(health:he(act:He.max max:He.max) exp:Exp lvl:Lvl)
@@ -484,31 +501,92 @@ in
 end
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
-fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash Pokemoz}
+fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash Pokemoz Type}
    Anid = {AnimateTrainer Canvash X0-1 Y0-1 Speed Name}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
    Trpid = {TrainerController Mapid Trid Speed}
 
 in
    %trainer(poke:<PokemOz> pid:<TrainerController>) + Todo:add speed to state of trainer?
-   trainer(poke:Pokemoz pid:Trpid)
+   Type(poke:Pokemoz pid:Trpid)
 end
 
 % Function that creates a fight
-fun{CreateFight Player NPC CanvasH}
+fun{CreateFight Player NPC}
+   CanvasH = CANVAS.map
    Ack
    Animation = {DrawFight CanvasH Player NPC Ack}
    Fight = {FightController Player NPC Animation}
 in
-   {BFIGHTH bind(event:"<1>" action:
-				proc{$}
-				   {Show gotfight}
-				   {Send Fight fight}
-				end)}
-   {BRUNH bind(event:"<1>" action:
-			      proc{$}
-				 {Show gotrun}
-				 {Send Fight run}
-			      end)}
+   {Send MAINPO set(fight)}
+   Animation = {DrawFight CanvasH Player NPC Ack}
+   Fight = {FightController Player NPC Animation}
+   {BUTTONS.fight.fight bind(event:"<1>" action:
+					    proc{$}
+					       {Show gotfight}
+					       {Send Fight fight}
+					    end)}
+   {BUTTONS.fight.run bind(event:"<1>" action:
+					  proc{$}
+					     {Show gotrun}
+					     {Send Fight run}
+					  end)}
    Fight
+end
+
+%%%%% MAIN THREAD %%%%%%%
+% Init = {starters, map, fight, lost, won}
+% This function initialises all the handles for the
+% placeholder and returns the handle for it's thread
+% to change the inside of the placeholder
+% @pre: -Frames = a record with all the frame-descriptions in it
+%       -Init   = the initial state (<Atom>)
+%       -PlaceH = handle of the placeholder
+fun{MAIN Init Frames PlaceH MapName Handles}
+   Sort =[starters map fight]% lost won]
+   %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
+   Main = {NewPortObjectKillable state(Init false)
+	   fun{$ Msg state(Frame I0)}
+	      case Msg
+	      of set(NewFrame) then
+		 if NewFrame == Frame then state(Frame I0)
+		 else
+		    {PlaceH set(Handles.NewFrame)}
+		    state(NewFrame I0)
+		 end
+	      [] get(X) then X=Frame state(Frame I0)
+	      [] makeTrainer(Name) then
+		 if I0 then
+		    state(Frame I0)
+		 else
+		    Name2 = {AtomToString Name}
+		    Name3 = (Name2.1-32)|Name2.2
+		    Map = {ReadMap MapName}
+		    Enemy
+		    Pokemoz = {CreatePokemoz Name3 5 player}
+		    %Pokemoz2 = {CreatePokemoz "Charmandoz" 5 player}
+		 in
+		    MAPID = {MapController Map}
+		    _={DrawMap CANVAS.map Map 7 7}%should NOT NEVER
+		                                  % be threaded!!!
+		    {PlaceH set(Handles.map)}
+		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
+			      CANVAS.map Pokemoz player}
+		    {Send MAPID init(x:7 y:7 player)}
+		    %TODO:add ennemies to the map
+		    %Enemy = {CreateTrainer "Red" 3 2 SPEED MAPID
+		    %	     CANVAS.map Pokemoz2 trainer}
+		    %{Send MAPID init(x:3 y:2 Enemy)}
+		    state(map true)
+		 end
+	      end
+	  end}
+
+in
+   for I in Sort do
+      {PlaceH set(Frames.I)}
+      %{Delay 1000}
+   end
+   {PlaceH set(Handles.Init)}
+   Main %proc{$ X} {Send Main X} end
 end

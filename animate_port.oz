@@ -1,6 +1,4 @@
 declare
-
-
 %%%%%%% TRAINER ON MAP %%%%%%
 
 % Commands sent to this port are guaranteed to change the state of
@@ -19,7 +17,7 @@ fun{AnimateTrainer Canvash X0 Y0 Speed Name}
       if Ind < 8 then
 	 Next = ((Ind) mod 4)+1
       in
-	 {Show Next}
+	 %{Show Next}
 	 {Delay DT}
 	 {TagIm set(image:{LoadImage [Name "_" Dir STATES.Next]})}
 	 if Dir == "up" orelse Dir == "down" then
@@ -32,7 +30,7 @@ fun{AnimateTrainer Canvash X0 Y0 Speed Name}
 	 skip
       end
    end
-   Tid   = {Timer}
+   %Tid   = {Timer}
    TagIm = {Canvash newTag($)}
    Anid  = {NewPortObjectMinor
 	    proc{$ Msg}
@@ -115,7 +113,6 @@ end
 %Intern
 proc{MoveDamage Tag Diff NTag Ty}%NTag will be destroyed
    DT  = 1000 div 20
-   Cst = 25
    Dx  = dx(5  ~25  15  15 ~10)
    Dy  = dy(20  10 ~15 ~5  ~10)
    Type = {AtomToString Ty}
@@ -142,8 +139,8 @@ fun{DrawFight Canvas Play Adv B}
    LTagsAdv
    LTagsPlay
    Fid={NewPortObjectKillable
-	state(play:{Send Play.pid.getHealth($)}.act
-	       adv:{Send Play.pid.getHealth($)}.act)
+	state(play:{Send Play.pid getHealth($)}.act
+	       adv:{Send Play.pid getHealth($)}.act)
 	fun{$ Msg State}
 	   case Msg
 	   of exit(B) then
@@ -151,7 +148,7 @@ fun{DrawFight Canvas Play Adv B}
 		 {QTk.flush} 
 		 {MoveFight LTagsAdv  ~1}
 		 {MoveFight LTagsPlay  1}
-		 {Delay 1}
+		 {Delay DT}
 	      end
 	      {Apply LTagsAdv  proc{$ T} {T delete} end}
 	      {Apply LTagsPlay proc{$ T} {T delete} end}
@@ -161,7 +158,7 @@ fun{DrawFight Canvas Play Adv B}
 	      case P
 	      of pnj then
 		 NTag = {Canvas newTag($)}
-		   NH = {Send Play.pid.getHealth($)}.act
+		   NH = {Send Play.pid getHealth($)}.act
 	      in
 		 {MoveBack    AllTags.plateau.2.2 ~1}
 		 {MoveForward AllTags.plateau.2.2 ~1}
@@ -174,7 +171,7 @@ fun{DrawFight Canvas Play Adv B}
 		 AdvH = 0
 	      [] player then
 		 NTag = {Canvas newTag($)}
-		   NH = {Send Adv.pid.getHealth($)}.act
+		   NH = {Send Adv.pid getHealth($)}.act
 	      in
 		 %Show attack
 		 {MoveBack    AllTags.plateau.2.1  1}
@@ -193,7 +190,7 @@ fun{DrawFight Canvas Play Adv B}
 	      state(play:State.play-PlH adv:State.adv-AdvH)
 	   [] attackFail(P B) then
 	      case P
-	      of pnj then NTag = {Canvas newTag($)} in
+	      of pnj then
 		 {MoveBack    AllTags.plateau.2.2 ~1}
 		 {MoveForward AllTags.plateau.2.2 ~1}
 		 {MoveDamage  AllTags.plateau.2.1  1 nil grass}

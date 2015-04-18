@@ -33,93 +33,100 @@ fun{Font Id} FONT=helvetica in
    end
 end
 
+%%%%%%%%% ALL THE WIDGET HANDLES AND NAMES %%%%%%
 
+WIDGETS = widgets(starters:_ map:_ fight:_ lost:_ won:_ )
+CANVAS  =  canvas(           map:_ fight:_)
+BUTTONS = buttons(starters:'3'(bulbasoz:_ charmandoz:_ oztirtle:_)
+		  fight:'2'(run:_ fight:_))
+HANDLES = handles(starters:_ map:_ fight:_ lost:_ won:_)
+PLACEHOLDER
 %%%%%%%%% STARTWIDGET %%%%%%%%%%%
 
 %creer un record avec couleur + type lies!!
 fun{StarterPokemoz Name}
+   Name2 = (Name.1+32)|Name.2
    Widg = td(glue:nw
 	     button( image:{LoadImage [Name "_full"]}
 		     activebackground:c(0 0 255)
 		     background:c(0 255 0)
 		   )
 	     button( text:Name
-		     action:proc{$}
-			       {Show {StringToAtom Name}#new}
-			    end
+		     %action:proc{$}
+		     %	       {Show {StringToAtom Name}#new}
+		     %	    end
 		     width:12
 		     font:{Font type}
+		     handle:BUTTONS.starters.{StringToAtom Name2}
 		   )
 	    )
-   
 in
    Widg
 end
-STARTH
 StartSpace = 15
-StartWidget = td( %lrspace(width:50)
-		  label( init:"Choose your starter PokemOZ"
-			 font:{Font type(25)})
-		  lr( tdspace(width:StartSpace)
-		      {StarterPokemoz "Bulbasoz"}
-		      tdspace(width:StartSpace)
-		      {StarterPokemoz "Oztirtle"}
-		      tdspace(width:StartSpace)
-		      {StarterPokemoz "Charmandoz"}
-		      tdspace(width:StartSpace)
+WIDGETS.starters = td( %lrspace(width:50)
+		      label( init:"Choose your starter PokemOZ"
+			     font:{Font type(25)})
+		      lr( tdspace(width:StartSpace)
+			  {StarterPokemoz "Bulbasoz"}
+			  tdspace(width:StartSpace)
+			  {StarterPokemoz "Oztirtle"}
+			  tdspace(width:StartSpace)
+			  {StarterPokemoz "Charmandoz"}
+			  tdspace(width:StartSpace)
+			)
+		      handle:HANDLES.starters
 		    )
-		  handle:STARTH
-		)
 %%%%%%% STARTWIDGET2 %%%%%%%
 
-proc{Starter Canvash} Yim=200 Ytx=Yim+75 Tag1 Tag2 Tag3 Tag4 in 
-   {Canvash create(text 235 50 text:"Choose your PokemOz"
-		   font:{Font type(25)})}
-   Tag1={Canvash newTag($)}
-   Tag2={Canvash newTag($)}
-   Tag3={Canvash newTag($)}
-   Tag4={Canvash newTag($)}
-   {Canvash create(rectangle 20 Yim-65 150 Yim+95 fill:green tags:Tag1)}
+% proc{Starter Canvash} Yim=200 Ytx=Yim+75 Tag1 Tag2 Tag3 Tag4 in 
+%    {Canvash create(text 235 50 text:"Choose your PokemOz"
+% 		   font:{Font type(25)})}
+%    Tag1={Canvash newTag($)}
+%    Tag2={Canvash newTag($)}
+%    Tag3={Canvash newTag($)}
+%    Tag4={Canvash newTag($)}
+%    {Canvash create(rectangle 20 Yim-65 150 Yim+95 fill:green tags:Tag1)}
    
-   {Canvash create(text text:"Bulbasoz"   font:{Font type} 85  Ytx tags:Tag2)}
-   {Canvash create(text text:"Oztirtle"   font:{Font type} 235 Ytx)}
-   {Canvash create(text text:"Charmandoz" font:{Font type} 385 Ytx)}
-   {Canvash create(image image:{LoadImage "Bulbasoz_full"}   85  Yim tags:Tag3)}
-   {Canvash create(image image:{LoadImage "Oztirtle_full"}   235 Yim)}
-   {Canvash create(image image:{LoadImage "Charmandoz_full"} 385 Yim)}
+%    {Canvash create(text text:"Bulbasoz"   font:{Font type} 85  Ytx tags:Tag2)}
+%    {Canvash create(text text:"Oztirtle"   font:{Font type} 235 Ytx)}
+%    {Canvash create(text text:"Charmandoz" font:{Font type} 385 Ytx)}
+%    {Canvash create(image image:{LoadImage "Bulbasoz_full"}   85  Yim tags:Tag3)}
+%    {Canvash create(image image:{LoadImage "Oztirtle_full"}   235 Yim)}
+%    {Canvash create(image image:{LoadImage "Charmandoz_full"} 385 Yim)}
 
-   % {Canvash create(rectangle 15 Yim-70 155 Yim+100 tags:Tag1)}
+%    % {Canvash create(rectangle 15 Yim-70 155 Yim+100 tags:Tag1)}
 
 
-    {Tag1 bind(event:"<Enter>" action:proc{$}
-					 {Show 'setYellow'}
-					 {Tag1 set(fill:yellow)}
-				      end)}
-   {Tag1 bind(event:"<Leave>" action:proc{$}
-					{Show 'setGreen'}
-					{Tag1 set(fill:green)}
-				     end)}
+%     {Tag1 bind(event:"<Enter>" action:proc{$}
+% 					 {Show 'setYellow'}
+% 					 {Tag1 set(fill:yellow)}
+% 				      end)}
+%    {Tag1 bind(event:"<Leave>" action:proc{$}
+% 					{Show 'setGreen'}
+% 					{Tag1 set(fill:green)}
+% 				     end)}
   
-   {Tag2 bind(event:"<Enter>" action:proc{$}
-					{Show 'setYellow'}
-					{Tag1 set(fill:yellow)}
-				     end)}
-   {Tag2 bind(event:"<Leave>" action:proc{$}
-					{Show 'setGreen'}
-					{Tag1 set(fill:green)}
-				     end)}
-   {Tag3 bind(event:"<Enter>" action:proc{$}
-					{Show 'setYellow'}
-					{Tag1 set(fill:yellow)}
-				     end)}
-   {Tag3 bind(event:"<Leave>" action:proc{$}
-					{Show 'setGreen'}
-					{Tag1 set(fill:green)}
-				     end)}
-end
-STARTH2 CANVASST
-StartWidget2 = canvas( width:470 height:470 handle:CANVASST
-		       bg:white)
+%    {Tag2 bind(event:"<Enter>" action:proc{$}
+% 					{Show 'setYellow'}
+% 					{Tag1 set(fill:yellow)}
+% 				     end)}
+%    {Tag2 bind(event:"<Leave>" action:proc{$}
+% 					{Show 'setGreen'}
+% 					{Tag1 set(fill:green)}
+% 				     end)}
+%    {Tag3 bind(event:"<Enter>" action:proc{$}
+% 					{Show 'setYellow'}
+% 					{Tag1 set(fill:yellow)}
+% 				     end)}
+%    {Tag3 bind(event:"<Leave>" action:proc{$}
+% 					{Show 'setGreen'}
+% 					{Tag1 set(fill:green)}
+% 				     end)}
+% end
+% STARTH2 CANVASST
+% StartWidget2 = canvas( width:470 height:470 handle:CANVASST
+% 		       bg:white)
 
 
 
@@ -156,13 +163,13 @@ end
 proc{ShiftMap Handles Dir}
    skip   
 end
-MAPH CANVASH
-MapWidget = td( canvas( height:470 width:470
-		        handle:CANVASH
-		        bg:black
-		      )
-		handle:MAPH
-	      )
+
+WIDGETS.map = td( canvas( height:470 width:470
+			  handle:CANVAS.map
+			  bg:black
+			)
+		  handle:HANDLES.map
+		)
 
 %%%%%%% FIGHTWIDGET %%%%%%%%
 fun{DrawBar Canvas Act Max X0 Y0}
@@ -213,30 +220,25 @@ in
    tags(plateau:{DrawImg} attrib:{DrawAttr})
 end
 
-FIGHTH F_CANVASH
-BFIGHTH % will bind the "FIGHT" button widget to an action
-BRUNH   % will bind the "RUN" button widget to an action
-FightWidget = td( canvas( height:200 width:470
-			  handle:F_CANVASH
-			  bg:white
-			)
-		  lrspace(width:15)
-		  lr( tdspace(width:5)
-		      button(text:"FIGHT" font:{Font type(48)} width:6 handle:BFIGHTH)
-		      tdspace(width:5)
-		      button(text:" RUN " font:{Font type(48)} width:6 handle:BRUNH)
-		      tdspace(width:5)
-		    )
-		  lrspace(width:30)
-		  handle:FIGHTH
-		)
+WIDGETS.fight = td( canvas( height:200 width:470
+			    handle:CANVAS.fight
+			    bg:white
+			  )
+		    lrspace(width:15)
+		    lr( tdspace(width:5)
+			button(text:"FIGHT" font:{Font type(48)} width:6
+			       handle:BUTTONS.fight.fight)
+			tdspace(width:5)
+			button(text:" RUN " font:{Font type(48)} width:6
+			       handle:BUTTONS.fight.run)
+			tdspace(width:5)
+		      )
+		    lrspace(width:30)
+		    handle:HANDLES.fight
+		  )
 
 %%%%%%% TOPWIDGET %%%%%%%%%%
-PLACEH
-TopWidget  = td( placeholder(
-		    %MapWidget
-		    FightWidget
-		    handle:PLACEH)
+TopWidget  = td( placeholder(handle:PLACEHOLDER)
 		 geometry:geometry(height:470 width:470)
 		 resizable:resizable(width:false height:false)
 	       )
