@@ -101,7 +101,6 @@ end
 %       Ground= {grass,road}
 %@post: Returns the Pid of the tile
 fun{Tile Init C Mapid Ground}
-   Tilid
    proc{SignalArrival Trainer}
       %Signals arrival of someone to cases around
       {Send Mapid send(x:C.x   y:C.y+1 new(up Trainer))}
@@ -112,8 +111,8 @@ fun{Tile Init C Mapid Ground}
    Tid   = {Timer}
    Tilid = {NewPortObject Init
 	    fun{$ Msg Plop}
-	       {Show plop#Plop}
-	       State = Plop.1
+	       {Show plop#Msg}
+	       State = Plop.1 in
 	       case Msg
 	       of get(X) then
 		  X=State
@@ -123,10 +122,10 @@ fun{Tile Init C Mapid Ground}
 		  state(reserved)
 	       [] arrived(Plid Val) then
 		  Val=unit
-		  if Ground == grass andthen {Label Plid} == player then
+		  %if Ground == grass andthen {Label Plid} == player then
 		     %Todo: wild pokemoz
-		     skip
-		  end
+		   %  skip
+		  %end
 		  {SignalArrival Plid}
 		  state(occupied(Plid))
 	       [] new(Dir Trainer) then
@@ -241,7 +240,7 @@ end
 %@pre : Mapid = the Pid of the mapControler
 %       Trid  = the Pid of the trainer this controller is destined to
 %@post: Returns the controler of the trainer
-fun{TrainerController Mapid Trid Speed}
+fun{TrainerController Mapid Trid Speed TrainerObj}
    Wid  = {Waiter}
    Plid = {NewPortObject state(still)
 	   fun{$ Msg state(State)}
@@ -262,7 +261,7 @@ fun{TrainerController Mapid Trid Speed}
 		       NewX = Pos.x+Dx.x
 		       NewY = Pos.y+Dx.y
 		       Val %will be bound on arrival
-		       Sig  = comming(Speed*DELAY Plid Val)
+		       Sig  = comming(Speed*DELAY TrainerObj Val)
 		    in
 		       %Check for boundaries and if the tile is free
 		       %then send arriving signal
@@ -502,13 +501,15 @@ end
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
 fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash Pokemoz Type}
+   Trpid
+   TrainerObj = Type(poke:Pokemoz pid:Trpid)
    Anid = {AnimateTrainer Canvash X0-1 Y0-1 Speed Name}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
-   Trpid = {TrainerController Mapid Trid Speed}
+   Trpid = {TrainerController Mapid Trid Speed TrainerObj}
 
 in
    %trainer(poke:<PokemOz> pid:<TrainerController>) + Todo:add speed to state of trainer?
-   Type(poke:Pokemoz pid:Trpid)
+   TrainerObj
 end
 
 % Function that creates a fight
@@ -562,7 +563,7 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		    Name2 = {AtomToString Name}
 		    Name3 = (Name2.1-32)|Name2.2
 		    Map = {ReadMap MapName}
-		    Enemy
+		    %Enemy
 		    Pokemoz = {CreatePokemoz Name3 5 player}
 		    %Pokemoz2 = {CreatePokemoz "Charmandoz" 5 player}
 		 in
@@ -572,6 +573,7 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		    {PlaceH set(Handles.map)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
 			      CANVAS.map Pokemoz player}
+		    {Show PLAYER}
 		    {Send MAPID init(x:7 y:7 player)}
 		    %TODO:add ennemies to the map
 		    %Enemy = {CreateTrainer "Red" 3 2 SPEED MAPID
