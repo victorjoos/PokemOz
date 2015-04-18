@@ -1,7 +1,7 @@
 % This file will contain all the widget-containers used in this project
 % each time with a brief description of what they do
 
-declare
+%declare
 % This function will load a given image from the library and return it
 % @pre: Name is a list of strings for a valid image:
 %            ex: ["Bulboz" "_back"]
@@ -206,13 +206,15 @@ fun{FightScene Canvash Play Adv }
       Tag1 = {Canvash newTag($)}
       Tag2 = {Canvash newTag($)}
       Bar1 Bar2
+      HPlay = {Send Play.pid getHealth($)}
+      HAdv  = {Send  Adv.pid getHealth($)}
    in
       {Canvash create(text 320+XST 165 text:Play.name font:{Font type(16)}
 		      tags:Tag1)}
       {Canvash create(text 160-XST  20 text:Adv.name  font:{Font type(16)}
 		      tags:Tag2)}
-      Bar1={DrawBar Canvash Play.health.1 Play.health.2 270+XST 180}
-      Bar2={DrawBar Canvash Adv.health.1  Adv.health.2  110-XST  35}
+      Bar1={DrawBar Canvash HPlay.act HPlay.max 270+XST 180}
+      Bar2={DrawBar Canvash HAdv.act  HAdv.max  110-XST  35}
       attrib(text(Tag1 Tag2) bars(Bar1 Bar2))
 
    end

@@ -1,5 +1,5 @@
 % This file will contain all the portObjects' descriptions and code
-declare
+%declare
 %%%%% CONSTANTS %%%%%%%%%
 SPEED = 5
 DELAY = 100
@@ -19,7 +19,6 @@ fun{GETDIRSIDE Dir}
    [] left then ~1
    else 1 end
 end
-CreateFight = _ %intern
 
 %%%%% DEFINITION OF PORTOBJECTS' CREATION %%%%%%
 fun {NewPortObject Init Func}
@@ -100,6 +99,7 @@ end
 %       Mapid = Pid of the MapControler
 %       Ground= {grass,road}
 %@post: Returns the Pid of the tile
+CreateFight
 fun{Tile Init C Mapid Ground}
    proc{SignalArrival Trainer}
       %Signals arrival of someone to cases around
@@ -138,9 +138,7 @@ fun{Tile Init C Mapid Ground}
 			   {CreateFight Y Trainer}
 			else
 			   {Show there}
-			   %thread
 			   {CreateFight Trainer Y}
-			   %end
 			end
 		     end
 		     {Show done}
@@ -312,16 +310,19 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
       end
    end
    fun {AttackSuccessful Attacker}
+      TrainerLvl = {Send TrainerP.pid getLvl($)}
+      EnemyLvl   = {Send   EnemyP.pid getLvl($)}
+   in
       case Attacker
       of player then
-	 Probability = (6+TrainerP.lvl-EnemyP.lvl)*9
+	 Probability = (6+TrainerLvl-EnemyLvl)*9
 	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
       in
 	 if Rand =< Probability then true
 	 else false
 	 end
       [] npc then
-	 Probability = (6+EnemyP.lvl-TrainerP.lvl)*9
+	 Probability = (6+EnemyLvl-TrainerLvl)*9
 	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
       in
 	 if Rand =< Probability then true
@@ -519,9 +520,9 @@ proc{CreateFight Player NPC}
    CanvasH = CANVAS.map
    Ack
    {Show anim#called}
-   Animation = {DrawFight CanvasH Player NPC Ack}
+   Animation = {DrawFight CanvasH Player.poke NPC.poke Ack}
    {Show fight#called}
-   Fight = {FightController Player NPC Animation}
+   Fight = {FightController Player.poke NPC.poke Animation}
 in
    {Send MAINPO set(fight)}
    %Animation = {DrawFight CanvasH Player NPC Ack}
