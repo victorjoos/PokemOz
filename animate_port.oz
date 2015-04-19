@@ -110,7 +110,7 @@ in
    end
 end
 %Intern
-proc{MoveDamage Tag Diff NTag Ty}%NTag will be destroyed
+proc{MoveDamage Tag Diff NTag Ty}%NTag will be deleted
    DT  = 1000 div 20
    Dx  = dx(5  ~25  15  15 ~10)
    Dy  = dy(20  10 ~15 ~5  ~10)
@@ -118,7 +118,7 @@ proc{MoveDamage Tag Diff NTag Ty}%NTag will be destroyed
 in
    for I in 1..5 do
       {Tag move(Diff*Dx.I Diff*Dy.I)}
-      if I\=1 andthen NTag\=nil then
+      if I\=1 then
 	 {NTag set(image:{LoadImage [ Type "_" {IntToString I}]})}
       end
       {Delay DT}
@@ -126,17 +126,19 @@ in
    if NTag\=nil then {NTag delete} end
 end
 %Intern
-proc{ChangeBar Tag Health X0 Y0}
+proc{ChangeBar Tag Health X0 Y0}%TODO change
    Size
-   if Health.act \=0 andthen Health.old \= 0then
+   if Health.act \=0 andthen Health.old \= 0 then
       Size = {IntToFloat Health.act} / {IntToFloat Health.old}
+      {Show old#Health.old}
+      {Show act#Health.act}
+      {Show size#Size}
    else
       Size = 0.0001
    end
 in
    {Tag scale(X0 Y0 Size 1.0) }
 end
-
 %Extern
 fun{DrawFight Canvas Play Adv B}
    AllTags
@@ -171,7 +173,7 @@ fun{DrawFight Canvas Play Adv B}
 		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
 		 {ChangeBar AllTags.attrib.2.1.act
 		  health(act:NH old:State.play) 270 180}
-		 PlH  = NH-State.play
+		 PlH  = State.play-NH
 		 AdvH = 0
 	      [] player then
 		 NTag = {Canvas newTag($)}
@@ -188,7 +190,7 @@ fun{DrawFight Canvas Play Adv B}
 		  health(act:NH old:State.adv) 110 35}
 
 		 PlH  = 0
-		 AdvH = NH-State.adv
+		 AdvH = State.adv-NH
 	      end
 	      B = unit
 	      state(play:State.play-PlH adv:State.adv-AdvH)
@@ -197,12 +199,10 @@ fun{DrawFight Canvas Play Adv B}
 	      of pnj then
 		 {MoveBack    AllTags.plateau.2.2 ~1}
 		 {MoveForward AllTags.plateau.2.2 ~1}
-		 {MoveDamage  AllTags.plateau.2.1  1 nil grass}
 	      [] player then
 		 %Show attack
 		 {MoveBack    AllTags.plateau.2.1  1}
 		 {MoveForward AllTags.plateau.2.1  1}
-		 {MoveDamage  AllTags.plateau.2.2 ~1 nil grass}
 	      end
 	      B = unit
 	      state(play:State.play adv:State.adv)
