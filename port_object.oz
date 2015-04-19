@@ -387,7 +387,7 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 
 			 if NEState == alive then
 			    {Send WaitAnim wait(FightPort Ack fightIA)}
-			    state(trainer:TState enemy:NEState fighting:OK)
+			    state(trainer:TState enemy:NEState fighting:true)
 			 else B in
 			 %TODO set you won text before exit
 			    {Send FightAnim exit(B)}

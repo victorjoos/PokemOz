@@ -184,7 +184,8 @@ in
 			pokemoz( {Ch newTag($)} {Ch newTag($)}))
 	attrib:attrib(text({Ch newTag($)} {Ch newTag($)})
 		      bars(bar(act:{Ch newTag($)} {Ch newTag($)})
-			   bar(act:{Ch newTag($)} {Ch newTag($)}))))
+			   bar(act:{Ch newTag($)} {Ch newTag($)})))
+	others:others({Ch newTag($)}))
 end
 proc{DrawBar Act Max X0 Y0 Tag Tag2}
    W = 100

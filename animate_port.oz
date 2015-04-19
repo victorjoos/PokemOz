@@ -63,7 +63,8 @@ proc{AllTagsToList AllTags L1 L2}
    case AllTags
    of tags(plateau:plateau(disk(D1 D2) pokemoz(P1 P2))
 	   attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
-					  bar(act:Ba2 Bb2)))) then
+					  bar(act:Ba2 Bb2)))
+	   others:_) then
       L1 = [D1 P1 T1 Ba1 Bb1]
       L2 = [D2 P2 T2 Ba2 Bb2]
    end
@@ -126,18 +127,19 @@ in
    if NTag\=nil then {NTag delete} end
 end
 %Intern
-proc{ChangeBar Tag Health X0 Y0}%TODO change
+proc{ChangeBar Tag Health X0 Y0}
    Size
-   if Health.act \=0 andthen Health.old \= 0 then
+   if Health.old \= 0 then
       Size = {IntToFloat Health.act} / {IntToFloat Health.old}
-      {Show old#Health.old}
-      {Show act#Health.act}
-      {Show size#Size}
    else
-      Size = 0.0001
+      Size = 0.0
    end
 in
-   {Tag scale(X0 Y0 Size 1.0) }
+   if Size \= 0.0 then
+      {Tag scale(X0 Y0 Size 1.0) }
+   else
+      {Tag delete}
+   end
 end
 %Extern
 fun{DrawFight Canvas Play Adv B}
@@ -160,12 +162,12 @@ fun{DrawFight Canvas Play Adv B}
 	      {Apply LTagsPlay proc{$ T} {T delete} end}
 	      B = unit
 	      state(killed)
-	   [] attack(P B) then PlH AdvH in
+	   [] attack(P B) then PlH AdvH  NTag = AllTags.others.1 in
 	      case P
-	      of pnj then
-		 NTag = {Canvas newTag($)}
-		   NH = {Send Play.pid getHealth($)}.act
+	      of pnj then	
+		 NH = {Send Play.pid getHealth($)}.act
 	      in
+		 {Delay 200}
 		 {MoveBack    AllTags.plateau.2.2 ~1}
 		 {MoveForward AllTags.plateau.2.2 ~1}
 		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
@@ -176,8 +178,7 @@ fun{DrawFight Canvas Play Adv B}
 		 PlH  = State.play-NH
 		 AdvH = 0
 	      [] player then
-		 NTag = {Canvas newTag($)}
-		   NH = {Send Adv.pid getHealth($)}.act
+		 NH = {Send Adv.pid getHealth($)}.act
 	      in
 		 %Show attack
 		 {MoveBack    AllTags.plateau.2.1  1}
@@ -197,6 +198,7 @@ fun{DrawFight Canvas Play Adv B}
 	   [] attackFail(P B) then
 	      case P
 	      of pnj then
+		 {Delay 50}
 		 {MoveBack    AllTags.plateau.2.2 ~1}
 		 {MoveForward AllTags.plateau.2.2 ~1}
 	      [] player then

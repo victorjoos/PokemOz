@@ -7,7 +7,7 @@ Lib = {QTk.newImageLibrary}
 proc{LoadImage Name Name2}
    try
       {Lib newPhoto(file:Name2 name:{StringToAtom Name})}
-   catch _ then {Show 'Error opening gif'}  end 
+   catch _ then {Show 'Error opening gif'}  {Show {StringToAtom Name2}} end 
 end
 
 DIRECTORY      = "Images/Gifs/"
@@ -49,6 +49,19 @@ for I in 1..Trw do
    end
 end
 
+%%%%% FIGHT %%%%%%%%
+TYPES = types("grass")
+Wty = {Width TYPES}
+DIRTYPES = "Attacks/"
+for J in 1..Wty do
+   for I in 1..5 do Name Name2 in
+      Name  = {Flatten [TYPES.J "_" {IntToString I}]}
+      Name2 = {Flatten [DIRECTORY DIRTYPES
+			Name EXTENSION]}
+      {LoadImage Name Name2}
+   end
+end
+
 %%%%%% Others %%%%%%
 
 OTHERS = others("Fight_disk")
@@ -63,8 +76,6 @@ end
 
 {QTk.saveImageLibrary Lib "LibImg.ozf"}
 {Show 'Saved lib'}
-
-
 
 
 
