@@ -37,7 +37,7 @@ fun{AnimateTrainer Canvash X0 Y0 Speed Name}
 	       of move(Dir) then
 		  Numb = 8
 		  Dir2 = {AtomToString Dir}
-		  DT    = (DELAY*Speed) div Numb
+		  DT    = ({DELAY.get}*Speed) div Numb
 		  DX    = {GETDIR Dir}
 		  Delta = delta(x:(DX.x*67) div Numb y:(DX.y*67) div Numb)
 		  Mod
@@ -88,7 +88,7 @@ proc{MoveFight LTags Dx}
 end
 %Intern
 proc{MoveBack Tag Diff} %Diff = 1 for player, ~1 for adv
-   DT = 1000 div 20
+   DT = {DELAY.get} div 2
    Cst = 10
    Dx = ~Diff*Cst
    Dy =  Diff*Cst
@@ -100,7 +100,7 @@ in
 end
 %Intern
 proc{MoveForward Tag Diff}
-   DT = 1000 div 20
+   DT = {DELAY.get} div 2
    Cst = 25
    Dx =  Diff*Cst
    Dy = ~Diff*Cst
@@ -112,7 +112,7 @@ in
 end
 %Intern
 proc{MoveDamage Tag Diff NTag Ty}%NTag will be deleted
-   DT  = 1000 div 20
+   DT  = {DELAY.get} div 2
    Dx  = dx(5  ~25  15  15 ~10)
    Dy  = dy(20  10 ~15 ~5  ~10)
    Type = {AtomToString Ty}
@@ -151,8 +151,8 @@ fun{DrawFight Canvas Play Adv B}
 	       adv:{Send Play.pid getHealth($)}.act)
 	fun{$ Msg State}
 	   case Msg
-	   of exit(B) then
-	      for _ in 1..25 do DT = 1000 div 40 in
+	   of exit(B) then  DT = {DELAY.get} div 4 in
+	      for _ in 1..25 do
 		 {QTk.flush} 
 		 {MoveFight LTagsAdv  ~1}
 		 {MoveFight LTagsPlay  1}
@@ -214,11 +214,12 @@ in
    thread
       AllTags={FightScene Play Adv}
       {AllTagsToList AllTags LTagsAdv LTagsPlay}
-
-      for _ in 1..25 do DT = 1000 div 40 in
-	 {MoveFight LTagsAdv  ~1}
-	 {MoveFight LTagsPlay  1}
-	 {Delay DT}
+      local DT = {DELAY.get} div 4 in
+	 for _ in 1..25 do 
+	    {MoveFight LTagsAdv  ~1}
+	    {MoveFight LTagsPlay  1}
+	    {Delay DT}
+	 end
       end
 
       B=unit

@@ -12,6 +12,11 @@ BUTTONS %All the buttons' handles
 
 MAPID
 
+SPEED
+DELAY
+MAXX  = 7
+MAXY  = 7
+
 %%%% The IO functions (TODO import from seperate functor)
 fun{ReadMap _}%should be replaced by 'Name' afterwards
    map(r(1 1 1 0 0 0 0)
@@ -25,6 +30,37 @@ end
 fun{ReadEnnemies _}
    %List of Names with their start Coordinates
    nil
+end
+proc{BindEvents Window Input} %Input = {keys,autofight,
+   if Input == keys then
+      fun{GenerateMoveProc Dir}
+	 proc{$}
+	    if {Send MAINPO get($)} == map then
+	       {Send PLAYER.pid move(Dir)}
+	    else
+	       skip
+	    end
+	 end
+      end
+   in
+      {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
+      {Window bind(event:"<Left>" action:{GenerateMoveProc left})}
+      {Window bind(event:"<Right>" action:{GenerateMoveProc right})}
+      {Window bind(event:"<Down>" action:{GenerateMoveProc down})}
+   else skip
+   end
+end
+proc{SetSpeed X}
+   SPEED = X
+end
+proc{SetDelay X}
+   Delid = {NewPortObject X fun{$ Msg State}
+			       case Msg
+			       of set(Y) then Y
+			       [] get(Y) then Y=State State end end}
+in
+   DELAY= delay(get:fun{$} {Send Delid get($)} end
+		set:proc{$ X} {Send Delid set(X)} end)
 end
 
 %%%%% The Imports
@@ -48,18 +84,6 @@ for I in [bulbasoz charmandoz oztirtle] do
 						  {Send MAINPO makeTrainer(I)}
 					       end)}
 end
-	  
-
-fun{GenerateMoveProc Dir}
-   proc{$}
-      if {Send MAINPO get($)} == map then
-	 {Send PLAYER.pid move(Dir)}
-      else
-	 skip
-      end
-   end
-end
-{Window bind(event:"<Up>" action:{GenerateMoveProc up})}
-{Window bind(event:"<Left>" action:{GenerateMoveProc left})}
-{Window bind(event:"<Right>" action:{GenerateMoveProc right})}
-{Window bind(event:"<Down>" action:{GenerateMoveProc down})}
+{BindEvents Window keys}
+{SetSpeed 5}
+{SetDelay 25}

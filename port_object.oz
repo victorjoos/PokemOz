@@ -1,10 +1,11 @@
 % This file will contain all the portObjects' descriptions and code
 %declare
 %%%%% CONSTANTS %%%%%%%%%
-SPEED = 5
-DELAY = 100
-MAXX  = 7
-MAXY  = 7
+%SPEED = 5
+%DELAY = 100
+%MAXX  = 7
+%MAXY  = 7
+
 fun{GETDIR Dir}
    case Dir
    of up   then dx(x: 0 y:~1)
@@ -116,7 +117,7 @@ fun{Tile Init C Mapid Ground}
 	       of get(X) then
 		  X=State
 		  state(State)
-	       [] comming(T Plid Val) then
+	       [] coming(T Plid Val) then
 		  {Send Tid starttimer(Tilid T arrived(Plid Val))}
 		  state(reserved)
 	       [] arrived(Plid Val) then
@@ -263,7 +264,8 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
 		       NewX = Pos.x+Dx.x
 		       NewY = Pos.y+Dx.y
 		       Val %will be bound on arrival
-		       Sig  = comming(Speed*DELAY TrainerObj Val)
+		       ActDel = {DELAY.get} {Show ActDel}
+		       Sig  = coming(Speed*ActDel TrainerObj Val)
 		    in
 		       %Check for boundaries and if the tile is free
 		       %then send arriving signal
@@ -414,7 +416,6 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 		      else B in
 			 %TODO set 'you lost' frame before exit
 			 {Send FightAnim exit(B)}
-			 %send signal to waiter to send signal to mainthread
 			 %TODO: add 'lost' screen
 			 {Send WaitAnim wait(MAINPO B set(map))}
 			 state(killed)
