@@ -135,6 +135,7 @@ proc{ChangeBar Tag Health X0 Y0}
       Size = 0.0
    end
 in
+   {Show Health}
    if Size \= 0.0 then
       {Tag scale(X0 Y0 Size 1.0) }
    else
@@ -149,10 +150,18 @@ fun{DrawFight Canvas Play Adv B}
    Text = proc{$ X} {TAGS.fight2 set(text:X)} end
    Fid={NewPortObjectKillable
 	state(play:{Send Play.pid getHealth($)}.act
-	       adv:{Send Play.pid getHealth($)}.act)
+	       adv:{Send  Adv.pid getHealth($)}.act)
 	fun{$ Msg State}
 	   case Msg
 	   of exit(B) then  DT = {DELAY.get} div 4 in
+	      thread
+		 {Delay {DELAY.get}*3}
+		 if State.adv == 0 then
+		    {Text "You WON!!!!"}
+		 else
+		    {Text "You LOST!!!!"}
+		 end
+	      end
 	      for _ in 1..25 do
 		 %{QTk.flush} 
 		 {MoveFight LTagsAdv  ~1}
@@ -166,31 +175,43 @@ fun{DrawFight Canvas Play Adv B}
 	      state(killed)
 	   [] attack(P B) then PlH AdvH  NTag = AllTags.others.1 in
 	      case P
-	      of pnj then	
+	      of pnj then
 		 NH = {Send Play.pid getHealth($)}.act
 	      in
 		 {Delay 200}
 		 {Text "The enemy attacked..."}
 		 {MoveBack    AllTags.plateau.2.2 ~1}
+		 thread
+		    {Delay {DELAY.get}}
+		    {Text "...and HIT!"}
+		 end
 		 {MoveForward AllTags.plateau.2.2 ~1}
 		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
 				125 143)}
-		 {Text "...and HIT!"}
 		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
 		 {ChangeBar AllTags.attrib.2.1.act
 		  health(act:NH old:State.play) 270 180}
 		 PlH  = State.play-NH
 		 AdvH = 0
+		 thread
+		    if NH \= 0 then
+		       {Delay {DELAY.get}*6}
+		       {Text "Choose your action"}
+		    end
+		 end
 	      [] player then
 		 NH = {Send Adv.pid getHealth($)}.act
 	      in
 		 %Show attack
 		 {Text "You attacked..."}
 		 {MoveBack    AllTags.plateau.2.1  1}
+		 thread
+		    {Delay {DELAY.get}}
+		    {Text "...and HIT!"}
+		 end
 		 {MoveForward AllTags.plateau.2.1  1}
 		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
 				345 45)}
-		 {Text "...and HIT!"}
 		 {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
 		 %Show damage taken on enemy health bar
 		 {ChangeBar AllTags.attrib.2.2.act
@@ -199,25 +220,38 @@ fun{DrawFight Canvas Play Adv B}
 		 PlH  = 0
 		 AdvH = State.adv-NH
 	      end
+
 	      B = unit
 	      state(play:State.play-PlH adv:State.adv-AdvH)
+
 	   [] attackFail(P B) then
 	      case P
 	      of pnj then
 		 {Delay 200}
 		 {Text "The enemy attacked..."}
 		 {MoveBack    AllTags.plateau.2.2 ~1}
+		 thread
+		    {Delay {DELAY.get}}
+		    {Text "...and missed!"}
+		 end
 		 {MoveForward AllTags.plateau.2.2 ~1}
-		 {Text "...and missed!"}
+		 thread
+		    {Delay {DELAY.get}*6}
+		    {Text "Choose your action"}
+		 end
 	      [] player then
-		 %Show attack
 		 {Text "You attacked..."}
 		 {MoveBack    AllTags.plateau.2.1  1}
+		 thread
+		    {Delay {DELAY.get}}
+		    {Text "...and missed!"}
+		 end
 		 {MoveForward AllTags.plateau.2.1  1}
-		 {Text "...and missed!"}
 	      end
-	      B = unit
+
+	      B = unit	      
 	      state(play:State.play adv:State.adv)
+	      
 	   end
 	end}
 in

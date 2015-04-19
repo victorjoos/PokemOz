@@ -101,6 +101,7 @@ end
 %       Ground= {grass,road}
 %@post: Returns the Pid of the tile
 CreateFight
+GetWildling
 fun{Tile Init C Mapid Ground}
    proc{SignalArrival Trainer}
       %Signals arrival of someone to cases around
@@ -121,21 +122,32 @@ fun{Tile Init C Mapid Ground}
 		  state(reserved)
 	       [] arrived(Plid Val) then
 		  Val=unit
-		  %if Ground == grass andthen {Label Plid} == player then
-		     %Todo: wild pokemoz
-		   %  skip
-		  %end
+		  if Ground == grass andthen {Label Plid} == player then
+		     Wild = {GetWildling}
+		  in
+		     if Wild \= none then
+			{Show he#{Send Wild.pid getHealth($)}}
+			{CreateFight Plid wild(poke:Wild)}
+		     end
+		  end
 		  {SignalArrival Plid}
 		  state(occupied(Plid))
 	       [] new(Dir Trainer) then
 		  case State
 		  of occupied(Y) then LblY = {Label Y} in
 		     if LblY\={Label Trainer} andthen
-			{Send Y.pid getDir($)} == Dir then
+			{Send Y.pid getDir($)} == Dir
+		     then
 			if LblY==player then
-			   {CreateFight Y Trainer}
+			   if {Send Trainer.poke.pid getHealth($)}.act
+			      \= 0 then
+			      {CreateFight Y Trainer}
+			   end
 			else
-			   {CreateFight Trainer Y}
+			   if {Send Y.poke.pid getHealth($)}.act
+			      \= 0 then
+			      {CreateFight Trainer Y}
+			   end
 			end
 		     end
 		     state(State)
@@ -206,7 +218,26 @@ in
    end
    Mapid
 end
-
+%%%%%%%% WILD-POKEMOZ  %%%%%%%%
+CreatePokemoz
+fun{RandomName}
+   "Bulbasoz"
+end
+fun{GetWildling}
+   if ({OS.rand} mod 100)+1 =< PROBABILITY then
+      Lvl={Send PLAYER.poke.pid getLvl($)}
+      R
+      Ra = {OS.rand} mod 15
+      if Ra < 10 then R = ~1
+      elseif Ra < 13 then R = 0
+      else R = 1 end
+      NLvl = {Max Lvl+R 5}
+   in
+      {CreatePokemoz {RandomName} {Min NLvl 10} wild}
+   else
+      none
+   end
+end
 %%%%%%%%% TRAINER-RELATED PORTOBJECTS %%%%%%%%%
 % This portObject will serve as a bridge between the controller
 % and the GUI
@@ -312,16 +343,16 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
    in
       case Attacker
       of player then
-	 Probability = (6+TrainerLvl-EnemyLvl)*9
-	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+	 Probability = (6+TrainerLvl-EnemyLvl)*9*2
+	 Rand = ({OS.rand} mod 100)+ ({OS.rand} mod 101)+1 % from 1 to 100
 	 {Show Rand}
       in
 	 if Rand =< Probability then true
 	 else false
 	 end
       [] npc then
-	 Probability = (6+EnemyLvl-TrainerLvl)*9
-	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+	 Probability = (6+EnemyLvl-TrainerLvl)*9*2
+	 Rand = ({OS.rand} mod 100)+({OS.rand} mod 101)+1 % from 1 to 100
 	 {Show Rand}
       in
 	 if Rand =< Probability then true
@@ -332,16 +363,7 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
    fun {RunSuccessful}
       true % TODO(victor) : add probability
    end
-   % fun {Attack Health}
-   %    if {AttackSuccessful npc} then
-   % 	 Ack
-   %    in
-   % 	 {Send FightAnim attack(pnj Ack)}
-   % 	 {Send WaitAnim wait(FightPort Ack endmove)}
-   % 	 {Max Health-TrainerHitted 0}
-   %    else Health % TODO : add animation/text description failed attack
-   %    end
-   % end
+
    TrainerHitted#EnemyHitted = {CheckDamage TrainerP.type EnemyP.type}
    WaitAnim = {Waiter}
    FightPort = {NewPortObjectKillable
@@ -354,10 +376,11 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 		      else
 			 if {RunSuccessful} then B in
 			    {Send EnemyP.pid refill}
-			    %TODO: send signal to set exit text
 			    {Send FightAnim  exit(B)}
-			    %Sends signal to mainthread to change placeH
 			    {Send WaitAnim wait(MAINPO B set(map))}
+			    if {Label EnemyP}==wild then
+			       {Send WaitAnim wait(EnemyP.pid B kill)}
+			    end
 			    state(killed)
 			 else
 			    % Send signal to itself for IA turn = automatic
@@ -388,10 +411,12 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 			    {Send WaitAnim wait(FightPort Ack fightIA)}
 			    state(trainer:TState enemy:NEState fighting:true)
 			 else B in
-			 %TODO set you won text before exit
 			    {Send FightAnim exit(B)}
 			 %sends signal to  mainthread
 			    {Send WaitAnim wait(MAINPO B set(map))}
+			    if {Label EnemyP}==wild then
+			       {Send WaitAnim wait(EnemyP.pid B kill)}
+			    end
 			    state(killed)
 			 end
 		      end
@@ -411,10 +436,12 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
 			 {Send WaitAnim wait(FightPort Ack input)}	 
 			 state(trainer:NTState enemy:EState fighting:OK)
 		      else B in
-			 %TODO set 'you lost' frame before exit
 			 {Send FightAnim exit(B)}
 			 %TODO: add 'lost' screen
 			 {Send WaitAnim wait(MAINPO B set(map))}
+			 if {Label EnemyP}==wild then
+			    {Send WaitAnim wait(EnemyP.pid B kill)}
+			 end
 			 state(killed)
 		      end
 		   [] input then
@@ -444,14 +471,14 @@ proc{GetLevel Exp Lvl Ne Le}
    end
 end
 %Function that creates a Pokemoz
-fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
+fun{CreatePokemoz Name Lvl0 State}%State = {wild,trainer,player}
    Type = {GETTYPE Name}
-   HealthMax = 20+(Lvl-5)*2
-   ExpMax = EXPER.Lvl
+   HealthMax = 20+(Lvl0-5)*2
+   ExpMax = EXPER.Lvl0
    %Send Kill signal when the wild pokemoz vanishes, trainer is defeated
    %or pokemoz is released back into the wild
    Pokid = {NewPortObjectKillable state(health:h(act:HealthMax max:HealthMax)
-					exp:e(act:0 max:ExpMax) lvl:Lvl)
+					exp:e(act:0 max:ExpMax) lvl:Lvl0)
 	    fun{$ Msg state(health:He exp:Exp lvl:Lvl)}
 	       {Show poke#Msg}
 	       % released == kill
@@ -494,7 +521,7 @@ fun{CreatePokemoz Name Lvl State}%State = {wild,trainer,player}
 		  state(health:he(act:NHealth max:He.max) exp:Exp lvl:Lvl)
 	       [] refill then
 		  state(health:he(act:He.max max:He.max) exp:Exp lvl:Lvl)
-	       %[] kill then state(killed)
+	       [] kill then state(killed)
 	       end
 	    end}%add replenishing function for hospital later on
 in

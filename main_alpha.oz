@@ -14,6 +14,7 @@ MAPID
 
 SPEED
 DELAY
+PROBABILITY
 MAXX  = 7
 MAXY  = 7
 
@@ -62,6 +63,9 @@ in
    DELAY= delay(get:fun{$} {Send Delid get($)} end
 		set:proc{$ X} {Send Delid set(X)} end)
 end
+proc{SetProb X}
+   PROBABILITY = X % [0-100]
+end
 
 %%%%% The Imports
 \insert 'widget.oz'
@@ -87,3 +91,4 @@ end
 {BindEvents Window keys}
 {SetSpeed 5}
 {SetDelay 50}
+{SetProb  65}

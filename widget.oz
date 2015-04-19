@@ -35,12 +35,12 @@ end
 
 %%%%%%%%% ALL THE WIDGET HANDLES AND NAMES %%%%%%
 
-WIDGETS = widgets(starters:_ map:_ fight:_ lost:_ won:_ )
-CANVAS  =  canvas(           map:_ fight:_)
+WIDGETS = widgets(starters:_ map:_ fight:_ lost:_ won:_)
+CANVAS  =  canvas(           map:_ fight:_ fight2:_)
 BUTTONS = buttons(starters:'3'(bulbasoz:_ charmandoz:_ oztirtle:_)
-		  fight:'2'(run:_ fight:_))
+		  fight:'4'(run:_ fight:_ capture:_ switch:_))
 HANDLES = handles(starters:_ map:_ fight:_ lost:_ won:_)
-TAGS    =    tags(           map:_ fight:_)
+TAGS    =    tags(           map:_ fight:_ fight2:_)
 PLACEHOLDER
 %%%%%%%%% STARTWIDGET %%%%%%%%%%%
 
@@ -126,8 +126,7 @@ WIDGETS.starters = td( %lrspace(width:50)
 % 				     end)}
 % end
 % STARTH2 CANVASST
-% StartWidget2 = canvas( width:470 height:470 handle:CANVASST
-% 		       bg:white)
+% StartWidget2 = canvas( width:470 height:470 handle:CANVASST bg:white)
 
 
 
@@ -143,7 +142,7 @@ fun{DrawMap Canvash Map MaxX MaxY}
    DX = 67 DXn = 66
    Tag={Canvash newTag($)}
    CanvasH = CANVAS.map
-   proc{DrawSquare index(X Y)} 
+   proc{DrawSquare index(X Y)}
       if Y>MaxY then skip
       else NewX NewY 
 	 ActX = 1+DX*(X-1)
@@ -181,11 +180,12 @@ proc{InitFightTags}
 in
    TAGS.fight = 
    tags(plateau:plateau(disk({Ch newTag($)} {Ch newTag($)})
-			pokemoz( {Ch newTag($)} {Ch newTag($)}))
+			pokemoz({Ch newTag($)} {Ch newTag($)}))
 	attrib:attrib(text({Ch newTag($)} {Ch newTag($)})
 		      bars(bar(act:{Ch newTag($)} {Ch newTag($)})
 			   bar(act:{Ch newTag($)} {Ch newTag($)})))
 	others:others({Ch newTag($)}))
+   TAGS.fight2 = {CANVAS.fight2 newTag($)}
 end
 proc{DrawBar Act Max X0 Y0 Tag Tag2}
    W = 100
@@ -194,7 +194,7 @@ proc{DrawBar Act Max X0 Y0 Tag Tag2}
    CanvasH = CANVAS.fight
 in
    {CanvasH create(rectangle X0 Y0 X0+W    Y0+H fill:white tags:Tag2)}
-   {CanvasH  create(rectangle X0 Y0 X0+Size Y0+H fill:green tags:Tag)}
+   {CanvasH create(rectangle X0 Y0 X0+Size Y0+H fill:green tags:Tag)}
 end
 fun{FightScene Play Adv}
    Tags = TAGS.fight
@@ -209,7 +209,7 @@ fun{FightScene Play Adv}
       TagP1 = Tags.plateau.2.1
       TagP2 = Tags.plateau.2.2
    in
-      %                                 X      Y
+      %                                    X     Y
       {CanvasH create(image image:Disk  345-XST  60 tags:TagD2)}
       {CanvasH create(image image:Im_ad 345-XST  45 tags:TagP2)}
       {CanvasH create(image image:Disk  135+XST 210 tags:TagD1)}
@@ -220,12 +220,18 @@ fun{FightScene Play Adv}
       Tag2 = Tags.attrib.1.2
       HPlay = {Send Play.pid getHealth($)}
       HAdv  = {Send  Adv.pid getHealth($)}
+      LPlay = {IntToString {Send Play.pid getLvl($)}}
+      LAdv  = {IntToString {Send  Adv.pid getLvl($)}}
    in
-      {CanvasH create(text 320+XST 165 text:Play.name font:{Font type(16)}
-		      tags:Tag1)}
+      {CanvasH create(text 320+XST 150 text:Play.name font:{Font type(16)}
+	  	      tags:Tag1)}
       {CanvasH create(text 160-XST  20 text:Adv.name  font:{Font type(16)}
 		      tags:Tag2)}
-      {DrawBar HPlay.act HPlay.max 270+XST 180
+      {CanvasH create(text 320+XST 190 text:{Append "Lvl" LPlay}
+		      font:{Font type(15)} tags:Tag1)}
+      {CanvasH create(text 160-XST  60 text:{Append "Lvl" LAdv}
+		      font:{Font type(15)} tags:Tag2)}
+      {DrawBar HPlay.act HPlay.max 270+XST 165
        Tags.attrib.2.1.act Tags.attrib.2.1.1}
       {DrawBar HAdv.act  HAdv.max  110-XST  35
        Tags.attrib.2.2.act Tags.attrib.2.2.1}
@@ -233,6 +239,12 @@ fun{FightScene Play Adv}
 in
    {DrawImg}
    {DrawAttr}
+   thread
+      {CANVAS.fight2 create(image image:{LoadImage "bg_fight"} 235 45)}
+      {CANVAS.fight2 create(text   text:"Choose your action" 235 45
+			    font:{Font type(16)} tags:TAGS.fight2)}
+   end
+     
    Tags
 end
 
@@ -240,13 +252,23 @@ WIDGETS.fight = td( canvas( height:200 width:470
 			    handle:CANVAS.fight
 			    bg:white
 			  )
-		    lrspace(width:15)
+		    canvas( height:90  width:470
+			    handle:CANVAS.fight2
+			  )
 		    lr( tdspace(width:5)
 			button(text:"FIGHT" font:{Font type(48)} width:6
 			       handle:BUTTONS.fight.fight)
 			tdspace(width:5)
 			button(text:" RUN " font:{Font type(48)} width:6
 			       handle:BUTTONS.fight.run)
+			tdspace(width:5)
+		      )
+		    lr( tdspace(width:5)
+			button(text:"SWIT." font:{Font type(48)} width:6
+			       handle:BUTTONS.fight.switch)
+			tdspace(width:5)
+			button(text:"CAPT." font:{Font type(48)} width:6
+			       handle:BUTTONS.fight.capture)
 			tdspace(width:5)
 		      )
 		    lrspace(width:30)
