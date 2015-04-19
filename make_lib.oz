@@ -29,7 +29,6 @@ for I in 1..ANw do
       {LoadImage Name Name2}
    end
 end
-%{Show done}
 
 %%%%%%%% Trainers %%%%%%
 TRAINERS = trainers("Red")
@@ -64,7 +63,7 @@ end
 
 %%%%%% Others %%%%%%
 
-OTHERS = others("Fight_disk")
+OTHERS = others("Fight_disk" "bg_fight")
 Ow     = {Width OTHERS}
 for I in 1..Ow do Name Name2 in
    Name  = OTHERS.I

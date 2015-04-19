@@ -146,6 +146,7 @@ fun{DrawFight Canvas Play Adv B}
    AllTags
    LTagsAdv
    LTagsPlay
+   Text = proc{$ X} {TAGS.fight2 set(text:X)} end
    Fid={NewPortObjectKillable
 	state(play:{Send Play.pid getHealth($)}.act
 	       adv:{Send Play.pid getHealth($)}.act)
@@ -153,13 +154,14 @@ fun{DrawFight Canvas Play Adv B}
 	   case Msg
 	   of exit(B) then  DT = {DELAY.get} div 4 in
 	      for _ in 1..25 do
-		 {QTk.flush} 
+		 %{QTk.flush} 
 		 {MoveFight LTagsAdv  ~1}
 		 {MoveFight LTagsPlay  1}
 		 {Delay DT}
 	      end
 	      {Apply LTagsAdv  proc{$ T} {T delete} end}
 	      {Apply LTagsPlay proc{$ T} {T delete} end}
+	      {TAGS.fight2 delete}
 	      B = unit
 	      state(killed)
 	   [] attack(P B) then PlH AdvH  NTag = AllTags.others.1 in
@@ -168,10 +170,12 @@ fun{DrawFight Canvas Play Adv B}
 		 NH = {Send Play.pid getHealth($)}.act
 	      in
 		 {Delay 200}
+		 {Text "The enemy attacked..."}
 		 {MoveBack    AllTags.plateau.2.2 ~1}
 		 {MoveForward AllTags.plateau.2.2 ~1}
 		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
 				125 143)}
+		 {Text "...and HIT!"}
 		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
 		 {ChangeBar AllTags.attrib.2.1.act
 		  health(act:NH old:State.play) 270 180}
@@ -181,10 +185,12 @@ fun{DrawFight Canvas Play Adv B}
 		 NH = {Send Adv.pid getHealth($)}.act
 	      in
 		 %Show attack
+		 {Text "You attacked..."}
 		 {MoveBack    AllTags.plateau.2.1  1}
 		 {MoveForward AllTags.plateau.2.1  1}
 		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
 				345 45)}
+		 {Text "...and HIT!"}
 		 {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
 		 %Show damage taken on enemy health bar
 		 {ChangeBar AllTags.attrib.2.2.act
@@ -198,13 +204,17 @@ fun{DrawFight Canvas Play Adv B}
 	   [] attackFail(P B) then
 	      case P
 	      of pnj then
-		 {Delay 50}
+		 {Delay 200}
+		 {Text "The enemy attacked..."}
 		 {MoveBack    AllTags.plateau.2.2 ~1}
 		 {MoveForward AllTags.plateau.2.2 ~1}
+		 {Text "...and missed!"}
 	      [] player then
 		 %Show attack
+		 {Text "You attacked..."}
 		 {MoveBack    AllTags.plateau.2.1  1}
 		 {MoveForward AllTags.plateau.2.1  1}
+		 {Text "...and missed!"}
 	      end
 	      B = unit
 	      state(play:State.play adv:State.adv)

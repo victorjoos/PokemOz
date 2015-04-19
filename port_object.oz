@@ -111,8 +111,7 @@ fun{Tile Init C Mapid Ground}
    end
    Tid   = {Timer}
    Tilid = {NewPortObject Init
-	    fun{$ Msg Plop}
-	       State = Plop.1 in
+	    fun{$ Msg state(State)}
 	       case Msg
 	       of get(X) then
 		  X=State
@@ -133,16 +132,12 @@ fun{Tile Init C Mapid Ground}
 		  of occupied(Y) then LblY = {Label Y} in
 		     if LblY\={Label Trainer} andthen
 			{Send Y.pid getDir($)} == Dir then
-			{Show 'I want to fight!!!'}
 			if LblY==player then
-			   {Show here}
 			   {CreateFight Y Trainer}
 			else
-			   {Show there}
 			   {CreateFight Trainer Y}
 			end
 		     end
-		     {Show done}
 		     state(State)
 		  else
 		     % We don't care
@@ -305,7 +300,7 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
       if TType == EType then 2#2
       else
 	 case TType
-	 of fire then if EType==grass then 1#3 else 3#1 end
+	 of fire  then if EType==grass then 1#3 else 3#1 end
 	 [] grass then if EType==fire then 3#1 else 1#3 end
 	 [] water then if EType==fire then 1#3 else 3#1 end
 	 end
@@ -319,6 +314,7 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
       of player then
 	 Probability = (6+TrainerLvl-EnemyLvl)*9
 	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+	 {Show Rand}
       in
 	 if Rand =< Probability then true
 	 else false
@@ -326,6 +322,7 @@ fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
       [] npc then
 	 Probability = (6+EnemyLvl-TrainerLvl)*9
 	 Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+	 {Show Rand}
       in
 	 if Rand =< Probability then true
 	 else false
