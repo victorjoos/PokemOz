@@ -576,14 +576,16 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		    Pokemoz = {CreatePokemoz Name3 5 player}
 		    Pokemoz2 = {CreatePokemoz "Charmandoz" 5 player}
 		 in
+		    % Initialize the Fight tags
+		    thread {InitFightTags} end
+		    % Create the Map Environment
 		    MAPID = {MapController Map}
-		    _={DrawMap CANVAS.map Map 7 7}%should NOT EVER
-		                                  % be threaded!!!
+		    TAGS.map={DrawMap CANVAS.map Map 7 7}%should NOT EVER
+		                                         % be threaded!!!
 		    {PlaceH set(Handles.map)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
 			      CANVAS.map Pokemoz player}
-		    {Show PLAYER}
-		    {Send MAPID init(x:7 y:7 player)}
+		    {Send MAPID init(x:7 y:7 PLAYER)}
 		    %TODO:add ennemies to the map
 		    Enemy = {CreateTrainer "Red" 6 6 SPEED MAPID
 		    	     CANVAS.map Pokemoz2 trainer}

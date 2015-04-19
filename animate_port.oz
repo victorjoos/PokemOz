@@ -17,7 +17,6 @@ fun{AnimateTrainer Canvash X0 Y0 Speed Name}
       if Ind < 8 then
 	 Next = ((Ind) mod 4)+1
       in
-	 %{Show Next}
 	 {Delay DT}
 	 {TagIm set(image:{LoadImage [Name "_" Dir STATES.Next]})}
 	 if Dir == "up" orelse Dir == "down" then
@@ -211,7 +210,7 @@ fun{DrawFight Canvas Play Adv B}
 	end}
 in
    thread
-      AllTags={FightScene Canvas Play Adv}
+      AllTags={FightScene Play Adv}
       {AllTagsToList AllTags LTagsAdv LTagsPlay}
 
       for _ in 1..25 do DT = 1000 div 40 in
