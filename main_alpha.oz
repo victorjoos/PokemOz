@@ -86,4 +86,4 @@ for I in [bulbasoz charmandoz oztirtle] do
 end
 {BindEvents Window keys}
 {SetSpeed 5}
-{SetDelay 25}
+{SetDelay 50}
