@@ -1,6 +1,7 @@
-fun{Player Coords MapPort}
+fun{ArtificialPlayer Coords MapPort}
    TRAINERADD=2
    RECURSIONLIMIT=3
+   % Checks if the coordinates aren't out of bounds
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
 	 Y>0 andthen Y=<MAXY then
@@ -9,6 +10,8 @@ fun{Player Coords MapPort}
 	 false
       end
    end
+   % Sends a query to each tile to have the position of each
+   % trainer on the map (and the direction)
    fun {GetTrainerList X Y}
       TileState = {Send MapPort send(x:X y:Y get($))}
       NewX NewY
@@ -21,6 +24,8 @@ fun{Player Coords MapPort}
       else {GetMapList NewX NewY}
       end
    end
+   % Takes the current position of a trainer and moves it
+   % or turns it along all directions (no staying in place)
    fun {NewTrainerPositions pos(x:X y:Y dir:Dir)}
       case Dir
       of up then
@@ -49,6 +54,9 @@ fun{Player Coords MapPort}
 	 end
       end
    end
+   % Determines the score of a position (higher is worse) :
+   % - For each trainer facing the player : (+2)
+   % - For each GRASS Tile : (+5) (In function MoveTree)
    fun {CalculateScore X Y TrainerPositions Score}
       NextScore
    in
@@ -63,11 +71,19 @@ fun{Player Coords MapPort}
 	 {CalculateScore X Y T NextScore}
       end
    end
+   % Takes each possible current trainer position
+   % and updates it using {NewTrainerPositions} to calculate
+   % ALL the possible positions of each trainer.
    fun {MakeNewTrainerList OldTrainerPos NewPos}
       case OldTrainerPos of nil then {Flatten NewPos}
       [] H|T then {NewTrainerPositions H}|{MakeNewTrainerList T}
       end
    end
+   % Creates a move tree for a MINIMAX approach, and using
+   % the following heuristics :
+   % - It's better to stay on the road
+   % - Avoid trainer interactions
+   % - Get closer to our goal (the end tile)
    fun {MoveTree Px Py Pdir TrainerPositions RecursionDepth}
       Ground = {Send MapPort send(x:Px y:Py getGround($))}
       NewTrainerPos = {MakeNewTrainerList TrainerPositions}
@@ -91,27 +107,60 @@ fun{Player Coords MapPort}
 	    Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
 	 [] down then
 	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
-	    Down={MoveTree Px Py+1 down NewTrainerPos RecursionDepth+1}
+	    if {CheckDir Px Py+1} then
+	       Down={MoveTree Px Py+1 down NewTrainerPos RecursionDepth+1}
+	    else
+	       Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
+	    end
 	    Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
 	    Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
 	 [] right then
 	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
 	    Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
-	    Right={MoveTree Px Py+1 right NewTrainerPos RecursionDepth+1}
+	    if {CheckDir Px Py+1}
+	       Right={MoveTree Px Py+1 right NewTrainerPos RecursionDepth+1}
+	    else
+	       Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
+	    end
 	    Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
 	 [] left then
 	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
 	    Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
 	    Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
-	    Left={MoveTree Px Py-1 left NewTrainerPos RecursionDepth+1}
+	    if {CheckDir Px Py-1} then
+	       Left={MoveTree Px Py-1 left NewTrainerPos RecursionDepth+1}
+	    else
+	       Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
+	    end
 	 end
 	 move(value:FinalScore up:Up down:Down right:Right left:Left)
       end
    end
-   fun {AI Px Py Pdir}
+   fun {ListMoveTree Tree}
+      case Tree of move(leaf value:Value) then Value|nil
+      [] move(value:Value up:Up down:Down left:Left right:Right) then
+	 Value|{SumMoveTree Up}|{SumMoveTree Down}|{SumMoveTree Right}|{SumMoveTree Left}
+      end
+   end
+   fun {Sum MoveL Sum}
+      case MoveL of nil then Sum
+      [] H|T then {Sum T Sum+H}
+      end
+   end
+   % Uses the move tree to determine the best move.
+   fun {Intelligence Px Py Pdir}
       TrainerList = {GetTrainerList 1 1} % Get all the trainers in a *flat* list
       Tree = {MoveTree Px Py Pdir TrainerList}
+      Up Down Right Left
    in
+      Up = {Sum {ListMoveTree Tree.up}}
+      Down = {Sum {ListMoveTree Tree.down}}
+      Right = {Sum {ListMoveTree Tree.left}}
+      Left = {Sum {ListMoveTree Tree.right}}
+      if Up < Down andthen Up < Right andthen Up < Left then up
+      elseif Down < Up andthen Down < Right andthen Down < Left then down
+      elseif Right < Down andthen Right < Up andthen Right < Left then right
+      else left end
    end
    
    Init = state(C dir:up)
@@ -125,12 +174,9 @@ fun{Player Coords MapPort}
 		       X=Pos
 		       state(Pos dir:Dir)
 		    [] move(Move) then
-		       
+		       Move = {Intelligence X Y Dir}
 		       state(pos(x:X y:Y) dir:Dir)
-		    [] turn(NewDir) then
-		       {Send Anid turn(NewDir)}
-		       state(Pos dir:NewDir)
-		    end	      
+		    end
 		 end}
 in
    PlayerPort
