@@ -178,6 +178,12 @@ fun {ArtificialPlayer Coords MapPort}
 		    [] move(Move) then
 		       Move = {Intelligence Pos.x Pos.y Dir}
 		       state(pos(x:Pos.x y:Pos.y) dir:Dir)
+		    [] fight(PlayerH TrainerH PlayerLvl TrainerLvl) then
+		       if PlayerLvl>TrainerLvl andthen PlayerH>5 then fight
+		       elseif PlayerLvl==TrainerLvl andthen PlayerH>10 then fight
+		       elseif PlayerLvl<TrainerLvl andthen PlayerH+10>TrainerH then fight
+		       else run
+		       end
 		    end
 		 end}
 in
