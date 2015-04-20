@@ -117,6 +117,9 @@ fun{Tile Init C Mapid Ground}
 	       of get(X) then
 		  X=State
 		  state(State)
+	       [] getGround(X) then
+		  X=Ground
+		  state(State)
 	       [] coming(T Plid Val) then
 		  {Send Tid starttimer(Tilid T arrived(Plid Val))}
 		  state(reserved)
