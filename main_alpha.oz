@@ -70,7 +70,7 @@ end
 %%%%% The Imports
 \insert 'widget.oz'
 \insert 'port_object.oz'
-
+\insert 'AI.oz'
 
 %%%%%% Launching the main operations
 Window = {QTk.build TopWidget}

@@ -1,4 +1,4 @@
-fun{ArtificialPlayer Coords MapPort}
+fun {ArtificialPlayer Coords MapPort}
    TRAINERADD=2
    RECURSIONLIMIT=3
    % Checks if the coordinates aren't out of bounds
@@ -17,11 +17,13 @@ fun{ArtificialPlayer Coords MapPort}
       NewX NewY
    in
       if X==MAXX andthen Y==MAXY then nil
-      elseif X==MAXX then NewX=1 NewY=Y+1
-      else NewX=X+1 NewY=Y end
-      case TileState
-      of occupied(TrainerID) then trainer(x:X y:Y dir:{Send Y.pid getDir($)})|{GetMapList NewX NewY}
-      else {GetMapList NewX NewY}
+      else
+	 if X==MAXX then NewX=1 NewY=Y+1
+	 else NewX=X+1 NewY=Y end
+	 case TileState
+	 of occupied(TrainerID) then trainer(x:X y:Y dir:{Send Y.pid getDir($)})|{GetTrainerList NewX NewY}
+	 else {GetTrainerList NewX NewY}
+	 end
       end
    end
    % Takes the current position of a trainer and moves it
@@ -43,7 +45,7 @@ fun{ArtificialPlayer Coords MapPort}
       [] right then
 	 if {CheckEdges X+1 Y} then
 	    [pos(x:X+1 y:Y dir:Dir) pos(x:X y:Y dir:down) pos(x:X y:Y dir:left) pos(x:X y:Y dir:up)]
-	 then
+	 else
 	    [pos(x:X y:Y dir:Dir) pos(x:X y:Y dir:down) pos(x:X y:Y dir:left) pos(x:X y:Y dir:up)]
 	 end
       [] left then
@@ -62,11 +64,11 @@ fun{ArtificialPlayer Coords MapPort}
    in
       case TrainerPositions of nil then Score
       [] pos(x:Tx y:Ty dir:Tdir)|T then
-	 case Dir
+	 case Tdir
 	 of up then if Y==Ty-1 then NextScore=Score+TRAINERADD else NextScore=Score end
-	 of down then if Y==Ty+1 then NextScore=Score+TRAINERADD else NextScore=Score end
-	 of right then if X==Tx+1 then NextScore=Score+TRAINERADD else NextScore=Score end
-	 of left then if X==Tx-1 then NextScore=Score+TRAINERADD else NextScore=Score end
+	 [] down then if Y==Ty+1 then NextScore=Score+TRAINERADD else NextScore=Score end
+	 [] right then if X==Tx+1 then NextScore=Score+TRAINERADD else NextScore=Score end
+	 [] left then if X==Tx-1 then NextScore=Score+TRAINERADD else NextScore=Score end
 	 end
 	 {CalculateScore X Y T NextScore}
       end
@@ -76,7 +78,7 @@ fun{ArtificialPlayer Coords MapPort}
    % ALL the possible positions of each trainer.
    fun {MakeNewTrainerList OldTrainerPos NewPos}
       case OldTrainerPos of nil then {Flatten NewPos}
-      [] H|T then {NewTrainerPositions H}|{MakeNewTrainerList T}
+      [] H|T then {MakeNewTrainerList T {NewTrainerPositions H}|NewPos}
       end
    end
    % Creates a move tree for a MINIMAX approach, and using
@@ -86,18 +88,18 @@ fun{ArtificialPlayer Coords MapPort}
    % - Get closer to our goal (the end tile)
    fun {MoveTree Px Py Pdir TrainerPositions RecursionDepth}
       Ground = {Send MapPort send(x:Px y:Py getGround($))}
-      NewTrainerPos = {MakeNewTrainerList TrainerPositions}
+      NewTrainerPos = {MakeNewTrainerList TrainerPositions nil}
       BaseScore
       FinalScore
       Up Down Right Left
    in
       if Ground==grass then BaseScore=5+(Px-MAXX)+(1-Py) else BaseScore=(Px-MAXX)+(1-Py) end
-      FinalScore={CalculateScore Px Py TrainerPos BaseScore}
+      FinalScore={CalculateScore Px Py TrainerPositions BaseScore}
       if RecursionDepth>RECURSIONLIMIT then move(leaf value:FinalScore)
       else
 	 case Pdir
 	 of up then
-	    if {CheckDir Px Py-1} then
+	    if {CheckEdges Px Py-1} then
 	       Up={MoveTree Px Py-1 up NewTrainerPos RecursionDepth+1}
 	    else
 	       Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
@@ -107,7 +109,7 @@ fun{ArtificialPlayer Coords MapPort}
 	    Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
 	 [] down then
 	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
-	    if {CheckDir Px Py+1} then
+	    if {CheckEdges Px Py+1} then
 	       Down={MoveTree Px Py+1 down NewTrainerPos RecursionDepth+1}
 	    else
 	       Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
@@ -117,7 +119,7 @@ fun{ArtificialPlayer Coords MapPort}
 	 [] right then
 	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
 	    Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
-	    if {CheckDir Px Py+1}
+	    if {CheckEdges Px Py+1} then
 	       Right={MoveTree Px Py+1 right NewTrainerPos RecursionDepth+1}
 	    else
 	       Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
@@ -127,7 +129,7 @@ fun{ArtificialPlayer Coords MapPort}
 	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
 	    Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
 	    Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
-	    if {CheckDir Px Py-1} then
+	    if {CheckEdges Px Py-1} then
 	       Left={MoveTree Px Py-1 left NewTrainerPos RecursionDepth+1}
 	    else
 	       Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
@@ -139,7 +141,7 @@ fun{ArtificialPlayer Coords MapPort}
    fun {ListMoveTree Tree}
       case Tree of move(leaf value:Value) then Value|nil
       [] move(value:Value up:Up down:Down left:Left right:Right) then
-	 Value|{SumMoveTree Up}|{SumMoveTree Down}|{SumMoveTree Right}|{SumMoveTree Left}
+	 Value|{ListMoveTree Up}|{ListMoveTree Down}|{ListMoveTree Right}|{ListMoveTree Left}
       end
    end
    fun {Sum MoveL Sum}
@@ -150,20 +152,20 @@ fun{ArtificialPlayer Coords MapPort}
    % Uses the move tree to determine the best move.
    fun {Intelligence Px Py Pdir}
       TrainerList = {GetTrainerList 1 1} % Get all the trainers in a *flat* list
-      Tree = {MoveTree Px Py Pdir TrainerList}
+      Tree = {MoveTree Px Py Pdir TrainerList 0}
       Up Down Right Left
    in
-      Up = {Sum {ListMoveTree Tree.up}}
-      Down = {Sum {ListMoveTree Tree.down}}
-      Right = {Sum {ListMoveTree Tree.left}}
-      Left = {Sum {ListMoveTree Tree.right}}
+      Up = {Sum {ListMoveTree Tree.up} 0}
+      Down = {Sum {ListMoveTree Tree.down} 0}
+      Right = {Sum {ListMoveTree Tree.left} 0}
+      Left = {Sum {ListMoveTree Tree.right} 0}
       if Up < Down andthen Up < Right andthen Up < Left then up
       elseif Down < Up andthen Down < Right andthen Down < Left then down
       elseif Right < Down andthen Right < Up andthen Right < Left then right
       else left end
    end
    
-   Init = state(C dir:up)
+   Init = state(Coords dir:up)
    PlayerPort = {NewPortObject Init
 		 fun{$ Msg state(Pos dir:Dir)}
 		    case Msg
@@ -174,8 +176,8 @@ fun{ArtificialPlayer Coords MapPort}
 		       X=Pos
 		       state(Pos dir:Dir)
 		    [] move(Move) then
-		       Move = {Intelligence X Y Dir}
-		       state(pos(x:X y:Y) dir:Dir)
+		       Move = {Intelligence Pos.x Pos.y Dir}
+		       state(pos(x:Pos.x y:Pos.y) dir:Dir)
 		    end
 		 end}
 in
