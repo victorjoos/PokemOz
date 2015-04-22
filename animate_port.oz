@@ -144,44 +144,41 @@ in
    end
 end
 %Extern
-fun{DrawFight Canvas Play Adv B}
+fun{DrawFight Canvas PlayL NpcL B}
    AllTags
-   LTagsAdv
+   LTagsNpc
    LTagsPlay
+   FirstPlay = {Send PlayL getFirst($)}
+   FirstNpc  = {Send NpcL  getFirst($)}
    Text = proc{$ X} {TAGS.fight2 set(text:X)} end
    Fid={NewPortObjectKillable
-	state(play:Play
-	       adv:Adv)
-	fun{$ Msg State}
+	state(player:FirstPlay
+	       enemy:FirstNpc
+	fun{$ Msg state(player:Play enemy:Npc)}
 	   case Msg
 	   of exit(B) then  DT = {DELAY.get} div 4 in
 	      thread
 		 {Delay {DELAY.get}*3}
-		 if State.adv == 0 then
-		    {Text "You WON!!!!"}
-		 else
-		    {Text "You LOST!!!!"}
-		 end
+		%TODO: set Text!!
 	      end
 	      for _ in 1..25 do
-		 %{QTk.flush} 
-		 {MoveFight LTagsAdv  ~1}
+		 {MoveFight LTagsNpc  ~1}
 		 {MoveFight LTagsPlay  1}
 		 {Delay DT}
 	      end
-	      {Apply LTagsAdv  proc{$ T} {T delete} end}
+	      {Apply LTagsNpc  proc{$ T} {T delete} end}
 	      {Apply LTagsPlay proc{$ T} {T delete} end}
 	      {TAGS.fight2 delete}
 	      B = unit
 	      state(killed)
-	   [] attack(P B) then PlH AdvH  NTag = AllTags.others.1 in
+	   [] attack(P B) then NTag = AllTags.others.1 in
 	      case P
-	      of pnj then
-		 NH = {Send Play.pid getHealth($)}.act
+	      of npc then
+		 PlayHe = {Send Play.pid getHealth($)}
 	      in
 		 {Delay 200}
 		 {Text "The enemy attacked..."}
-		 {MoveBack    AllTags.plateau.2.2 ~1}
+		 {MoveBack AllTags.plateau.2.2 ~1}
 		 thread
 		    {Delay {DELAY.get}}
 		    {Text "...and HIT!"}
@@ -191,17 +188,15 @@ fun{DrawFight Canvas Play Adv B}
 				125 143)}
 		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
 		 {ChangeBar AllTags.attrib.2.1.act
-		  health(act:NH old:State.play) 270 180}
-		 PlH  = State.play-NH
-		 AdvH = 0
+		  PlayHe 270 180}
 		 thread
-		    if NH \= 0 then
+		    if PlayHe.act \= 0 then
 		       {Delay {DELAY.get}*6}
 		       {Text "Choose your action"}
 		    end
 		 end
 	      [] player then
-		 NH = {Send Adv.pid getHealth($)}.act
+		 NpcHe = {Send Npc.pid getHealth($)}
 	      in
 		 %Show attack
 		 {Text "You attacked..."}
@@ -216,14 +211,11 @@ fun{DrawFight Canvas Play Adv B}
 		 {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
 		 %Show damage taken on enemy health bar
 		 {ChangeBar AllTags.attrib.2.2.act
-		  health(act:NH old:State.adv) 110 35}
-
-		 PlH  = 0
-		 AdvH = State.adv-NH
+		  NpcHe 110 35}
 	      end
 
 	      B = unit
-	      state(play:State.play-PlH adv:State.adv-AdvH)
+	      state(player:Play enemy:Npc)
 
 	   [] attackFail(P B) then
 	      case P
@@ -251,17 +243,16 @@ fun{DrawFight Canvas Play Adv B}
 	      end
 
 	      B = unit	      
-	      state(play:State.play adv:State.adv)
-	      
+	      state(player:Play enemy:Npc)
 	   end
 	end}
 in
    thread
-      AllTags={FightScene Play Adv}
-      {AllTagsToList AllTags LTagsAdv LTagsPlay}
+      AllTags={FightScene FirstPlay FirstNpc}
+      {AllTagsToList AllTags LTagsNpc LTagsPlay}
       local DT = {DELAY.get} div 4 in
 	 for _ in 1..25 do 
-	    {MoveFight LTagsAdv  ~1}
+	    {MoveFight LTagsNpc  ~1}
 	    {MoveFight LTagsPlay  1}
 	    {Delay DT}
 	 end

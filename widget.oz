@@ -188,7 +188,7 @@ in
 	others:others({Ch newTag($)}))
    TAGS.fight2 = {CANVAS.fight2 newTag($)}
 end
-proc{DrawBar Act Max X0 Y0 Tag Tag2}
+proc{DrawBar Act Max X0 Y0 Tag Tag2}%TODO add color change
    W = 100
    H = 10
    Size = (W*Act) div Max

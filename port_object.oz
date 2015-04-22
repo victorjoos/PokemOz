@@ -329,30 +329,35 @@ end
 
 
 %%%%%%% FIGHT PORTOBJECTS %%%%%%%%%%%
-fun {CheckDamage PlayType AdvType}
-   if PlayType == AdvType then 2#2
-   else
+fun{GetDamage PlayT NpcT Hit} % Hit = player or npc
+   if PlayType == NpcType then 2
+   elseif Hit == player then
       case PlayType
-      of fire  then if AdvType==grass then 1#3 else 3#1 end
-      [] grass then if AdvType==fire  then 3#1 else 1#3 end
-      [] water then if AdvType==fire  then 1#3 else 3#1 end
+      of fire  then if NpcType==grass then 1 else 3 end
+      [] grass then if NpcType==fire  then 3 else 1 end
+      [] water then if NpcType==fire  then 1 else 3 end
       end
+   else
+      case NpcType
+      of fire  then if NpcType==grass then 3 else 1 end
+      [] grass then if NpcType==fire  then 1 else 3 end
+      [] water then if NpcType==fire  then 3 else 1 end
    end
 end
-fun {AttackSuccessful Attacker}
-   TrainerLvl = {Send TrainerP.pid getLvl($)}
-   EnemyLvl   = {Send   EnemyP.pid getLvl($)}
+fun {AttackSuccessful Play Npc Attacker}
+   PlayLvl = {Send Play.pid getLvl($)}
+   NpcLvl  = {Send  Npc.pid getLvl($)}
 in
    case Attacker
    of player then
-      Probability = (6+TrainerLvl-EnemyLvl)*9
+      Probability = (6+PlayLvl-NpcLvl)*9
       Rand = ({OS.rand} mod 100)+1 % from 1 to 100
    in
       if Rand =< Probability then true
       else false
       end
    [] npc then
-      Probability = (6+EnemyLvl-TrainerLvl)*9
+      Probability = (6+NpcLvl-PlayLvl)*9
       Rand = ({OS.rand} mod 100)+1 % from 1 to 100
    in
       if Rand =< Probability then true
@@ -360,46 +365,46 @@ in
       end
    end
 end
-fun {FightController Play Adv FightAnim}
-   
-   fun {RunSuccessful}
-      true % TODO(victor) : add probability
-   end
-
-   TrainerHitted#EnemyHitted = {CheckDamage TrainerP.type EnemyP.type}
+fun {RunSuccessful}
+   true % TODO(victor) : add probability
+end
+fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
    WaitAnim = {Waiter}
    FightPort = {NewPortObjectKillable
-		state(trainer:alive enemy:alive fighting:false)
-		fun{$ Msg state(trainer:TState enemy:EState fighting:OK)}
+		state(player:{Send PlayL getFirst($)}
+		       enemy:{Send NpcL  getFirst($)}
+		      fighting:false)
+		fun{$ Msg state(player:Play enemy:Npc fighting:OK)}
 		   case Msg
 		   of run then
 		      if OK then
-			 state(trainer:TState enemy:EState fighting:OK)
+			 state(player:Play enemy:Npc fighting:OK)
 		      else
 			 if {RunSuccessful} then B in
-			    {Send EnemyP.pid refill}
+			    {Send Npc.pid refill}
 			    {Send FightAnim  exit(B)}
 			    {Send WaitAnim wait(MAINPO B set(map))}
-			    if {Label EnemyP}==wild then
-			       {Send WaitAnim wait(EnemyP.pid B kill)}
+			    if {Label Npc}==wild then
+			       {Send WaitAnim wait(Npc.pid B kill)}
 			    end
 			    state(killed)
 			 else
 			    % Send signal to itself for IA turn = automatic
 			    % attack
 			    {Send FightPort fightIA}
-			    state(trainer:TState enemy:EState fighting:true)
+			    state(trainer:Play enemy:Npc fighting:true)
 			 end
 		      end
 		   [] fight then
 		      if OK then
-			 state(trainer:TState enemy:EState fighting:OK)
+			 state(player:TState enemy:EState fighting:OK)
 		      else
 			 NEState Ack
 		      in
 			 if {AttackSuccessful player} then
-			    {Show attackChar}
-			    {Send EnemyP.pid damage(EnemyHitted NEState)}
+			    Damage = {GetDamage Play.type Npc.type npc}
+			 in
+			    {Send Npc.pid damage(Damage NEState)}
 			    {Wait NEState}
                             % ^ to avoid concurrency issues (even if they are
 			    %   VERY unlikely)
@@ -411,32 +416,33 @@ fun {FightController Play Adv FightAnim}
 
 			 if NEState == alive then
 			    {Send WaitAnim wait(FightPort Ack fightIA)}
-			    state(trainer:TState enemy:NEState fighting:true)
+			    state(player:Play enemy:Adv fighting:true)
 			 else B in
 			    {Send FightAnim exit(B)}
-			 %sends signal to  mainthread
 			    {Send WaitAnim wait(MAINPO B set(map))}
-			    if {Label EnemyP}==wild then
-			       {Send WaitAnim wait(EnemyP.pid B kill)}
+			    if {Label Adv}==wild then
+			       {Send WaitAnim wait(Adv.pid B kill)}
 			    end
 			    state(killed)
 			 end
 		      end
 		   [] fightIA then NTState Ack in
 		      if {AttackSuccessful npc} then
-			 {Send TrainerP.pid damage(TrainerHitted NTState)}
+			 Damage = {GetDamage Play.type Adv.type player}
+		      in
+			 {Send Play.pid damage(Damage NTState)}
 			 {Wait NTState}
                             % ^ to avoid concurrency issues (even if they are
 			    %   VERY unlikely)
-			 {Send FightAnim attack(pnj Ack)}
+			 {Send FightAnim attack(npc Ack)}
 		      else
-			 {Send FightAnim attackFail(pnj Ack)}
+			 {Send FightAnim attackFail(npc Ack)}
 			 NTState = alive
 		      end
 
 		      if NTState == alive then
 			 {Send WaitAnim wait(FightPort Ack input)}	 
-			 state(trainer:NTState enemy:EState fighting:OK)
+			 state(player:NTState enemy:EState fighting:OK)
 		      else B in
 			 {Send FightAnim exit(B)}
 			 %TODO: add 'lost' screen
@@ -447,7 +453,7 @@ fun {FightController Play Adv FightAnim}
 			 state(killed)
 		      end
 		   [] input then
-		      state(trainer:TState enemy:EState fighting:false)
+		      state(player:Play enemy:Npc fighting:false)
 		   end
 		end}
 in
@@ -473,7 +479,7 @@ proc{GetLevel Exp Lvl Ne Le}
    end
 end
 %Function that creates a Pokemoz
-fun{CreatePokemoz Name Lvl0}
+fun{CreatePokemoz Name Lvl0 State}
    Type = {GETTYPE Name}
    HealthMax = 20+(Lvl0-5)*2
    ExpMax = EXPER.Lvl0
@@ -528,18 +534,18 @@ fun{CreatePokemoz Name Lvl0}
 	    end}%add replenishing function for hospital later on
 in
    %pokemoz(name:<String> type:<Atom> pid:<PokemozPID>)
-   pokemoz(name:Name type:Type pid:Pokid)
+   State(name:Name type:Type pid:Pokid)
 end
 % CreatePokemozList
 % @pre : Names: List of strings of the names of the initial pokemoz
 %        Lvls : List of the lvls of the pokemozs (must have the same lenght as Names)
 %        State: trainer,player,wild
 % @post: returns the pid of the pokemozList
-proc{GetPokemoz Names Lvl Rec ActInd MaxInd}
+proc{GetPokemoz Names Lvl Rec ActInd MaxInd Type}
    case Name
    of nil then MaxInd = ActInd
    []H|T then
-      Rec.ActInd = {CreatePokemoz H Lvl.1}
+      Rec.ActInd = {CreatePokemoz H Lvl.1 Type}
       {GetPokemoz T Lvl.2 Rec ActInd+1 MaxInd}
    end
 end
@@ -562,9 +568,9 @@ proc{RmPokemoz OldRec NewRec Ind IndMax}
       NewRec.6 = none
    end
 end
-fun{CreatePokemozList Names Lvls}
+fun{CreatePokemozList Names Lvls Type}
    Init = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-   Q =  {GetPokemoz Names Lvls Init 1 $}
+   Q =  {GetPokemoz Names Lvls Init 1 $ Type}
    for I in Q..6 do
       Init.I = none
    end
