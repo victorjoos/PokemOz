@@ -1,6 +1,6 @@
-fun {ArtificialPlayer Coords MapPort}
+fun {ArtificialPlayer Coords MapPort PlayerPort}
    TRAINERADD=2
-   RECURSIONLIMIT=3
+   RECURSIONLIMIT=4
    % Checks if the coordinates aren't out of bounds
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
@@ -21,38 +21,39 @@ fun {ArtificialPlayer Coords MapPort}
 	 if X==MAXX then NewX=1 NewY=Y+1
 	 else NewX=X+1 NewY=Y end
 	 case TileState
-	 of occupied(TrainerID) then trainer(x:X y:Y dir:{Send Y.pid getDir($)})|{GetTrainerList NewX NewY}
+	 of occupied(TrainerID) then
+	    trainer(x:X y:Y dir:{Send TrainerID.pid getDir($)})|{GetTrainerList NewX NewY}
 	 else {GetTrainerList NewX NewY}
 	 end
       end
    end
    % Takes the current position of a trainer and moves it
    % or turns it along all directions (no staying in place)
-   fun {NewTrainerPositions pos(x:X y:Y dir:Dir)}
+   fun {NewTrainerPositions trainer(x:X y:Y dir:Dir)}
       case Dir
       of up then
 	 if {CheckEdges X Y-1} then
-	    [pos(x:X y:Y-1 dir:Dir) pos(x:X y:Y dir:down) pos(x:X y:Y dir:left) pos(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y-1 dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:right)]
 	 else
-	    [pos(x:X y:Y dir:Dir) pos(x:X y:Y dir:down) pos(x:X y:Y dir:left) pos(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:right)]
 	 end
       [] down then
 	 if {CheckEdges X Y+1} then
-	    [pos(x:X y:Y+1 dir:Dir) pos(x:X y:Y dir:up) pos(x:X y:Y dir:left) pos(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y+1 dir:Dir) trainer(x:X y:Y dir:up) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:right)]
 	 else
-	    [pos(x:X y:Y dir:Dir) pos(x:X y:Y dir:up) pos(x:X y:Y dir:left) pos(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir) trainer(x:X y:Y dir:up) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:right)]
 	 end
       [] right then
 	 if {CheckEdges X+1 Y} then
-	    [pos(x:X+1 y:Y dir:Dir) pos(x:X y:Y dir:down) pos(x:X y:Y dir:left) pos(x:X y:Y dir:up)]
+	    [trainer(x:X+1 y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:up)]
 	 else
-	    [pos(x:X y:Y dir:Dir) pos(x:X y:Y dir:down) pos(x:X y:Y dir:left) pos(x:X y:Y dir:up)]
+	    [trainer(x:X y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:up)]
 	 end
       [] left then
 	 if {CheckEdges X-1 Y} then
-	    [pos(x:X-1 y:Y dir:Dir) pos(x:X y:Y dir:down) pos(x:X y:Y dir:up) pos(x:X y:Y dir:right)]
+	    [trainer(x:X-1 y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:up) trainer(x:X y:Y dir:right)]
 	 else
-	    [pos(x:X y:Y dir:Dir) pos(x:X y:Y dir:down) pos(x:X y:Y dir:up) pos(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:up) trainer(x:X y:Y dir:right)]
 	 end
       end
    end
@@ -63,7 +64,7 @@ fun {ArtificialPlayer Coords MapPort}
       NextScore
    in
       case TrainerPositions of nil then Score
-      [] pos(x:Tx y:Ty dir:Tdir)|T then
+      [] trainer(x:Tx y:Ty dir:Tdir)|T then
 	 case Tdir
 	 of up then if Y==Ty-1 then NextScore=Score+TRAINERADD else NextScore=Score end
 	 [] down then if Y==Ty+1 then NextScore=Score+TRAINERADD else NextScore=Score end
@@ -93,7 +94,7 @@ fun {ArtificialPlayer Coords MapPort}
       FinalScore
       Up Down Right Left
    in
-      if Ground==grass then BaseScore=5+(Px-MAXX)+(1-Py) else BaseScore=(Px-MAXX)+(1-Py) end
+      if Ground==grass then BaseScore=10+(Px-MAXX)+(1-Py) else BaseScore=(Px-MAXX)+(1-Py) end
       FinalScore={CalculateScore Px Py TrainerPositions BaseScore}
       if RecursionDepth>RECURSIONLIMIT then move(leaf value:FinalScore)
       else
@@ -144,9 +145,9 @@ fun {ArtificialPlayer Coords MapPort}
 	 Value|{ListMoveTree Up}|{ListMoveTree Down}|{ListMoveTree Right}|{ListMoveTree Left}
       end
    end
-   fun {Sum MoveL Sum}
-      case MoveL of nil then Sum
-      [] H|T then {Sum T Sum+H}
+   fun {Sum MoveL TotalSum}
+      case MoveL of nil then TotalSum
+      [] H|T then {Sum T TotalSum+H}
       end
    end
    % Uses the move tree to determine the best move.
@@ -155,10 +156,11 @@ fun {ArtificialPlayer Coords MapPort}
       Tree = {MoveTree Px Py Pdir TrainerList 0}
       Up Down Right Left
    in
-      Up = {Sum {ListMoveTree Tree.up} 0}
-      Down = {Sum {ListMoveTree Tree.down} 0}
-      Right = {Sum {ListMoveTree Tree.left} 0}
-      Left = {Sum {ListMoveTree Tree.right} 0}
+      Up = {Sum {Flatten {ListMoveTree Tree.up}} 0}
+      Down = {Sum {Flatten {ListMoveTree Tree.down}} 0}
+      Right = {Sum {Flatten {ListMoveTree Tree.left}} 0}
+      Left = {Sum {Flatten {ListMoveTree Tree.right}} 0}
+      {Show Up#Down#Right#Left}
       if Up < Down andthen Up < Right andthen Up < Left then up
       elseif Down < Up andthen Down < Right andthen Down < Left then down
       elseif Right < Down andthen Right < Up andthen Right < Left then right
@@ -166,26 +168,30 @@ fun {ArtificialPlayer Coords MapPort}
    end
    
    Init = state(Coords dir:up)
-   PlayerPort = {NewPortObject Init
-		 fun{$ Msg state(Pos dir:Dir)}
-		    case Msg
-		    of getMove(X) then
-		       X=Dir
-		       state(Pos dir:Dir)
-		    [] getPos(X) then
-		       X=Pos
-		       state(Pos dir:Dir)
-		    [] move(Move) then
-		       Move = {Intelligence Pos.x Pos.y Dir}
-		       state(pos(x:Pos.x y:Pos.y) dir:Dir)
-		    [] fight(PlayerH TrainerH PlayerLvl TrainerLvl) then
-		       if PlayerLvl>TrainerLvl andthen PlayerH>5 then fight
-		       elseif PlayerLvl==TrainerLvl andthen PlayerH>10 then fight
-		       elseif PlayerLvl<TrainerLvl andthen PlayerH+10>TrainerH then fight
-		       else run
-		       end
-		    end
-		 end}
+   ArtificialPlayerPort = {NewPortObject Init
+			   fun{$ Msg state(Pos dir:Dir)}
+			      {Show aiMsg#Msg}
+			      case Msg
+			      of getMove(X) then
+				 X=Dir
+				 state(Pos dir:Dir)
+			      [] getPos(X) then
+				 X=Pos
+				 state(Pos dir:Dir)
+			      [] move then
+				 Move = {Intelligence Pos.x Pos.y Dir}
+			      in
+				 {Send PlayerPort move(Move)}
+				 state(pos(x:Pos.x y:Pos.y) dir:Dir)
+			      [] fight(PlayerH TrainerH PlayerLvl TrainerLvl) then
+				 if PlayerLvl>TrainerLvl andthen PlayerH>5 then fight
+				 elseif PlayerLvl==TrainerLvl andthen PlayerH>10 then fight
+				 elseif PlayerLvl<TrainerLvl andthen PlayerH+10>TrainerH then fight
+				 else run
+				 end
+			      end
+			   end}
 in
-   PlayerPort
+   {Show 'Hello!!'}
+   ArtificialPlayerPort
 end
