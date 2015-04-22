@@ -129,8 +129,7 @@ fun{Tile Init C Mapid Ground}
 		     Wild = {GetWildling}
 		  in
 		     if Wild \= none then
-			{Show he#{Send Wild.pid getHealth($)}}
-			{CreateFight Plid wild(poke:Wild)}
+			{CreateFight Plid Wild}
 		     end
 		  end
 		  {SignalArrival Plid}
@@ -142,13 +141,11 @@ fun{Tile Init C Mapid Ground}
 			{Send Y.pid getDir($)} == Dir
 		     then
 			if LblY==player then
-			   if {Send Trainer.poke.pid getHealth($)}.act
-			      \= 0 then
+			   if {Send Trainer.poke getFirst($)} \= none then
 			      {CreateFight Y Trainer}
 			   end
 			else
-			   if {Send Y.poke.pid getHealth($)}.act
-			      \= 0 then
+			   if {Send Y.poke       getFirst($)} \= none then
 			      {CreateFight Trainer Y}
 			   end
 			end
@@ -222,21 +219,28 @@ in
    Mapid
 end
 %%%%%%%% WILD-POKEMOZ  %%%%%%%%
-CreatePokemoz
+CreatePokemoz CreatePokemozList
 fun{RandomName}
    "Bulbasoz"
 end
+WildlingTrainer
+thread WildlingTrainer = wild(poke:{CreatePokemozList nil nil wild}) end
+%CreateTrainer Name X0 Y0 Speed Mapid Names Lvls Type}
 fun{GetWildling}
    if ({OS.rand} mod 100)+1 =< PROBABILITY then
-      Lvl={Send PLAYER.poke.pid getLvl($)}
+      Lvl={FloatToInt {Round {Send PLAYER.poke getAverage($)}}}
       R
       Ra = {OS.rand} mod 15
       if Ra < 10 then R = ~1
       elseif Ra < 13 then R = 0
       else R = 1 end
       NLvl = {Max Lvl+R 5}
+      Pokemoz={CreatePokemoz {RandomName} {Min NLvl 10} wild}
+      Ack
    in
-      {CreatePokemoz {RandomName} {Min NLvl 10} wild}
+      {Send WildlingTrainer.poke add(Pokemoz Ack)}
+      {Wait Ack}
+      WildlingTrainer
    else
       none
    end
@@ -299,8 +303,8 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
 		       %Check for boundaries and if the tile is free
 		       %then send arriving signal
 		       if {Send Mapid checksig(x:NewX y:NewY $ sig:Sig)} then
- 			  {Send Trid moveTo(x:NewX y:NewY)}
-
+			  {Send Trid moveTo(x:NewX y:NewY)}
+			  
 			  {Send Wid wait(Plid  Val arrived)}
 			  {Send Wid wait(Mapid Val
 					 send(x:Pos.x y:Pos.y left))}
@@ -329,7 +333,7 @@ end
 
 
 %%%%%%% FIGHT PORTOBJECTS %%%%%%%%%%%
-fun{GetDamage PlayT NpcT Hit} % Hit = player or npc
+fun{GetDamage PlayType NpcType Hit} % Hit = player or npc
    if PlayType == NpcType then 2
    elseif Hit == player then
       case PlayType
@@ -342,6 +346,7 @@ fun{GetDamage PlayT NpcT Hit} % Hit = player or npc
       of fire  then if NpcType==grass then 3 else 1 end
       [] grass then if NpcType==fire  then 1 else 3 end
       [] water then if NpcType==fire  then 3 else 1 end
+      end
    end
 end
 fun {AttackSuccessful Play Npc Attacker}
@@ -381,7 +386,6 @@ fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
 			 state(player:Play enemy:Npc fighting:OK)
 		      else
 			 if {RunSuccessful} then B in
-			    {Send Npc.pid refill}
 			    {Send FightAnim  exit(B)}
 			    {Send WaitAnim wait(MAINPO B set(map))}
 			    if {Label Npc}==wild then
@@ -397,11 +401,11 @@ fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
 		      end
 		   [] fight then
 		      if OK then
-			 state(player:TState enemy:EState fighting:OK)
+			 state(player:Play enemy:Npc fighting:OK)
 		      else
 			 NEState Ack
 		      in
-			 if {AttackSuccessful player} then
+			 if {AttackSuccessful Play Npc player} then
 			    Damage = {GetDamage Play.type Npc.type npc}
 			 in
 			    {Send Npc.pid damage(Damage NEState)}
@@ -416,19 +420,17 @@ fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
 
 			 if NEState == alive then
 			    {Send WaitAnim wait(FightPort Ack fightIA)}
-			    state(player:Play enemy:Adv fighting:true)
+			    state(player:Play enemy:Npc fighting:true)
 			 else B in
 			    {Send FightAnim exit(B)}
 			    {Send WaitAnim wait(MAINPO B set(map))}
-			    if {Label Adv}==wild then
-			       {Send WaitAnim wait(Adv.pid B kill)}
-			    end
+			    {Send NpcL releaseAll}
 			    state(killed)
 			 end
 		      end
 		   [] fightIA then NTState Ack in
-		      if {AttackSuccessful npc} then
-			 Damage = {GetDamage Play.type Adv.type player}
+		      if {AttackSuccessful Play Npc npc} then
+			 Damage = {GetDamage Play.type Npc.type player}
 		      in
 			 {Send Play.pid damage(Damage NTState)}
 			 {Wait NTState}
@@ -442,13 +444,14 @@ fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
 
 		      if NTState == alive then
 			 {Send WaitAnim wait(FightPort Ack input)}	 
-			 state(player:NTState enemy:EState fighting:OK)
+			 state(player:Play enemy:Npc fighting:OK)
 		      else B in
 			 {Send FightAnim exit(B)}
+			 {Send NpcL refill}
 			 %TODO: add 'lost' screen
 			 {Send WaitAnim wait(MAINPO B set(map))}
-			 if {Label EnemyP}==wild then
-			    {Send WaitAnim wait(EnemyP.pid B kill)}
+			 if {Label Npc}==wild then
+			    {Send WaitAnim wait(Npc.pid B kill)}
 			 end
 			 state(killed)
 		      end
@@ -542,28 +545,35 @@ end
 %        State: trainer,player,wild
 % @post: returns the pid of the pokemozList
 proc{GetPokemoz Names Lvl Rec ActInd MaxInd Type}
-   case Name
+   case Names
    of nil then MaxInd = ActInd
    []H|T then
       Rec.ActInd = {CreatePokemoz H Lvl.1 Type}
-      {GetPokemoz T Lvl.2 Rec ActInd+1 MaxInd}
+      {GetPokemoz T Lvl.2 Rec ActInd+1 MaxInd Type}
    end
 end
-proc{AddPokemoz OldRec NewRec Pkm I}
-   if OldRec.I == none then 
+proc{AddPokemoz OldRec NewRec Pkm I B}
+   if B andthen OldRec.I == none then 
       NewRec.I = Pkm
       if OldRec.first == none then
 	 NewRec.first = I
+      else
+	 NewRec.first = OldRec.first
       end
-   else
-      {AddPokemoz OldRec NewRec Pkm I+1}
+       {AddPokemoz OldRec NewRec Pkm I+1 false}
+   elseif I<7 then
+      NewRec.I = OldRec.I
+      {AddPokemoz OldRec NewRec Pkm I+1 B}
+   else skip
    end
 end
 proc{RmPokemoz OldRec NewRec Ind IndMax}
    if Ind < IndMax then
       NewRec.Ind = OldRec.Ind
+      {RmPokemoz OldRec NewRec Ind IndMax+1}
    elseif Ind < 6 then
       NewRec.Ind = OldRec.(Ind+1)
+      {RmPokemoz OldRec NewRec Ind IndMax+1}
    else
       NewRec.6 = none
    end
@@ -576,49 +586,83 @@ fun{CreatePokemozList Names Lvls Type}
    end
    if Q \= 0 then Init.first = 1
    else Init.first = none end
-   PokeLid = {NewPortObject Init fun{$ Msg State}
-				    case Msg
-				    of add(Pkm B) then
-				       if State.Ind \= none then
-					  B = false
-					  State
-				       else
-					  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-				       in
-					  {AddPokemoz State NewState 1}
-					  B = true
-					  NewState
-				       end
-				    [] release(Ind) then
-				       if State.Ind == none then State
-				       else
-					  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-				       in
-					  {RmPokemoz State NewState 1 Ind}
-					  if Ind = State.first then NewState.first = NewState.1
-					  else NewState.first = State.first end
-					  NewState
-				       end
-				    [] get(X Ind) then  X=State.Ind State
-				    [] getAll(X) then X=State State
-				    [] getFirst(X) then
-				       if State.first == none then X == none
-				       else X=State.(State.first) end
-				    end
-				 end}
+   PokeLid = {NewPortObject Init
+	      fun{$ Msg State}
+		 {Show State}
+		 case Msg
+		 of add(Pkm B) then
+		    if State.6 \= none then
+		       B = false
+		       State
+		    else
+		       NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+		    in
+		       {AddPokemoz State NewState Pkm 1 true}
+		       B = true
+		       {Show NewState}
+		       NewState
+		    end
+		 [] release(Ind B) then
+		    if State.Ind == none then B=unit State
+		    else
+		       NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+		    in
+		       {RmPokemoz State NewState 1 Ind}
+		       if Ind = State.first then
+			  NewState.first = NewState.1
+		       else
+			  NewState.first = State.first
+		       end
+		       B=unit
+		       NewState
+		    end
+		 [] get(X Ind) then  X=State.Ind State
+		 [] getAll(X) then X=State State
+		 [] getFirst(X) then
+		    if State.first == none then X = none
+		    else X=State.(State.first) end
+		    State
+		 [] getAverage(X) then
+                    %returns the average of the first 3 Pkm
+		    if State.2 == none then
+		       X = {IntToFloat {Send State.1.pid getLvl($)}}
+		    elseif State.3 == none then
+		       X = ({IntToFloat {Send State.1.pid getLvl($)}} +
+			    {IntToFloat {Send State.2.pid getLvl($)}})/2.0
+		    else
+		       X = ({IntToFloat {Send State.1.pid getLvl($)}} +
+			    {IntToFloat {Send State.2.pid getLvl($)}} +
+			    {IntToFloat {Send State.3.pid getLvl($)}})/3.0
+		    end
+		    State
+		 [] refill then
+		    for I in 1..6 do
+		       if State.I \= none then
+			  {Send State.I.pid refill}
+		       end
+		    end
+		    State
+		 [] releaseAll then
+		    for I in 1..6 do
+		       if State.I \= none then
+			  {Send State.I.pid kill}
+		       end
+		    end
+		    all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
+		 end
+	      end}
 in
    PokeLid
 end
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
 fun{CreateTrainer Name X0 Y0 Speed Mapid Names Lvls Type}
-   Pokemoz = {CreatePokemozList Names Lvls}
+   Pokemoz = {CreatePokemozList Names Lvls Type}
    Trpid
    TrainerObj = Type(poke:Pokemoz pid:Trpid)
    Anid = {AnimateTrainer X0-1 Y0-1 Speed Name}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
    Trpid = {TrainerController Mapid Trid Speed TrainerObj}
-
 in
    %trainer(poke:<PokemOzList> pid:<TrainerController>)
    TrainerObj
@@ -685,11 +729,11 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		    thread {InitFightTags} end
 		    % Create the Map Environment
 		    MAPID = {MapController Map}
-		    TAGS.map={DrawMap CANVAS.map Map 7 7}%should NOT EVER
+		    TAGS.map={DrawMap Map 7 7}%should NOT EVER
 		                                         % be threaded!!!
 		    {PlaceH set(Handles.map)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
-			      [Name3] [5] player}
+			      [Name3] [8] player}
 		    {Send MAPID init(x:7 y:7 PLAYER)}
 		    %TODO:add ennemies to the map
 		    Enemy = {CreateTrainer "Red" 6 6 SPEED MAPID

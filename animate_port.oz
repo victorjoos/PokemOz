@@ -128,20 +128,20 @@ in
    if NTag\=nil then {NTag delete} end
 end
 %Intern
-proc{ChangeBar Tag Health X0 Y0}
-   Size
-   if Health.old \= 0 then
-      Size = {IntToFloat Health.act} / {IntToFloat Health.old}
-   else
-      Size = 0.0
-   end
+proc{ChangeBar Tag He X0 Y0}
+   {Show He}
+   W = 100
+   H = 10
+   Size = (W*He.act) div He.max
+   CanvasH = CANVAS.fight
+   Color
+   Divi = {IntToFloat W} / {IntToFloat Size}
+   if Divi < 0.2 then Color = red
+   elseif Divi < 0.5 then Color = yellow
+   else Color = green end
 in
-   {Show Health}
-   if Size \= 0.0 then
-      {Tag scale(X0 Y0 Size 1.0) }
-   else
-      {Tag delete}
-   end
+   {Tag delete}
+   {CanvasH create(rectangle X0 Y0 X0+Size Y0+H fill:Color tags:Tag)}
 end
 %Extern
 fun{DrawFight Canvas PlayL NpcL B}
@@ -153,7 +153,7 @@ fun{DrawFight Canvas PlayL NpcL B}
    Text = proc{$ X} {TAGS.fight2 set(text:X)} end
    Fid={NewPortObjectKillable
 	state(player:FirstPlay
-	       enemy:FirstNpc
+	       enemy:FirstNpc)
 	fun{$ Msg state(player:Play enemy:Npc)}
 	   case Msg
 	   of exit(B) then  DT = {DELAY.get} div 4 in
@@ -188,7 +188,7 @@ fun{DrawFight Canvas PlayL NpcL B}
 				125 143)}
 		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
 		 {ChangeBar AllTags.attrib.2.1.act
-		  PlayHe 270 180}
+		  PlayHe 270 165}
 		 thread
 		    if PlayHe.act \= 0 then
 		       {Delay {DELAY.get}*6}
@@ -219,7 +219,7 @@ fun{DrawFight Canvas PlayL NpcL B}
 
 	   [] attackFail(P B) then
 	      case P
-	      of pnj then
+	      of npc then
 		 {Delay 200}
 		 {Text "The enemy attacked..."}
 		 {MoveBack    AllTags.plateau.2.2 ~1}

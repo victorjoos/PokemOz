@@ -188,14 +188,19 @@ in
 	others:others({Ch newTag($)}))
    TAGS.fight2 = {CANVAS.fight2 newTag($)}
 end
-proc{DrawBar Act Max X0 Y0 Tag Tag2}%TODO add color change
+proc{DrawBar Act Max X0 Y0 Tag Tag2}
    W = 100
    H = 10
    Size = (W*Act) div Max
    CanvasH = CANVAS.fight
+   Color
+   Divi = {IntToFloat W} / {IntToFloat Size}
+   if Divi < 0.2 then Color = red
+   elseif Divi < 0.5 then Color = yellow
+   else Color = green end
 in
    {CanvasH create(rectangle X0 Y0 X0+W    Y0+H fill:white tags:Tag2)}
-   {CanvasH create(rectangle X0 Y0 X0+Size Y0+H fill:green tags:Tag)}
+   {CanvasH create(rectangle X0 Y0 X0+Size Y0+H fill:Color tags:Tag)}
 end
 fun{FightScene Play Adv}
    Tags = TAGS.fight

@@ -1,8 +1,8 @@
 % This program will make the library
 
 declare
-[QTk]=[QTk]={Module.link ['/etinfo/users/2014/vanderschuea/Downloads/Mozart/mozart/cache/x-oz/system/wp/QTk.ozf']}%["x-oz://system/wp/QTk.ozf"]}
-%{Module.link ["x-oz://system/wp/QTk.ozf"]}
+%[QTk]={Module.link ['/etinfo/users/2014/vanderschuea/Downloads/Mozart/mozart/cache/x-oz/system/wp/QTk.ozf']}%["x-oz://system/wp/QTk.ozf"]}
+[QTk]={Module.link ["x-oz://system/wp/QTk.ozf"]}
 
 Lib = {QTk.newImageLibrary}
 proc{LoadImage Name Name2}
