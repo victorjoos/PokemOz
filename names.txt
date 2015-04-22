@@ -1,51 +1,62 @@
-bulbasoz
+grass:
+bulbasoz 
 ivysoz
 venusoz
 
+fire;
 charmandoz
 charmeleoz
 charozard
 
+water:
 oztirtle
 wartoztle
 blastoz
 
+grass:
 Ozweed 
 kakunoz
 ozdrill
 
+fire:
 pidgeoz
 pidgeoztoz //a voir
 ozpidgeoz
 
+water:
 rozzozoz
 roticoz
 
-Ekoz (ebok)
-Arboz
-
+fire:
 ozachu
 ozmouse
 
+fire:
 vulpoz
 9xoz
 
+grass:
 zoizoz (zubat)
 grozoizoz
 
+water:
 coincwoz (psyduck)
 goldoz
 
+grass:
 machoz
 machozman
 ozchamp
 
+water:
 ozcool (tentacool)
 ozcruel
 
+fire:
 oz2.0         (slowpoke)
 oz2.0(alpha)
 
+water:
 magiciendoz
 pytagyroz
 
