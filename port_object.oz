@@ -329,40 +329,39 @@ end
 
 
 %%%%%%% FIGHT PORTOBJECTS %%%%%%%%%%%
-fun {FightController TrainerP EnemyP FightAnim}%re-add waiter
-   fun {CheckDamage TType EType}
-      if TType == EType then 2#2
-      else
-	 case TType
-	 of fire  then if EType==grass then 1#3 else 3#1 end
-	 [] grass then if EType==fire then 3#1 else 1#3 end
-	 [] water then if EType==fire then 1#3 else 3#1 end
-	 end
+fun {CheckDamage PlayType AdvType}
+   if PlayType == AdvType then 2#2
+   else
+      case PlayType
+      of fire  then if AdvType==grass then 1#3 else 3#1 end
+      [] grass then if AdvType==fire  then 3#1 else 1#3 end
+      [] water then if AdvType==fire  then 1#3 else 3#1 end
       end
    end
-   fun {AttackSuccessful Attacker}
-      TrainerLvl = {Send TrainerP.pid getLvl($)}
-      EnemyLvl   = {Send   EnemyP.pid getLvl($)}
+end
+fun {AttackSuccessful Attacker}
+   TrainerLvl = {Send TrainerP.pid getLvl($)}
+   EnemyLvl   = {Send   EnemyP.pid getLvl($)}
+in
+   case Attacker
+   of player then
+      Probability = (6+TrainerLvl-EnemyLvl)*9
+      Rand = ({OS.rand} mod 100)+1 % from 1 to 100
    in
-      case Attacker
-      of player then
-	 Probability = (6+TrainerLvl-EnemyLvl)*9*2
-	 Rand = ({OS.rand} mod 100)+ ({OS.rand} mod 101)+1 % from 1 to 100
-	 {Show Rand}
-      in
-	 if Rand =< Probability then true
-	 else false
-	 end
-      [] npc then
-	 Probability = (6+EnemyLvl-TrainerLvl)*9*2
-	 Rand = ({OS.rand} mod 100)+({OS.rand} mod 101)+1 % from 1 to 100
-	 {Show Rand}
-      in
-	 if Rand =< Probability then true
-	 else false
-	 end
+      if Rand =< Probability then true
+      else false
+      end
+   [] npc then
+      Probability = (6+EnemyLvl-TrainerLvl)*9
+      Rand = ({OS.rand} mod 100)+1 % from 1 to 100
+   in
+      if Rand =< Probability then true
+      else false
       end
    end
+end
+fun {FightController Play Adv FightAnim}
+   
    fun {RunSuccessful}
       true % TODO(victor) : add probability
    end
@@ -474,7 +473,7 @@ proc{GetLevel Exp Lvl Ne Le}
    end
 end
 %Function that creates a Pokemoz
-fun{CreatePokemoz Name Lvl0 State}%State = {wild,trainer,player}
+fun{CreatePokemoz Name Lvl0}
    Type = {GETTYPE Name}
    HealthMax = 20+(Lvl0-5)*2
    ExpMax = EXPER.Lvl0
@@ -531,17 +530,91 @@ in
    %pokemoz(name:<String> type:<Atom> pid:<PokemozPID>)
    pokemoz(name:Name type:Type pid:Pokid)
 end
+% CreatePokemozList
+% @pre : Names: List of strings of the names of the initial pokemoz
+%        Lvls : List of the lvls of the pokemozs (must have the same lenght as Names)
+%        State: trainer,player,wild
+% @post: returns the pid of the pokemozList
+proc{GetPokemoz Names Lvl Rec ActInd MaxInd}
+   case Name
+   of nil then MaxInd = ActInd
+   []H|T then
+      Rec.ActInd = {CreatePokemoz H Lvl.1}
+      {GetPokemoz T Lvl.2 Rec ActInd+1 MaxInd}
+   end
+end
+proc{AddPokemoz OldRec NewRec Pkm I}
+   if OldRec.I == none then 
+      NewRec.I = Pkm
+      if OldRec.first == none then
+	 NewRec.first = I
+      end
+   else
+      {AddPokemoz OldRec NewRec Pkm I+1}
+   end
+end
+proc{RmPokemoz OldRec NewRec Ind IndMax}
+   if Ind < IndMax then
+      NewRec.Ind = OldRec.Ind
+   elseif Ind < 6 then
+      NewRec.Ind = OldRec.(Ind+1)
+   else
+      NewRec.6 = none
+   end
+end
+fun{CreatePokemozList Names Lvls}
+   Init = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+   Q =  {GetPokemoz Names Lvls Init 1 $}
+   for I in Q..6 do
+      Init.I = none
+   end
+   if Q \= 0 then Init.first = 1
+   else Init.first = none end
+   PokeLid = {NewPortObject Init fun{$ Msg State}
+				    case Msg
+				    of add(Pkm B) then
+				       if State.Ind \= none then
+					  B = false
+					  State
+				       else
+					  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+				       in
+					  {AddPokemoz State NewState 1}
+					  B = true
+					  NewState
+				       end
+				    [] release(Ind) then
+				       if State.Ind == none then State
+				       else
+					  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+				       in
+					  {RmPokemoz State NewState 1 Ind}
+					  if Ind = State.first then NewState.first = NewState.1
+					  else NewState.first = State.first end
+					  NewState
+				       end
+				    [] get(X Ind) then  X=State.Ind State
+				    [] getAll(X) then X=State State
+				    [] getFirst(X) then
+				       if State.first == none then X == none
+				       else X=State.(State.first) end
+				    end
+				 end}
+in
+   PokeLid
+end
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
-fun{CreateTrainer Name X0 Y0 Speed Mapid Canvash Pokemoz Type}
+fun{CreateTrainer Name X0 Y0 Speed Mapid Names Lvls Type}
+   Pokemoz = {CreatePokemozList Names Lvls}
    Trpid
    TrainerObj = Type(poke:Pokemoz pid:Trpid)
-   Anid = {AnimateTrainer Canvash X0-1 Y0-1 Speed Name}
+   Anid = {AnimateTrainer X0-1 Y0-1 Speed Name}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
    Trpid = {TrainerController Mapid Trid Speed TrainerObj}
 
 in
-   %trainer(poke:<PokemOz> pid:<TrainerController>) + Todo:add speed to state of trainer?
+   %trainer(poke:<PokemOzList> pid:<TrainerController>)
    TrainerObj
 end
 
@@ -553,8 +626,6 @@ proc{CreateFight Player NPC}
    Animation = {DrawFight CanvasH Player.poke NPC.poke Ack}
    Fight = {FightController Player.poke NPC.poke Animation}
 in
-   %Animation = {DrawFight CanvasH Player NPC Ack}
-   %Fight = {FightController Player NPC Animation}
    {Wait Ack}
    {BUTTONS.fight.fight bind(event:"<1>" action:
 					    proc{$}
@@ -612,11 +683,11 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		                                         % be threaded!!!
 		    {PlaceH set(Handles.map)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
-			      CANVAS.map Pokemoz player}
+			      [Name3] [5] player}
 		    {Send MAPID init(x:7 y:7 PLAYER)}
 		    %TODO:add ennemies to the map
 		    Enemy = {CreateTrainer "Red" 6 6 SPEED MAPID
-		    	     CANVAS.map Pokemoz2 trainer}
+		    	     ["Charmandoz"] [5] trainer}
 		    {Send MAPID init(x:6 y:6 Enemy)}
 		    state(map true)
 		 end
@@ -625,8 +696,8 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 
 in
    for I in Sort do
-      {PlaceH set(Frames.I)}
-      %{Delay 1000}
+     {PlaceH set(Frames.I)}
+     %{Delay 1000}
    end
    {PlaceH set(Handles.Init)}
    Main %proc{$ X} {Send Main X} end

@@ -35,7 +35,7 @@ end
 
 %%%%%%%%% ALL THE WIDGET HANDLES AND NAMES %%%%%%
 
-WIDGETS = widgets(starters:_ map:_ fight:_ lost:_ won:_)
+WIDGETS = widgets(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_)
 CANVAS  =  canvas(           map:_ fight:_ fight2:_)
 BUTTONS = buttons(starters:'3'(bulbasoz:_ charmandoz:_ oztirtle:_)
 		  fight:'4'(run:_ fight:_ capture:_ switch:_))
@@ -135,7 +135,8 @@ WIDGETS.starters = td( %lrspace(width:50)
 %@pre:  Draws the map given by the record read in File at once
 %        and Canvash is te handle to the canvas
 %@post: Returns a list of handles to be able to shift the map
-fun{DrawMap Canvash Map MaxX MaxY}
+fun{DrawMap Map MaxX MaxY}
+   Canvash = CANVAS.map
    ColorGrass = c(38 133 30)
    ColorPath  = c(49 025 05)
    Color = color(0:ColorPath 1:ColorGrass)
@@ -274,7 +275,12 @@ WIDGETS.fight = td( canvas( height:200 width:470
 		    lrspace(width:30)
 		    handle:HANDLES.fight
 		  )
-
+%%%%%%% PokeList  %%%%%%%%
+%Draws the pokemoz's of a trainer
+proc{DrawPoke}
+   skip
+end
+WIDGETS.pokelist = canvas(height:470 width:470 handle:_)
 %%%%%%% TOPWIDGET %%%%%%%%%%
 TopWidget  = td( placeholder(handle:PLACEHOLDER)
 		 geometry:geometry(height:470 width:470)

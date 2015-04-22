@@ -11,7 +11,8 @@
 %       Name    = Name of the drawings template
 %@post: Returns a PortObject capable of drawing an animation
 STATES = states("_walk1" "_still" "_walk2" "_still")
-fun{AnimateTrainer Canvash X0 Y0 Speed Name}
+fun{AnimateTrainer X0 Y0 Speed Name}
+   Canvash = CANVAS.map
    proc{Animate Dir DT DX Ind Mod DMod} Sup Mod2 in
       if Mod \= 0 then Sup = DMod Mod2=Mod-DMod else Sup = 0 Mod2=0 end
       if Ind < 8 then
@@ -149,8 +150,8 @@ fun{DrawFight Canvas Play Adv B}
    LTagsPlay
    Text = proc{$ X} {TAGS.fight2 set(text:X)} end
    Fid={NewPortObjectKillable
-	state(play:{Send Play.pid getHealth($)}.act
-	       adv:{Send  Adv.pid getHealth($)}.act)
+	state(play:Play
+	       adv:Adv)
 	fun{$ Msg State}
 	   case Msg
 	   of exit(B) then  DT = {DELAY.get} div 4 in

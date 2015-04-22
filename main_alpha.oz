@@ -1,7 +1,7 @@
 % This file will contain all the thread launches
 declare
 %%%% The GLOBAL Variables
-[QTk]={Module.link ["x-oz://system/wp/QTk.ozf"]}
+[QTk]={Module.link ['/etinfo/users/2014/vanderschuea/Downloads/Mozart/mozart/cache/x-oz/system/wp/QTk.ozf']}%["x-oz://system/wp/QTk.ozf"]}
 MAINPO  %The main portobject
 PLAYER  %The player's trainer
 WILD    %The wild pokemoz thread
@@ -37,8 +37,8 @@ proc{BindEvents Window Input} %Input = {keys,autofight,
       fun{GenerateMoveProc Dir}
 	 proc{$}
 	    if {Send MAINPO get($)} == map then
-	       % {Send PLAYER.pid move(Dir)}
-	       {Send AI move}
+	       {Send PLAYER.pid move(Dir)}
+	      % {Send AI move}
 	    else
 	       skip
 	    end
@@ -89,9 +89,9 @@ for I in [bulbasoz charmandoz oztirtle] do
 						  {Send MAINPO makeTrainer(I)}
 					       end)}
 end
-AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
+%AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
 {BindEvents Window keys}
 {SetSpeed 5}
 {SetDelay 50}
 {SetProb  65}
-{Show gotTotheEndOfConfig}
+%{Show gotTotheEndOfConfig}

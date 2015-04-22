@@ -1,7 +1,8 @@
 % This program will make the library
 
 declare
-[QTk]={Module.link ["x-oz://system/wp/QTk.ozf"]}
+[QTk]=[QTk]={Module.link ['/etinfo/users/2014/vanderschuea/Downloads/Mozart/mozart/cache/x-oz/system/wp/QTk.ozf']}%["x-oz://system/wp/QTk.ozf"]}
+%{Module.link ["x-oz://system/wp/QTk.ozf"]}
 
 Lib = {QTk.newImageLibrary}
 proc{LoadImage Name Name2}
@@ -63,7 +64,8 @@ end
 
 %%%%%% Others %%%%%%
 
-OTHERS = others("Fight_disk" "bg_fight")
+OTHERS = others("Fight_disk" "bg_fight" "Bulbasoz_full" "Oztirtle_full"
+		"Charmandoz_full")
 Ow     = {Width OTHERS}
 for I in 1..Ow do Name Name2 in
    Name  = OTHERS.I
