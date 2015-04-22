@@ -457,9 +457,21 @@ fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
 		      end
 		   [] input then
 		      state(player:Play enemy:Npc fighting:false)
+		   [] switch(X) then %this signal can only be sent
+		                     % by a valid button
+		      {Send PlayL switch(X)}
+		      %TODO send fightai
+		      state(player:{Send PlayL getFirst($)}
+			    enemy:Npc fighting:true)
+		   [] catching then
+		      %TODO check if wild or not
+		      state(player:Play enemy:Npc fighting:true)
 		   end
 		end}
 in
+   % TODO add check on death
+   %      add chances of capture
+   %      add chances of running
    FightPort
 end
 

@@ -281,6 +281,7 @@ WIDGETS.fight = td( canvas( height:200 width:470
 		    handle:HANDLES.fight
 		  )
 %%%%%%% PokeList  %%%%%%%%
+% Add number of alive pokemoz's to screen, maybe?
 %Draws the pokemoz's of a trainer
 proc{DrawPoke}
    skip
