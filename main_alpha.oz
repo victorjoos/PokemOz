@@ -1,7 +1,9 @@
 % This file will contain all the thread launches
 declare
 %%%% The GLOBAL Variables
-[QTk]={Module.link ['/etinfo/users/2014/vanderschuea/Downloads/Mozart/mozart/cache/x-oz/system/wp/QTk.ozf']}%["x-oz://system/wp/QTk.ozf"]}
+%[QTk]={Module.link ['/etinfo/users/2014/vanderschuea/Downloads/Mozart/mozart/cache/x-oz/system/wp/QTk.ozf']}
+[QTk]={Module.link ["x-oz://system/wp/QTk.ozf"]}
+
 MAINPO  %The main portobject
 PLAYER  %The player's trainer
 WILD    %The wild pokemoz thread
@@ -32,7 +34,7 @@ fun{ReadEnnemies _}
    %List of Names with their start Coordinates
    nil
 end
-proc{BindEvents Window Input} %Input = {keys,autofight,
+proc{BindEvents Window Input} %Input = {keys,autofight,..}
    if Input == keys then
       fun{GenerateMoveProc Dir}
 	 proc{$}
@@ -67,7 +69,7 @@ end
 proc{SetProb X}
    PROBABILITY = X % [0-100]
 end
-
+{OS.srand 0}
 %%%%% The Imports
 \insert 'widget.oz'
 \insert 'port_object.oz'
@@ -85,14 +87,19 @@ MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 					{Application.exit 0}
 				     end)}
 for I in [bulbasoz charmandoz oztirtle] do
-   {BUTTONS.starters.I bind(event:"<1>" action:proc{$}
-						  {Send MAINPO makeTrainer(I)}
-					       end)}
+   {BUTTONS.starters.I bind(event:"<1>"
+			    action:proc{$}
+				      {Send MAINPO makeTrainer(I)}
+				   end)}
 end
 %AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
 {BindEvents Window keys}
 {SetSpeed 5}
-{SetDelay 50}
+{SetDelay 40}
 {SetProb  65}
-%{Show gotTotheEndOfConfig}
 
+% Just for testing purposes
+{Window bind(event:"<2>" action:proc{$}
+				   thread {DrawPoke PLAYER.poke} end
+				   {Send MAINPO set(pokelist)}		   
+				end)}

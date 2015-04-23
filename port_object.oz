@@ -730,7 +730,7 @@ end
 %       -Init   = the initial state (<Atom>)
 %       -PlaceH = handle of the placeholder
 fun{MAIN Init Frames PlaceH MapName Handles}
-   Sort =[starters map fight]% lost won]
+   Sort =[starters map fight pokelist]% lost won]
    %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
    Main = {NewPortObjectKillable state(Init false)
 	   fun{$ Msg state(Frame I0)}
