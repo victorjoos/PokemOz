@@ -373,7 +373,7 @@ end
 fun {RunSuccessful}
    true % TODO(victor) : add probability
 end
-fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
+fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
    WaitAnim = {Waiter}
    FightPort = {NewPortObjectKillable
 		state(player:{Send PlayL getFirst($)}
@@ -389,7 +389,7 @@ fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
 			    {Send FightAnim  exit(B)}
 			    {Send WaitAnim wait(MAINPO B set(map))}
 			    if {Label Npc}==wild then
-			       {Send WaitAnim wait(Npc.pid B kill)}
+			       {Send WaitAnim wait(NpcL B release(1 _))}
 			    end
 			    state(killed)
 			 else
@@ -457,12 +457,20 @@ fun {FightController PlayL NpcL FightAnim}%Play and Npc are <PokemozList>
 		      end
 		   [] input then
 		      state(player:Play enemy:Npc fighting:false)
+		      
 		   [] switch(X) then %this signal can only be sent
 		                     % by a valid button
-		      {Send PlayL switch(X)}
-		      %TODO send fightai
-		      state(player:{Send PlayL getFirst($)}
-			    enemy:Npc fighting:true)
+		      NewPkm={Send PlayL get($ X)}
+		   in
+		      if NewPkm == Play then
+			 state(player:Play enemy:Npc fighting:OK)
+		      else
+			 Ack={FightAnim switch(player NewPkm $)}
+		      in
+			 {Send WaitAnim wait(FightPort Ack fightIA)}
+			 state(player:{Send PlayL getFirst($)}
+			       enemy:Npc fighting:true)
+		      end
 		   [] catching then
 		      %TODO check if wild or not
 		      state(player:Play enemy:Npc fighting:true)
@@ -582,10 +590,10 @@ end
 proc{RmPokemoz OldRec NewRec Ind IndMax}
    if Ind < IndMax then
       NewRec.Ind = OldRec.Ind
-      {RmPokemoz OldRec NewRec Ind IndMax+1}
+      {RmPokemoz OldRec NewRec Ind+1 IndMax}
    elseif Ind < 6 then
       NewRec.Ind = OldRec.(Ind+1)
-      {RmPokemoz OldRec NewRec Ind IndMax+1}
+      {RmPokemoz OldRec NewRec Ind+1 IndMax}
    else
       NewRec.6 = none
    end
@@ -614,13 +622,24 @@ fun{CreatePokemozList Names Lvls Type}
 		       {Show NewState}
 		       NewState
 		    end
+		 [] switchFirst(Ind B) then
+		    if Ind == State.first then
+		       B=unit State
+		    else
+		       NewState = all(1:State.1 2:State.2 3:State.3
+				      4:State.4 5:State.5 6:State.6
+				      first:Ind) in
+		       B=unit
+		       NewState
+		    end
 		 [] release(Ind B) then
 		    if State.Ind == none then B=unit State
 		    else
 		       NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
 		    in
 		       {RmPokemoz State NewState 1 Ind}
-		       if Ind = State.first then
+		       {Send State.Ind.pid kill}
+		       if Ind == State.first then
 			  NewState.first = NewState.1
 		       else
 			  NewState.first = State.first

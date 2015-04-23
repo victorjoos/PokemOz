@@ -135,11 +135,12 @@ proc{ChangeBar Tag He X0 Y0}
    Size = (W*He.act) div He.max
    CanvasH = CANVAS.fight
    Color
-   Divi = {IntToFloat W} / {IntToFloat Size}
-   if Divi < 0.2 then Color = red
-   elseif Divi < 0.5 then Color = yellow
+   Divi = {IntToFloat Size} / {IntToFloat W}
+   if Divi =< 0.2 then Color = red
+   elseif Divi =< 0.5 then Color = yellow
    else Color = green end
 in
+   {Show Color}
    {Tag delete}
    {CanvasH create(rectangle X0 Y0 X0+Size Y0+H fill:Color tags:Tag)}
 end
@@ -244,6 +245,29 @@ fun{DrawFight Canvas PlayL NpcL B}
 
 	      B = unit	      
 	      state(player:Play enemy:Npc)
+	   [] switch(Person New B) then NewPlay NewNpc in
+	      case Person
+	      of player then
+		 DT = {DELAY.get} div 4
+	      in
+		 for _ in 1..25 do 
+		    {MoveFight LTagsPlay ~1}
+		    {Delay DT}
+		 end
+		 {Apply LTagsPlay proc{$ T} {T delete} end}
+		 %Switch the images here
+		 {RedrawFight player New}
+		 for _ in 1..25 do 
+		    {MoveFight LTagsPlay  1}
+		    {Delay DT}
+		 end
+		 NewPlay = New NewNpc = Npc
+	      [] npc then
+		 
+		 NewNpc = New  NewPlay = Play
+	      end
+	      B=unit
+	      state(player:NewPlay NewNpc)
 	   end
 	end}
 in
