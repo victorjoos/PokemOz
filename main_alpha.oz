@@ -86,7 +86,7 @@ MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 					{Window close}
 					{Application.exit 0}
 				     end)}
-for I in [bulbasoz charmandoz oztirtle] do
+for I in [bulbasoz charmandoz oztirtle] do %Has to be added in widget declaration!!!!!
    {BUTTONS.starters.I bind(event:"<1>"
 			    action:proc{$}
 				      {Send MAINPO makeTrainer(I)}
@@ -99,7 +99,7 @@ end
 {SetProb  65}
 
 % Just for testing purposes
-{Window bind(event:"<2>" action:proc{$}
+{Window bind(event:"<3>" action:proc{$}
 				   thread {DrawPoke PLAYER.poke} end
 				   {Send MAINPO set(pokelist)}		   
 				end)}

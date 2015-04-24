@@ -758,6 +758,7 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		 in
 		    % Initialize the Fight tags
 		    thread {InitFightTags} end
+		    thread {InitPokeTags} end
 		    % Create the Map Environment
 		    MAPID = {MapController Map}
 		    TAGS.map={DrawMap Map 7 7}%should NOT EVER

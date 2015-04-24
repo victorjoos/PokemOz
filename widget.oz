@@ -32,6 +32,11 @@ fun{Font Id} FONT=helvetica in
    else {Show 'Error on FONT!!'} {QTk.newFont font( family:FONT)}
    end
 end
+proc{BindToList LTags Event Proc}
+   case LTags of nil then skip
+   [] H|T then {H bind(event:Event action:Proc)} {BindToList T Event Proc}
+   end
+end
 
 %%%%%%%%% ALL THE WIDGET HANDLES AND NAMES %%%%%%
 
@@ -40,45 +45,9 @@ CANVAS  =  canvas(starters:_ map:_ fight:_ fight2:_ pokelist:_)
 BUTTONS = buttons(starters:'3'(bulbasoz:_ charmandoz:_ oztirtle:_)
 		  fight:'4'(run:_ fight:_ capture:_ switch:_))
 HANDLES = handles(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_)
-TAGS    =    tags(           map:_ fight:_ fight2:_)
+TAGS    =    tags(           map:_ fight:_ fight2:_ pokelist:_)
 PLACEHOLDER
-%%%%%%%%% STARTWIDGET %%%%%%%%%%%
-
-%creer un record avec couleur + type lies!!
-% fun{StarterPokemoz Name}
-%    Name2 = (Name.1+32)|Name.2
-%    Widg = td(glue:nw
-% 	     button( image:{LoadImage [Name "_full"]}
-% 		     activebackground:c(0 0 255)
-% 		     background:c(0 255 0)
-% 		   )
-% 	     button( text:Name
-% 		     %action:proc{$}
-% 		     %	       {Show {StringToAtom Name}#new}
-% 		     %	    end
-% 		     width:12
-% 		     font:{Font type}
-% 		     handle:BUTTONS.starters.{StringToAtom Name2}
-% 		   )
-% 	    )
-% in
-%    Widg
-% end
-% StartSpace = 15
-% WIDGETS.starters = td( %lrspace(width:50)
-% 		      label( init:"Choose your starter PokemOZ"
-% 			     font:{Font type(25)})
-% 		      lr( tdspace(width:StartSpace)
-% 			  {StarterPokemoz "Bulbasoz"}
-% 			  tdspace(width:StartSpace)
-% 			  {StarterPokemoz "Oztirtle"}
-% 			  tdspace(width:StartSpace)
-% 			  {StarterPokemoz "Charmandoz"}
-% 			  tdspace(width:StartSpace)
-% 			)
-% 		      handle:HANDLES.starters
-% 		    )
-%%%%%%% STARTWIDGET2 %%%%%%%
+%%%%%%% STARTWIDGET %%%%%%%
 
 proc{StarterPokemoz}
    Canvash = CANVAS.starters
@@ -105,18 +74,12 @@ in
       {Canvash create(image image:{LoadImage [Names.I "_full"]}
 		      85+X Yim tags:Tag)}
       %Binding
-      {Tag bind(event:"<Enter>" action:proc{$}
-					  {Tagbis set(fill:BgColSel.I)}
-				       end)}
-      {Tag bind(event:"<Leave>" action:proc{$}
+      {BindToList [Tag Tagbis] "<Leave>" proc{$}
 					  {Tagbis set(fill:BgCol.I)}
-				       end)}
-      {Tagbis bind(event:"<Enter>" action:proc{$}
+					 end}
+      {BindToList [Tag Tagbis] "<Enter>" proc{$}
 					  {Tagbis set(fill:BgColSel.I)}
-				       end)}
-      {Tagbis bind(event:"<Leave>" action:proc{$}
-					  {Tagbis set(fill:BgCol.I)}
-				       end)}
+					 end}      
       BUTTONS.starters.(Atoms.I) = Tag
    end
 end
@@ -339,10 +302,26 @@ WIDGETS.fight = td( canvas( height:200 width:470
 %%%%%%% PokeList  %%%%%%%%
 % Add number of alive pokemoz's to screen, maybe?
 %Draws the pokemoz's of a trainer in the list
-
+proc{InitPokeTags}
+   Canvash = CANVAS.pokelist
+in
+   TAGS.pokelist = tags(1:tags(1:_ 2:_)
+			2:tags(1:_ 2:_)
+			3:tags(1:_ 2:_)
+			back:tags({Canvash newTag($)}
+				  bis:{Canvash newTag($)}))
+    for X in 1..2 do
+       for Y in 1..3 do Tag = TAGS.pokelist.Y.X in
+	  Tag = tags({Canvash newTag($)} bis:{Canvash newTag($)})
+       end
+    end   
+end
 proc{DrawPoke PlayL}
    Rec = {Send PlayL getAll($)}
    Canvash = CANVAS.pokelist
+   AllTags = TAGS.pokelist
+   BgCol    = all(grass:c(42 154 60) fire:c(220 35 35) water:c(49 71 232))
+   BgColSel = all(grass:c(12  83 23) fire:c(172 33  6) water:c(21 33 121))
    proc{DrawMiniBar X Y Div Color Tag} %Div=_(act:act max:max)
       DX = 90
       DY = 15
@@ -351,11 +330,12 @@ proc{DrawPoke PlayL}
       {Canvash create(rectangle X Y X+DX  Y+DY tags:Tag)}
       {Canvash create(rectangle X Y X+DDX Y+DY fill:Color tags:Tag)}
    end
-   proc{DrawOne X Y Play Color}%X = [1 2] et Y = [1 2 3]
+   proc{DrawOne X Y Play}%X = [1 2] et Y = [1 2 3]
       XX = 10+(X-1)*190
       YY = 20+(Y-1)*140
-      Tag = {Canvash newTag($)}
-      Tagbis = {Canvash newTag($)}
+      Tag = AllTags.Y.X.1
+      Tagbis = AllTags.Y.X.bis
+      Color = c(BgCol.(Play.type) BgColSel.(Play.type))
    in
       %Draw the element
       {Canvash create(rectangle XX YY XX+180 YY+130 fill:Color.1
@@ -373,16 +353,17 @@ proc{DrawPoke PlayL}
 		      fill:white font:{Font type(16)} tags:Tag)}
       {DrawMiniBar XX+85 YY+100 {Send Play.pid getExp($)} yellow Tag}
       %bind the event
-      {Tag bind(event:"<Enter>" action:proc{$}
-					  {Tagbis set(fill:Color.2)}
-				       end)}
-      {Tag bind(event:"<Leave>" action:proc{$}
+      {BindToList [Tag Tagbis] "<Leave>" proc{$}
 					  {Tagbis set(fill:Color.1)}
-				       end)}
+					 end}
+      {BindToList [Tag Tagbis] "<Enter>" proc{$}
+					  {Tagbis set(fill:Color.2)}
+					 end}
+      %TODO : add binding events to buttons!
    end
    proc{DrawEmpty X Y}
       XX = 10+(X-1)*190
-      YY = 20+(Y-1)*140
+      YY = 20+(Y-1)*150
    in
       {Canvash create(rectangle XX YY XX+180 YY+130 fill:black)}
       {Canvash create(text text:"EMPTY" XX+90 YY+65
@@ -390,23 +371,40 @@ proc{DrawPoke PlayL}
    end
 in
    for X in 1..2 do
-      for Y in 1..3 do Play =Rec.((X-1)*2+Y) in
+      for Y in 1..3 do Play = Rec.((X-1)*2+Y) in
 	 if Play\=none then
-	    {DrawOne X Y Play c(green blue)}
+	    {DrawOne X Y Play}
 	 else
 	    {DrawEmpty X Y}
 	 end
       end
    end
-   %TODO: Draw BACK button
-   
-   skip
+   local
+      Tag = AllTags.back.1
+      Tagbis = AllTags.back.bis
+      Color = c(black blue)
+   in
+      {Canvash create(rectangle 390 20 460 450 fill:Color.1 tags:Tagbis)}
+      {Canvash create(text text:"BACK" 425 235 fill:white width:50
+		      font:{Font type(50)} tags:Tag)}
+      {BindToList [Tag Tagbis] "<Leave>" proc{$}
+					  {Tagbis set(fill:Color.1)}
+					 end}
+      {BindToList [Tag Tagbis] "<Enter>" proc{$}
+					  {Tagbis set(fill:Color.2)}
+					 end}
+      {BindToList [Tag Tagbis] "<1>" proc{$}
+				      % TODO:Add smth to delete Tags!
+					 {Send MAINPO set(map)}
+				      end}
+   end
 end
-WIDGETS.pokelist = canvas(height:470 width:470 handle:HANDLES.pokelist)
+WIDGETS.pokelist = canvas(height:470 width:470 handle:HANDLES.pokelist
+			  bg:white)
 thread CANVAS.pokelist = HANDLES.pokelist end
 %%%%%%% TOPWIDGET %%%%%%%%%%
 TopWidget  = td( placeholder(handle:PLACEHOLDER)
-		 geometry:geometry(height:470 width:470)
+		 geometry:geometry(height:470 width:470 x:600 y:200)
 		 resizable:resizable(width:false height:false)
 	       )
 
