@@ -373,6 +373,9 @@ end
 fun {RunSuccessful Play Npc} % Npc is a WILD pokemoz guaranteed!!
    true % TODO(victor) : add probability
 end
+fun {CatchSuccessful Play Npc}
+   true
+end
 fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
    WaitAnim = {Waiter}
    FightPort = {NewPortObjectKillable
@@ -401,6 +404,8 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 			    state(trainer:Play enemy:Npc fighting:true)
 			 end
 		      end
+		   [] action(X) then X = OK
+		      state(player:Play enemy:Npc fighting:OK)
 		   [] fight then
 		      if OK then
 			 state(player:Play enemy:Npc fighting:OK)
@@ -470,8 +475,21 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 			 state(player:NewPkm enemy:Npc fighting:true)
 		      end
 		   [] catching then
-		      %TODO check if wild or not
-		      state(player:Play enemy:Npc fighting:true)
+		      if {Label NpcL} \= wild then
+			 {Send FightAnim illCatch(playVsNpc)}
+			 state(player:Play enemy:Npc fighting:OK)
+		      elseif {Send PlayL get($ 6)}\=none then
+			 {Send FightAnim illCatch(playFull)}
+			 state(player:Play enemy:Npc fighting:OK)
+		      elseif {CatchSuccessful PlayL Npc} then
+			 {Send NpcL capture}
+			 {Send PlayL add(Npc)}
+			 state(player:Play enemy:Npc fighting:true)
+		      else Ack in
+			 {Send FightAnim failCatch(Ack)}
+			 {Send WaitAnim wait(FightPort Ack fightIA)}
+			 state(player:Play enemy:Npc fighting:true)
+		      end
 		   end
 		end}
 in
@@ -687,6 +705,8 @@ fun{CreatePokemozList Names Lvls Type}
 		 [] getAllExp(X) then
 		    X={GatherExp State 1 0}
 		    State
+		 [] capture then %only possible with wild pokemoz!
+		    all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
 		 end
 	      end}
 in
@@ -728,12 +748,15 @@ in
 				 proc{$}
 				    B
 				 in
-				    thread {DrawPokeList fight(B)} end
-				    {Send MAINPO set(pokelist)}
-				    thread
-				       if B\=none then
-					  {Send Fight switch(B)}
+				    if {Send Fight action($)} == false then
+				       thread {DrawPokeList fight(B)} end
+				       {Send MAINPO set(pokelist)}
+				       thread
+					  if B\=none then
+					     {Send Fight switch(B)}
+					  end
 				       end
+				    else skip
 				    end
 				 end)}
    %Fight

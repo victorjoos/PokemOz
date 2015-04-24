@@ -95,7 +95,7 @@ end
 %AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
 {BindEvents Window keys}
 {SetSpeed 5}
-{SetDelay 40}
+{SetDelay 100}
 {SetProb  65}
 
 % Just for testing purposes

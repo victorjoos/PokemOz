@@ -248,10 +248,10 @@ fun{DrawFight Canvas PlayL NpcL B}
 	   [] switch(Person New B) then NewPlay NewNpc in
 	      case Person
 	      of player then
-		 DT = {DELAY.get} div 3
+		 DT = {DELAY.get} div 4
 	      in
 		 for _ in 1..25 do 
-		    {MoveFight LTagsPlay 1}
+		    {MoveFight LTagsPlay ~1}
 		    {Delay DT}
 		 end
 		 {Apply LTagsPlay proc{$ T} {T delete} end}
@@ -262,8 +262,21 @@ fun{DrawFight Canvas PlayL NpcL B}
 		    {Delay DT}
 		 end
 		 NewPlay = New NewNpc = Npc
-	      [] npc then NewPlay = Play NewNpc = Npc
-		 %TODO!
+	      [] npc then
+		 DT = {DELAY.get} div 3
+	      in
+		 for _ in 1..25 do 
+		    {MoveFight LTagsPlay ~1}
+		    {Delay DT}
+		 end
+		 {Apply LTagsNpc proc{$ T} {T delete} end}
+		 %Switch the images here
+		 {RedrawFight npc New}
+		 for _ in 1..25 do 
+		    {MoveFight LTagsPlay 1}
+		    {Delay DT}
+		 end
+		 NewPlay = Play NewNpc = New
 	      end
 	      B=unit
 	      state(player:NewPlay enemy:NewNpc)
@@ -271,8 +284,16 @@ fun{DrawFight Canvas PlayL NpcL B}
 	      {Text "You can't run from a Trainer-Battle!"}
 	      state(player:Play enemy:Npc)
 	   [] failRun then
-	       {Text "You couldn't escape this time!"}
+	      {Text "You couldn't escape this time!"}
 	      state(player:Play enemy:Npc)
+	   [] illCatch(Msg) then
+	      if Msg == playVsNpc then
+		 {Text "Stop trying to steal pokemoz!"}
+		 state(player:Play enemy:Npc)
+	      else
+		 {Text "You're inventory is FULL!"}
+		 state(player:Play enemy:Npc)
+	      end
 	   end
 	end}
 in
