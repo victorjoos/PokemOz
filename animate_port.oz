@@ -163,8 +163,8 @@ fun{DrawFight Canvas PlayL NpcL B}
 		%TODO: set Text!!
 	      end
 	      for _ in 1..25 do
-		 {MoveFight LTagsNpc  ~1}
-		 {MoveFight LTagsPlay  1}
+		 {MoveFight LTagsNpc   1}
+		 {MoveFight LTagsPlay ~1}
 		 {Delay DT}
 	      end
 	      {Apply LTagsNpc  proc{$ T} {T delete} end}
@@ -248,36 +248,41 @@ fun{DrawFight Canvas PlayL NpcL B}
 	   [] switch(Person New B) then NewPlay NewNpc in
 	      case Person
 	      of player then
-		 DT = {DELAY.get} div 4
+		 DT = {DELAY.get} div 3
 	      in
 		 for _ in 1..25 do 
-		    {MoveFight LTagsPlay ~1}
+		    {MoveFight LTagsPlay 1}
 		    {Delay DT}
 		 end
 		 {Apply LTagsPlay proc{$ T} {T delete} end}
 		 %Switch the images here
 		 {RedrawFight player New}
 		 for _ in 1..25 do 
-		    {MoveFight LTagsPlay  1}
+		    {MoveFight LTagsPlay ~1}
 		    {Delay DT}
 		 end
 		 NewPlay = New NewNpc = Npc
-	      [] npc then
-		 
-		 NewNpc = New  NewPlay = Play
+	      [] npc then NewPlay = Play NewNpc = Npc
+		 %TODO!
 	      end
 	      B=unit
-	      state(player:NewPlay NewNpc)
+	      state(player:NewPlay enemy:NewNpc)
+	   [] illRun then
+	      {Text "You can't run from a Trainer-Battle!"}
+	      state(player:Play enemy:Npc)
+	   [] failRun then
+	       {Text "You couldn't escape this time!"}
+	      state(player:Play enemy:Npc)
 	   end
 	end}
 in
    thread
       AllTags={FightScene FirstPlay FirstNpc}
-      {AllTagsToList AllTags LTagsNpc LTagsPlay}
+      {AllTagsToList AllTags LTagsPlay LTagsNpc}
       local DT = {DELAY.get} div 4 in
 	 for _ in 1..25 do 
-	    {MoveFight LTagsNpc  ~1}
-	    {MoveFight LTagsPlay  1}
+	    {MoveFight LTagsNpc   1}
+	    {MoveFight LTagsPlay ~1}
 	    {Delay DT}
 	 end
       end

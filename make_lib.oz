@@ -17,7 +17,7 @@ EXTENSION      = ".gif"
 
 %%%%%%% Pokemoz %%%%%%%
 ALL_NAMES      = pokemoz("Bulbasoz" "Oztirtle" "Charmandoz")
-ALL_ATTRIBUTES = attrib("_back" "_front" "_full")
+ALL_ATTRIBUTES = attrib("_back" "_front" "_small")
 
 ANw = {Width ALL_NAMES}
 AAw = {Width ALL_ATTRIBUTES}
@@ -65,7 +65,7 @@ end
 %%%%%% Others %%%%%%
 
 OTHERS = others("Fight_disk" "bg_fight" "Bulbasoz_full" "Oztirtle_full"
-		"Charmandoz_full")
+		"Charmandoz_full" "leader")
 Ow     = {Width OTHERS}
 for I in 1..Ow do Name Name2 in
    Name  = OTHERS.I
@@ -85,30 +85,3 @@ end
 
 
 
-
-
-%Lib = {QTk.loadImageLibrary "LibImg.ozf"}
-%fun{LoadImage Name}
-%   Name2 = {Flatten Name} % le Flatten est la pour par ex : ["Bulb" "_full"]
-									% ca devrait nous permettre de charger les images 
-									% en ayant seulement le nom du pokemoz et son etat 
-									% attendu!
-%in
-%   try
-%      Img
-%      {Lib get(name:{StringToAtom Name2} image:Img)}
-%   in
-%      Img
-%   catch _ then {Show 'Error loading image'} nil 
-%   end
-%end
-
-%% This is the startscreen widget
-%StartImg1 = {LoadImage "Bulbasoz_full"}
-%StartWidget = lr(td(button(image:StartImg1
-%			   activebackground:c(0 0 255)
-%			   background:c(0 255 0))			   
-%		    button(text:"Bulbasoz"
-%			   action:proc{$}
-%				     {Show 'bulb'}
-%				  end)))

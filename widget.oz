@@ -79,16 +79,16 @@ in
 					 end}
       {BindToList [Tag Tagbis] "<Enter>" proc{$}
 					  {Tagbis set(fill:BgColSel.I)}
-					 end}      
+					 end}
+      {BindToList [Tag Tagbis] "<1>" proc{$}
+					{Send MAINPO makeTrainer(Atoms.I)}
+				     end}
       BUTTONS.starters.(Atoms.I) = Tag
    end
 end
 WIDGETS.starters = canvas( width:470 height:470 handle:HANDLES.starters
 			   bg:white)
-thread
-   CANVAS.starters = HANDLES.starters
-   {StarterPokemoz}
-end
+thread CANVAS.starters = HANDLES.starters end
 
 
 %%%%%%% MAPWIDGET %%%%%%%%%%
@@ -167,42 +167,6 @@ fun{FightScene Play Adv}
    Tags = TAGS.fight
    XST = 500
    CanvasH = CANVAS.fight
-   proc{DrawImg}
-      Disk  = {LoadImage "Fight_disk"}
-      Im_pl = {LoadImage [Play.name "_back" ]}
-      Im_ad = {LoadImage [Adv.name  "_front"]}
-      TagD1 = Tags.plateau.1.1
-      TagD2 = Tags.plateau.1.2
-      TagP1 = Tags.plateau.2.1
-      TagP2 = Tags.plateau.2.2
-   in
-      %                                    X     Y
-      {CanvasH create(image image:Disk  345-XST  60 tags:TagD2)}
-      {CanvasH create(image image:Im_ad 345-XST  45 tags:TagP2)}
-      {CanvasH create(image image:Disk  135+XST 210 tags:TagD1)}
-      {CanvasH create(image image:Im_pl 125+XST 143 tags:TagP1)}
-   end
-   proc{DrawAttr}
-      Tag1 = Tags.attrib.1.1
-      Tag2 = Tags.attrib.1.2
-      HPlay = {Send Play.pid getHealth($)}
-      HAdv  = {Send  Adv.pid getHealth($)}
-      LPlay = {IntToString {Send Play.pid getLvl($)}}
-      LAdv  = {IntToString {Send  Adv.pid getLvl($)}}
-   in
-      {CanvasH create(text 320+XST 150 text:Play.name font:{Font type(16)}
-	  	      tags:Tag1)}
-      {CanvasH create(text 160-XST  20 text:Adv.name  font:{Font type(16)}
-		      tags:Tag2)}
-      {CanvasH create(text 320+XST 190 text:{Append "Lvl" LPlay}
-		      font:{Font type(15)} tags:Tag1)}
-      {CanvasH create(text 160-XST  60 text:{Append "Lvl" LAdv}
-		      font:{Font type(15)} tags:Tag2)}
-      {DrawBar HPlay.act HPlay.max 270+XST 165
-       Tags.attrib.2.1.act Tags.attrib.2.1.1}
-      {DrawBar HAdv.act  HAdv.max  110-XST  35
-       Tags.attrib.2.2.act Tags.attrib.2.2.1}
-   end
 in
    %{DrawImg}
   % {DrawAttr}
@@ -316,7 +280,20 @@ in
        end
     end   
 end
-proc{DrawPoke PlayL}
+proc{DeletePokelistTags}
+    Tag = TAGS.pokelist.back
+   {Tag.1 delete} {Tag.bis delete}
+in
+    for X in 1..2 do
+       for Y in 1..3 do Tag = TAGS.pokelist.Y.X in
+	  {Tag.1 delete} {Tag.bis delete}
+       end
+    end
+end
+
+proc{DrawPokeList Event}% Event = status or fight(proc)
+   PlayL = PLAYER.poke
+   First = {Send PlayL getFirst($)}
    Rec = {Send PlayL getAll($)}
    Canvash = CANVAS.pokelist
    AllTags = TAGS.pokelist
@@ -332,7 +309,7 @@ proc{DrawPoke PlayL}
    end
    proc{DrawOne X Y Play}%X = [1 2] et Y = [1 2 3]
       XX = 10+(X-1)*190
-      YY = 20+(Y-1)*140
+      YY = 20+(Y-1)*150
       Tag = AllTags.Y.X.1
       Tagbis = AllTags.Y.X.bis
       Color = c(BgCol.(Play.type) BgColSel.(Play.type))
@@ -340,8 +317,12 @@ proc{DrawPoke PlayL}
       %Draw the element
       {Canvash create(rectangle XX YY XX+180 YY+130 fill:Color.1
 		      tags:Tagbis)}
-      %TODO: Add small image back to library!!
-      %{Canvash create(image image:[Play.name "_front"] XX+40 YY+40 tags:Tag)}
+      {Canvash create(image image:{LoadImage [Play.name "_front"]}
+		      XX+40 YY+80 tags:Tag)}
+      if Play == First then
+	 {Canvash create(image image:{LoadImage "leader"}
+			 XX+65 YY+100 tags:Tag)}
+      end
       {Canvash create(text text:{Flatten [Play.name " Lvl "
 					  {IntToString
 					   {Send Play.pid getLvl($)}}]}
@@ -359,7 +340,23 @@ proc{DrawPoke PlayL}
       {BindToList [Tag Tagbis] "<Enter>" proc{$}
 					  {Tagbis set(fill:Color.2)}
 					 end}
-      %TODO : add binding events to buttons!
+      {BindToList [Tag Tagbis] "<1>" proc{$}
+					if Event == status then 
+					   B={Send PlayL
+					      switchFirst((Y-1)*2+X $)}
+					   {Wait B}
+					in
+					   {Send MAINPO set(map)}
+					else
+					   if {Send Play.pid getHealth($)}.act
+					      > 0 then
+					      Event.1 = Play
+					      {Send MAINPO set(fight)}
+					   else
+					      Event.1 = none
+					   end
+					end
+				     end}
    end
    proc{DrawEmpty X Y}
       XX = 10+(X-1)*190
@@ -371,7 +368,7 @@ proc{DrawPoke PlayL}
    end
 in
    for X in 1..2 do
-      for Y in 1..3 do Play = Rec.((X-1)*2+Y) in
+      for Y in 1..3 do Play = Rec.((Y-1)*2+X) in
 	 if Play\=none then
 	    {DrawOne X Y Play}
 	 else
@@ -394,8 +391,13 @@ in
 					  {Tagbis set(fill:Color.2)}
 					 end}
       {BindToList [Tag Tagbis] "<1>" proc{$}
-				      % TODO:Add smth to delete Tags!
-					 {Send MAINPO set(map)}
+					if Event == status then
+					   {Send MAINPO set(map)}
+					else
+					   Event.1 = none
+					   {Send MAINPO set(fight)}
+					end
+					{DeletePokelistTags}
 				      end}
    end
 end

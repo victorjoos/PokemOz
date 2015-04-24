@@ -370,7 +370,7 @@ in
       end
    end
 end
-fun {RunSuccessful}
+fun {RunSuccessful Play Npc} % Npc is a WILD pokemoz guaranteed!!
    true % TODO(victor) : add probability
 end
 fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
@@ -385,16 +385,18 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 		      if OK then
 			 state(player:Play enemy:Npc fighting:OK)
 		      else
-			 if {RunSuccessful} then B in
+			 if {Label Npc}\=wild then
+			    {Send FightAnim illRun}
+			    state(player:Play enemy:Npc fighting:OK)
+			 elseif {RunSuccessful Play Npc} then B in
 			    {Send FightAnim  exit(B)}
 			    {Send WaitAnim wait(MAINPO B set(map))}
-			    if {Label Npc}==wild then
-			       {Send WaitAnim wait(NpcL B release(1 _))}
-			    end
+			    {Send WaitAnim wait(NpcL B release(1 _))}
 			    state(killed)
 			 else
 			    % Send signal to itself for IA turn = automatic
 			    % attack
+			    {Send FightAnim failRun}
 			    {Send FightPort fightIA}
 			    state(trainer:Play enemy:Npc fighting:true)
 			 end
@@ -448,28 +450,24 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 		      else B in
 			 {Send FightAnim exit(B)}
 			 {Send NpcL refill}
-			 %TODO: add 'lost' screen
 			 {Send WaitAnim wait(MAINPO B set(map))}
 			 if {Label Npc}==wild then
-			    {Send WaitAnim wait(Npc.pid B kill)}
+			    {Send WaitAnim wait(NpcL B releaseAll)}
 			 end
 			 state(killed)
 		      end
 		   [] input then
 		      state(player:Play enemy:Npc fighting:false)
 		      
-		   [] switch(X) then %this signal can only be sent
+		   [] switch(NewPkm) then %this signal can only be sent
 		                     % by a valid button
-		      NewPkm={Send PlayL get($ X)}
-		   in
 		      if NewPkm == Play then
 			 state(player:Play enemy:Npc fighting:OK)
 		      else
-			 Ack={FightAnim switch(player NewPkm $)}
+			 Ack={Send FightAnim switch(player NewPkm $)}
 		      in
 			 {Send WaitAnim wait(FightPort Ack fightIA)}
-			 state(player:{Send PlayL getFirst($)}
-			       enemy:Npc fighting:true)
+			 state(player:NewPkm enemy:Npc fighting:true)
 		      end
 		   [] catching then
 		      %TODO check if wild or not
@@ -598,6 +596,12 @@ proc{RmPokemoz OldRec NewRec Ind IndMax}
       NewRec.6 = none
    end
 end
+fun{GatherExp Rec I Acc}
+   if Rec.I == none then Acc
+   else
+      {GatherExp Rec I+1 Acc+{Send Rec.I.pid getLvl($)}}
+   end
+end
 fun{CreatePokemozList Names Lvls Type}
    Init = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
    Q =  {GetPokemoz Names Lvls Init 1 $ Type}
@@ -680,6 +684,9 @@ fun{CreatePokemozList Names Lvls Type}
 		       end
 		    end
 		    all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
+		 [] getAllExp(X) then
+		    X={GatherExp State 1 0}
+		    State
 		 end
 	      end}
 in
@@ -710,14 +717,25 @@ in
    {Wait Ack}
    {BUTTONS.fight.fight bind(event:"<1>" action:
 					    proc{$}
-					       {Show gotfight}
 					       {Send Fight fight}
 					    end)}
    {BUTTONS.fight.run bind(event:"<1>" action:
 					  proc{$}
-					     {Show gotrun}
 					     {Send Fight run}
 					  end)}
+   {BUTTONS.fight.switch bind(event:"<1>"
+			      action:
+				 proc{$}
+				    B
+				 in
+				    thread {DrawPokeList fight(B)} end
+				    {Send MAINPO set(pokelist)}
+				    thread
+				       if B\=none then
+					  {Send Fight switch(B)}
+				       end
+				    end
+				 end)}
    %Fight
 end
 
@@ -732,55 +750,53 @@ end
 fun{MAIN Init Frames PlaceH MapName Handles}
    Sort =[starters map fight pokelist]% lost won]
    %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
-   Main = {NewPortObjectKillable state(Init false)
-	   fun{$ Msg state(Frame I0)}
+   Main = {NewPortObjectKillable state(Init)
+	   fun{$ Msg state(Frame)}
 	      {Show main#Msg}
 	      case Msg
 	      of set(NewFrame) then
 		 if NewFrame == Frame then {Show error#NewFrame}
-		    state(Frame I0)
+		    state(Frame)
 		 else
 		    {Show set#NewFrame}
 		    {PlaceH set(Handles.NewFrame)}
-		    state(NewFrame I0)
+		    state(NewFrame)
 		 end
-	      [] get(X) then X=Frame state(Frame I0)
+	      [] get(X) then X=Frame state(Frame)
 	      [] makeTrainer(Name) then
-		 if I0 then
-		    state(Frame I0)
+		 if Frame\=starters then
+		    state(Frame)
 		 else
 		    Name2 = {AtomToString Name}
 		    Name3 = (Name2.1-32)|Name2.2
 		    Map = {ReadMap MapName}
 		    Enemy
-		    Pokemoz = {CreatePokemoz Name3 5 player}
-		    Pokemoz2 = {CreatePokemoz "Charmandoz" 5 player}
 		 in
-		    % Initialize the Fight tags
+		    % Initialize the tags
 		    thread {InitFightTags} end
 		    thread {InitPokeTags} end
 		    % Create the Map Environment
 		    MAPID = {MapController Map}
 		    TAGS.map={DrawMap Map 7 7}%should NOT EVER
-		                                         % be threaded!!!
+		                              % be threaded!!!
 		    {PlaceH set(Handles.map)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
-			      [Name3] [8] player}
+			      [Name3 "Bulbasoz"] [8 5] player}
 		    {Send MAPID init(x:7 y:7 PLAYER)}
 		    %TODO:add ennemies to the map
 		    Enemy = {CreateTrainer "Red" 6 6 SPEED MAPID
 		    	     ["Charmandoz"] [5] trainer}
 		    {Send MAPID init(x:6 y:6 Enemy)}
-		    state(map true)
+		    state(map)
 		 end
 	      end
 	  end}
 
 in
    for I in Sort do
-     {PlaceH set(Frames.I)}
-     %{Delay 1000}
+      {PlaceH set(Frames.I)}
    end
    {PlaceH set(Handles.Init)}
-   Main %proc{$ X} {Send Main X} end
+   {StarterPokemoz}
+   Main 
 end

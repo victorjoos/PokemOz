@@ -100,6 +100,6 @@ end
 
 % Just for testing purposes
 {Window bind(event:"<3>" action:proc{$}
-				   thread {DrawPoke PLAYER.poke} end
+				   thread {DrawPokeList status} end
 				   {Send MAINPO set(pokelist)}		   
 				end)}
