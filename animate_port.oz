@@ -297,6 +297,13 @@ fun{DrawFight Canvas PlayL NpcL B}
 	end}
 in
    thread
+      if {Label FirstNpc} == wild then
+	 {Text "A wild Pokemoz appeared"}
+	 {Delay {DELAY.get}*6}
+      end
+      {Text "Choose your action"}
+   end
+   thread
       AllTags={FightScene FirstPlay FirstNpc}
       {AllTagsToList AllTags LTagsPlay LTagsNpc}
       local DT = {DELAY.get} div 4 in

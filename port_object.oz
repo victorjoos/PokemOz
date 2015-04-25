@@ -335,17 +335,17 @@ end
 %%%%%%% FIGHT PORTOBJECTS %%%%%%%%%%%
 fun{GetDamage PlayType NpcType Hit} % Hit = player or npc
    if PlayType == NpcType then 2
-   elseif Hit == player then
+   elseif Hit == npc then
       case PlayType
-      of fire  then if NpcType==grass then 1 else 3 end
-      [] grass then if NpcType==fire  then 3 else 1 end
-      [] water then if NpcType==fire  then 1 else 3 end
+      of fire  then if NpcType==grass then 3 else 1 end
+      [] grass then if NpcType==water then 3 else 1 end
+      [] water then if NpcType==grass then 3 else 1 end
       end
    else
       case NpcType
-      of fire  then if NpcType==grass then 3 else 1 end
-      [] grass then if NpcType==fire  then 1 else 3 end
-      [] water then if NpcType==fire  then 3 else 1 end
+      of fire  then if PlayType==grass then 3 else 1 end
+      [] grass then if PlayType==water then 3 else 1 end
+      [] water then if PlayType==grass then 3 else 1 end
       end
    end
 end
@@ -369,6 +369,12 @@ in
       else false
       end
    end
+end
+fun{GetNewPokemoz PokeL}
+   LivingList = {Send PokeL getAllLiving($)}
+   Rand = ({OS.rand} mod {Length LivingList}) + 1
+in
+   {List.nth LivingList Rand}
 end
 fun {RunSuccessful Play Npc} % Npc is a WILD pokemoz guaranteed!!
    true % TODO(victor) : add probability
@@ -398,7 +404,7 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 			    {Send WaitAnim wait(NpcL B release(1 _))}
 			    state(killed)
 			 else
-			    % Send signal to itself for IA turn = automatic
+			    % Send signal to itself for AI turn = automatic
 			    % attack
 			    {Send FightAnim failRun}
 			    {Send FightPort fightIA}
@@ -429,12 +435,17 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 			 if NEState == alive then
 			    {Send WaitAnim wait(FightPort Ack fightIA)}
 			    state(player:Play enemy:Npc fighting:true)
-			 else B in
+			 elseif {Send NpcL getState($)} == allDead then
+			    B
+			 in
 			    {Send FightAnim exit(B "You WON!")}
 			    {Send WaitAnim wait(MAINPO B set(map))}
 			    {Send PlayL shareExp({Send NpcL getAllExp($)})}
 			    {Send NpcL releaseAll}
 			    state(killed)
+			 else
+			    {Send WaitAnim wait(FightPort Ack switchIA)}
+			    state(player:Play enemy:Npc fighting:true)
 			 end
 		      end
 		   [] fightIA then NTState Ack in
@@ -442,9 +453,7 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 			 Damage = {GetDamage Play.type Npc.type player}
 		      in
 			 {Send Play.pid damage(Damage NTState)}
-			 {Wait NTState}
-                            % ^ to avoid concurrency issues (even if they are
-			    %   VERY unlikely)
+			 {Wait NTState}%actually not necessary
 			 {Send FightAnim attack(npc Ack)}
 		      else
 			 {Send FightAnim attackFail(npc Ack)}
@@ -454,7 +463,9 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 		      if NTState == alive then
 			 {Send WaitAnim wait(FightPort Ack input)}	 
 			 state(player:Play enemy:Npc fighting:OK)
-		      else B in
+		      elseif {Send PlayL getState($)} == allDead then
+			 B
+		      in %TODO : reset Game in HOSPITAL
 			 {Send FightAnim exit(B "You LOST!")}
 			 {Send NpcL refill}
 			 {Send WaitAnim wait(MAINPO B set(map))}
@@ -462,20 +473,48 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 			    {Send WaitAnim wait(NpcL B releaseAll)}
 			 end
 			 state(killed)
+		      else
+			 proc{FigureLoop Status} B in
+			    thread {DrawPokeList dead(B)} end
+			    if Status == first then
+			       {Send MAINPO set(pokelist)}
+			    end
+			    if B\=none andthen B\=auto then
+			       {Send FightPort switch(B play)}
+			    elseif B == auto then
+			       NewPkm = {GetNewPokemoz PlayL}
+			    in
+			       {Send FightPort switch(NewPkm play)}
+			    else
+			       {FigureLoop xth}
+			    end
+			 end
+		      in
+			 thread {FigureLoop first} end
+			 state(player:Play enemy:Npc fighting:true)
 		      end
 		   [] input then
-		      state(player:Play enemy:Npc fighting:false)
-		      
-		   [] switch(NewPkm) then %this signal can only be sent
+		      state(player:Play enemy:Npc fighting:false)    
+		   [] switch(NewPkm Next) then %this signal can only be sent
 		                     % by a valid button
 		      if NewPkm == Play then
 			 state(player:Play enemy:Npc fighting:OK)
 		      else
 			 Ack={Send FightAnim switch(player NewPkm $)}
 		      in
-			 {Send WaitAnim wait(FightPort Ack fightIA)}
+			 if Next == ia then
+			    {Send WaitAnim wait(FightPort Ack fightIA)}
+			 else
+			    {Send WaitAnim wait(FightPort Ack input)}
+			 end
 			 state(player:NewPkm enemy:Npc fighting:true)
 		      end
+		   [] switchIA then
+		      NewNpc = {GetNewPokemoz NpcL} Ack
+		   in
+		      {Send FightAnim switch(npc NewNpc Ack)}
+		      {Send WaitAnim wait(FightPort Ack fightIA)}
+		      state(player:Play enemy:NewNpc fighting:true)
 		   [] catching then
 		      if {Label NpcL} \= wild then
 			 {Send FightAnim illCatch(playVsNpc)}
@@ -636,7 +675,7 @@ proc{GetAlive State First Length Ind AccLength Findex List}
 	    List.I = false
 	 end
 	 Length = AccLength
-      elseif {Send State.Ind.pid getHealth($)} == 0 then
+      elseif {Send State.Ind.pid getHealth($)}.act == 0 then
 	 if Ind==Findex then First=false end
 	 List.Ind = false
 	 {GetAlive State First Length Ind+1 AccLength   Findex List}
@@ -671,6 +710,15 @@ proc{DispatchExp OldState NewState Ind List Exp Rest}
 	 NewState.Ind = OldState.Ind
 	 {DispatchExp OldState NewState Ind+1 List Exp Rest}
       end
+   end
+end
+fun{GetAllLiving State Ind}
+   if Ind==7 then nil
+   elseif State.Ind == none then nil
+   elseif{Send State.Ind.pid getHealth($)}.act == 0 then
+      {GetAllLiving State Ind+1}
+   else
+      State.Ind|{GetAllLiving State Ind+1}
    end
 end
 fun{CreatePokemozList Names Lvls Type}
@@ -713,7 +761,7 @@ fun{CreatePokemozList Names Lvls Type}
 		       {RmPokemoz State NewState 1 Ind}
 		       {Send State.Ind.pid kill}
 		       if Ind == State.first then
-			  NewState.first = NewState.1
+			  NewState.first = 1
 		       else
 			  NewState.first = State.first
 		       end
@@ -761,11 +809,9 @@ fun{CreatePokemozList Names Lvls Type}
 		 [] shareExp(TotExp) then
 		    {Show totExp#TotExp}
 		    NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:State.first)
-		    {Browse NewState}
 		    First %checks if the first one is alive
 		    Length %number of alive pokemoz
 		    XP Rest List=list(1:_ 2:_ 3:_ 4:_ 5:_ 6:_)
-		    {Browse List#Length}		    
 		    {GetAlive State First Length 1 0 State.first List}
 		    if First then
 		       XP = TotExp div (Length+1)
@@ -777,6 +823,16 @@ fun{CreatePokemozList Names Lvls Type}
 		 in
 		    {DispatchExp State NewState 1 List XP Rest }
 		    NewState
+		 [] getAllLiving(X) then
+		    X={GetAllLiving State 1}
+		    State
+		 [] getState(X) then
+		    if {Length {GetAllLiving State 1}} == 0 then
+		       X=allDead
+		    else
+		       X=alive
+		    end
+		    State
 		 end
 	      end}
 in
@@ -823,7 +879,7 @@ in
 				       {Send MAINPO set(pokelist)}
 				       thread
 					  if B\=none then
-					     {Send Fight switch(B)}
+					     {Send Fight switch(B ia)}
 					  end
 				       end
 				    else skip
@@ -873,11 +929,11 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		                              % be threaded!!!
 		    {PlaceH set(Handles.map)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
-			      [Name3] [8] player}
+			      [Name3 "Bulbasoz"] [8 5] player}
 		    {Send MAPID init(x:7 y:7 PLAYER)}
 		    %TODO:add ennemies to the map
 		    Enemy = {CreateTrainer "Red" 6 6 SPEED MAPID
-		    	     ["Charmandoz"] [5] trainer}
+		    	     ["Charmandoz"] [9] trainer}
 		    {Send MAPID init(x:6 y:6 Enemy)}
 		    state(map)
 		 end
@@ -892,3 +948,5 @@ in
    {StarterPokemoz}
    Main 
 end
+
+

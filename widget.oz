@@ -165,11 +165,7 @@ in
 end
 fun{FightScene Play Adv}
    Tags = TAGS.fight
-   XST = 500
-   CanvasH = CANVAS.fight
 in
-   %{DrawImg}
-  % {DrawAttr}
    {RedrawFight npc    Adv }
    {RedrawFight player Play}
    thread
@@ -291,7 +287,7 @@ in
     end
 end
 
-proc{DrawPokeList Event}% Event = status or fight(proc)
+proc{DrawPokeList Event}% Event = status or fight(X) or dead(X)
    PlayL = PLAYER.poke
    First = {Send PlayL getFirst($)}
    Rec = {Send PlayL getAll($)}
@@ -351,6 +347,7 @@ proc{DrawPokeList Event}% Event = status or fight(proc)
 					   if {Send Play.pid getHealth($)}.act
 					      > 0 then
 					      Event.1 = Play
+					      {DeletePokelistTags}
 					      {Send MAINPO set(fight)}
 					   else
 					      Event.1 = none
@@ -391,13 +388,17 @@ in
 					  {Tagbis set(fill:Color.2)}
 					 end}
       {BindToList [Tag Tagbis] "<1>" proc{$}
+					{DeletePokelistTags}
 					if Event == status then
 					   {Send MAINPO set(map)}
 					else
-					   Event.1 = none
+					   if Event == fight(_) then
+					      Event.1 = none
+					   else
+					      Event.1 = auto
+					   end
 					   {Send MAINPO set(fight)}
 					end
-					{DeletePokelistTags}
 				      end}
    end
 end
