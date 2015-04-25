@@ -95,7 +95,7 @@ end
 %AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
 {BindEvents Window keys}
 {SetSpeed 5}
-{SetDelay 100}
+{SetDelay 10}
 {SetProb  65}
 
 % Just for testing purposes
@@ -103,3 +103,4 @@ end
 				   thread {DrawPokeList status} end
 				   {Send MAINPO set(pokelist)}		   
 				end)}
+{Window bind(event:"<r>" action:proc{$} {Send PLAYER.poke refill} end)}

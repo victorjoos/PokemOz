@@ -157,11 +157,10 @@ fun{DrawFight Canvas PlayL NpcL B}
 	       enemy:FirstNpc)
 	fun{$ Msg state(player:Play enemy:Npc)}
 	   case Msg
-	   of exit(B) then  DT = {DELAY.get} div 4 in
-	      thread
-		 {Delay {DELAY.get}*3}
-		%TODO: set Text!!
-	      end
+	   of exit(B Msg) then  DT = {DELAY.get} div 4 in
+	      {Delay DT*4}
+	      {Text Msg}
+	       
 	      for _ in 1..25 do
 		 {MoveFight LTagsNpc   1}
 		 {MoveFight LTagsPlay ~1}
