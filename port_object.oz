@@ -93,6 +93,44 @@ fun{Waiter}
 			  end
 		       end}   
 end
+%%%%%%% SPECIAL ARROWMOVEMENTS %%%%%%%%%%%
+fun{GetArrows MaxX MaxY}
+   ArrowId = {NewPortObjectKillable state(1 1)
+	      fun{$ Msg state(X Y)}
+		 case Msg
+		 of up(NewX NewY) then
+		    if Y==1 then NewX=X NewY=MaxY
+		    else NewX=X NewY=Y-1 end
+		    state(NewX NewY)
+		 [] down(NewX NewY) then
+		    if Y==MaxY then NewX=X NewY=1
+		    else NewX=X NewY=Y+1 end
+		    state(NewX NewY)
+		 [] right(NewX NewY) then Nx Ny in
+		    if X==MaxX then Nx=1 Ny=Y+1
+		    else Nx=X+1 Ny=Y end
+		    if Ny==MaxY+1 then NewY=1
+		    else NewY=Ny end
+		    NewX=Nx
+		    state(NewX NewY)
+		 [] left(NewX NewY) then Nx Ny in
+		    if X==1 then Nx=MaxX Ny=Y-1
+		    else Nx=X-1 Ny=Y end
+		    if Ny==0 then NewY=MaxY
+		    else NewY=Ny end
+		    NewX=Nx
+		    state(NewX NewY)
+		 [] get(XX YY) then XX=X YY=Y state(X Y)
+		 [] getLast(XX YY B) then
+		    XX=X YY=Y
+		    if B==true then state(X Y)
+		    else state(killed) end
+		 [] kill then state(killed)
+		 end
+	      end}
+in
+   ArrowId
+end
 %%%%%%% MAPRELATED PORTOBJECTS %%%%%%%%%%%%
 
 %@pre:  C     = coord(x:X y:Y) with X and Y integers
@@ -916,6 +954,7 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		    state(Frame)
 		 else
 		    {Show set#NewFrame}
+		    {CANVAS.NewFrame getFocus(force:true)}
 		    {PlaceH set(Handles.NewFrame)}
 		    state(NewFrame)
 		 end
@@ -937,6 +976,7 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		    TAGS.map={DrawMap Map 7 7}%should NOT EVER
 		                              % be threaded!!!
 		    {PlaceH set(Handles.map)}
+		    {CANVAS.map getFocus(force:true)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
 			      [Name3 "Bulbasoz"] [9 5] player}
 		    {Send MAPID init(x:7 y:7 PLAYER)}

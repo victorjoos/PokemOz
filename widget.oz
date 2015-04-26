@@ -32,9 +32,15 @@ fun{Font Id} FONT=helvetica in
    else {Show 'Error on FONT!!'} {QTk.newFont font( family:FONT)}
    end
 end
-proc{BindToList LTags Event Proc}
-   case LTags of nil then skip
-   [] H|T then {H bind(event:Event action:Proc)} {BindToList T Event Proc}
+proc{BindToList LTags LEvent Proc}
+   proc{Help LTags Event}
+      case LTags of nil then skip
+      [] H|T then {H bind(event:Event action:Proc)} {Help T Event}
+      end
+   end
+in
+   case LEvent of nil then skip
+   [] H|T then {Help LTags H} {BindToList LTags T Proc}
    end
 end
 
@@ -59,6 +65,7 @@ proc{StarterPokemoz}
    BgCol    = all(c(42 154 60) c(220 35 35) c(49 71 232))
    BgColSel = all(c(12  83 23) c(172 33  6) c(21 33 121))
    DXX = 150
+   Arrows = {GetArrows 3 1}
 in
    for I in 1..3 do
       {Show I}
@@ -73,17 +80,34 @@ in
 		      85+X Ytx width:130 tags:Tag fill:white)}
       {Canvash create(image image:{LoadImage [Names.I "_full"]}
 		      85+X Yim tags:Tag)}
-      %Binding
-      {BindToList [Tag Tagbis] "<Leave>" proc{$}
-					  {Tagbis set(fill:BgCol.I)}
-					 end}
-      {BindToList [Tag Tagbis] "<Enter>" proc{$}
-					  {Tagbis set(fill:BgColSel.I)}
-					 end}
-      {BindToList [Tag Tagbis] "<1>" proc{$}
-					{Send MAINPO makeTrainer(Atoms.I)}
-				     end}
-      BUTTONS.starters.(Atoms.I) = Tag
+      BUTTONS.starters.(Atoms.I) = Tagbis
+   end
+
+   {Canvash getFocus(force:true)}
+   local
+      Buttons = BUTTONS.starters
+      fun{GenProc Dir}
+	 proc{$}
+	    OldX = {Send Arrows get($ _)}
+	    NewX = {Send Arrows Dir($ _)}
+	 in
+	    {Buttons.(Atoms.OldX) set(fill:BgCol.OldX)}
+	    {Buttons.(Atoms.NewX) set(fill:BgColSel.NewX)}
+	 end
+      end
+   in
+      {Buttons.(Atoms.1) set(fill:BgColSel.1)}
+      {Canvash bind(event:"<Up>" action:{GenProc right})}
+      {Canvash bind(event:"<Left>" action:{GenProc left})}
+      {Canvash bind(event:"<Right>" action:{GenProc right})}
+      {Canvash bind(event:"<Down>" action:{GenProc left})}
+      {Canvash bind(event:"<a>" action:proc{$}
+					  Starter =
+					  Atoms.{Send Arrows get($ _)}
+				       in
+					  {Send Arrows kill}
+					  {Send MAINPO makeTrainer(Starter)}
+				       end)}
    end
 end
 WIDGETS.starters = canvas( width:470 height:470 handle:HANDLES.starters
@@ -289,6 +313,18 @@ in
 end
 
 proc{DrawPokeList Event}% Event = status or fight(X) or dead(X)
+   %For binding
+   Arrows = {GetArrows 3 3}
+   Buttons = all(1:x(1:button(onclick:_ onselect:_ ondeselect:_)
+		     2:button(onclick:_ onselect:_ ondeselect:_)
+		     3:button(onclick:_ onselect:_ ondeselect:_))
+		 2:x(1:button(onclick:_ onselect:_ ondeselect:_)
+		     2:button(onclick:_ onselect:_ ondeselect:_)
+		     3:button(onclick:_ onselect:_ ondeselect:_))
+		 3:x(1:button(onclick:_ onselect:_ ondeselect:_)
+		     2:button(onclick:_ onselect:_ ondeselect:_)
+		     3:button(onclick:_ onselect:_ ondeselect:_)))
+   
    PlayL = PLAYER.poke
    First = {Send PlayL getFirst($)}
    Rec = {Send PlayL getAll($)}
@@ -330,39 +366,41 @@ proc{DrawPokeList Event}% Event = status or fight(X) or dead(X)
       {Canvash create(text text:"EXP" XX+130 YY+85
 		      fill:white font:{Font type(16)} tags:Tag)}
       {DrawMiniBar XX+85 YY+100 {Send Play.pid getExp($)} yellow Tag}
-      %bind the event
-      {BindToList [Tag Tagbis] "<Leave>" proc{$}
-					  {Tagbis set(fill:Color.1)}
-					 end}
-      {BindToList [Tag Tagbis] "<Enter>" proc{$}
-					  {Tagbis set(fill:Color.2)}
-					 end}
-      {BindToList [Tag Tagbis] "<1>" proc{$}
-					if Event == status then 
-					   B={Send PlayL
-					      switchFirst((Y-1)*2+X $)}
-					   {Wait B}
-					in
-					   {Send MAINPO set(map)}
-					else
-					   if {Send Play.pid getHealth($)}.act
-					      > 0 then
-					      Event.1 = Play
-					      {DeletePokelistTags}
-					      {Send MAINPO set(fight)}
-					   else
-					      Event.1 = none
-					   end
-					end
-				     end}
+      %bind the events
+      Buttons.Y.X.ondeselect = proc{$} {Tagbis set(fill:Color.1)} end
+      Buttons.Y.X.onselect   = proc{$} {Tagbis set(fill:Color.2)} end
+      Buttons.Y.X.onclick    = proc{$}
+				  if Event == status then 
+				     B={Send PlayL
+					switchFirst((Y-1)*2+X $)}
+				     {Wait B}
+				  in
+				     {Send MAINPO set(map)}
+				  else
+				     if {Send Play.pid getHealth($)}.act
+					> 0 then
+					Event.1 = Play
+					{DeletePokelistTags}
+					{Send MAINPO set(fight)}
+				     else
+					Event.1 = none
+				     end
+				  end
+			       end
    end
    proc{DrawEmpty X Y}
       XX = 10+(X-1)*190
       YY = 20+(Y-1)*150
+      Tagbis = AllTags.Y.X.bis
+      Color = c(black c(74 74 82))
    in
-      {Canvash create(rectangle XX YY XX+180 YY+130 fill:black)}
+      {Canvash create(rectangle XX YY XX+180 YY+130 fill:Color.1
+		      tags:Tagbis)}
       {Canvash create(text text:"EMPTY" XX+90 YY+65
 		      fill:white font:{Font type(20)})}
+      Buttons.Y.X.ondeselect = proc{$} {Tagbis set(fill:Color.1)} end
+      Buttons.Y.X.onselect   = proc{$} {Tagbis set(fill:Color.2)} end
+      Buttons.Y.X.onclick    = proc{$} skip end
    end
 in
    for X in 1..2 do
@@ -382,26 +420,52 @@ in
       {Canvash create(rectangle 390 20 460 450 fill:Color.1 tags:Tagbis)}
       {Canvash create(text text:"BACK" 425 235 fill:white width:50
 		      font:{Font type(50)} tags:Tag)}
-      {BindToList [Tag Tagbis] "<Leave>" proc{$}
-					  {Tagbis set(fill:Color.1)}
-					 end}
-      {BindToList [Tag Tagbis] "<Enter>" proc{$}
-					  {Tagbis set(fill:Color.2)}
-					 end}
-      {BindToList [Tag Tagbis] "<1>" proc{$}
-					{DeletePokelistTags}
-					if Event == status then
-					   {Send MAINPO set(map)}
+      for I in 1..3 do
+	 Buttons.I.3.ondeselect = proc{$} {Tagbis set(fill:Color.1)} end
+	 Buttons.I.3.onselect   = proc{$} {Tagbis set(fill:Color.2)} end
+	 Buttons.I.3.onclick    = proc{$}
+				     {DeletePokelistTags}
+				     if Event == status then
+					{Send MAINPO set(map)}
+				     else
+					if {Label Event} == fight then
+					   Event.1 = none
 					else
-					   if {Label Event} == fight then
-					      Event.1 = none
-					   else
-					      Event.1 = auto
-					   end
-					   {Send MAINPO set(fight)}
+					   Event.1 = auto
 					end
-				      end}
+					{Send MAINPO set(fight)}
+				     end
+				  end
+      end
+      local
+	 fun{GenProc Dir}
+	    proc{$}
+	       get(OldX OldY) = {Send Arrows $}
+	       Dir(NewX NewY) = {Send Arrows $}
+	    in
+	       {Buttons.OldY.OldX.ondeselect}
+	       {Buttons.NewY.NewX.onselect}
+	    end
+	 end
+	 proc{EnterCall}
+	    getLast(X Y B) = {Send Arrows $}
+	    if X<3 then
+	       if Rec.((Y-1)*2+X) \= none then B=false
+	       else B=true end
+	    else B=true end
+	 in
+	    {Buttons.Y.X.onclick}
+	 end
+      in
+	 {Buttons.1.1.onselect}
+	 {Canvash bind(event:"<Up>" action:{GenProc up})}
+	 {Canvash bind(event:"<Left>" action:{GenProc left})}
+	 {Canvash bind(event:"<Right>" action:{GenProc right})}
+	 {Canvash bind(event:"<Down>" action:{GenProc down})}
+	 {Canvash bind(event:"<a>" action:EnterCall)}
+      end
    end
+   {Canvash getFocus(force:true)}
 end
 WIDGETS.pokelist = canvas(height:470 width:470 handle:HANDLES.pokelist
 			  bg:white)

@@ -86,12 +86,7 @@ MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 					{Window close}
 					{Application.exit 0}
 				     end)}
-for I in [bulbasoz charmandoz oztirtle] do %Has to be added in widget declaration!!!!!
-   {BUTTONS.starters.I bind(event:"<1>"
-			    action:proc{$}
-				      {Send MAINPO makeTrainer(I)}
-				   end)}
-end
+
 %AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
 {BindEvents Window keys}
 {SetSpeed 5}
@@ -106,3 +101,4 @@ end
 				   {Send MAINPO set(pokelist)}		   
 				end)}
 {Window bind(event:"<r>" action:proc{$} {Send PLAYER.poke refill} end)}
+
