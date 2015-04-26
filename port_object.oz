@@ -401,7 +401,7 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 			    {Send FightAnim
 			     exit(B "You ran away cowardly...")}
 			    {Send WaitAnim wait(MAINPO B set(map))}
-			    {Send WaitAnim wait(NpcL B release(1 _))}
+			    {Send WaitAnim wait(NpcL B releaseAll)}
 			    state(killed)
 			 else
 			    % Send signal to itself for AI turn = automatic
@@ -516,16 +516,18 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 		      {Send WaitAnim wait(FightPort Ack fightIA)}
 		      state(player:Play enemy:NewNpc fighting:true)
 		   [] catching then
-		      if {Label NpcL} \= wild then
+		      if {Label Npc} \= wild then
 			 {Send FightAnim illCatch(playVsNpc)}
 			 state(player:Play enemy:Npc fighting:OK)
 		      elseif {Send PlayL get($ 6)}\=none then
 			 {Send FightAnim illCatch(playFull)}
 			 state(player:Play enemy:Npc fighting:OK)
-		      elseif {CatchSuccessful PlayL Npc} then
-			 {Send NpcL capture}
-			 {Send PlayL add(Npc)}
-			 state(player:Play enemy:Npc fighting:true)
+		      elseif {CatchSuccessful PlayL Npc} then Ack in
+			 {Send NpcL captured}
+			 {Send PlayL add(Npc _)}
+			 {Send FightAnim catched(Ack)}
+			 {Send WaitAnim wait(MAINPO Ack set(map))}
+			 state(killed)
 		      else Ack in
 			 {Send FightAnim failCatch(Ack)}
 			 {Send WaitAnim wait(FightPort Ack fightIA)}
@@ -774,7 +776,7 @@ fun{CreatePokemozList Names Lvls Type}
 		    if State.first == none then X = none
 		    else X=State.(State.first) end
 		    State
-		 [] getAverage(X) then
+		 [] getAverage(X) then %TODO : refaire pour faire le MAX
                     %returns the average of the first 3 Pkm
 		    if State.2 == none then
 		       X = {IntToFloat {Send State.1.pid getLvl($)}}
@@ -804,7 +806,7 @@ fun{CreatePokemozList Names Lvls Type}
 		 [] getAllExp(X) then
 		    X={GatherExp State 1 0}
 		    State
-		 [] capture then %only possible with wild pokemoz!
+		 [] captured then %only possible with wild pokemoz!
 		    all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
 		 [] shareExp(TotExp) then
 		    {Show totExp#TotExp}
@@ -885,6 +887,13 @@ in
 				    else skip
 				    end
 				 end)}
+   {BUTTONS.fight.capture bind(event:"<1>"
+			       action:
+				  proc{$}
+				     if {Send Fight action($)} == false then
+					{Send Fight catching}
+				     end
+				  end)}
    %Fight
 end
 
@@ -929,11 +938,11 @@ fun{MAIN Init Frames PlaceH MapName Handles}
 		                              % be threaded!!!
 		    {PlaceH set(Handles.map)}
 		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
-			      [Name3 "Bulbasoz"] [8 5] player}
+			      [Name3 "Bulbasoz"] [9 5] player}
 		    {Send MAPID init(x:7 y:7 PLAYER)}
 		    %TODO:add ennemies to the map
 		    Enemy = {CreateTrainer "Red" 6 6 SPEED MAPID
-		    	     ["Charmandoz"] [9] trainer}
+		    	     ["Oztirtle" "Oztirtle"] [5 7] trainer}
 		    {Send MAPID init(x:6 y:6 Enemy)}
 		    state(map)
 		 end

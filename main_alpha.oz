@@ -95,8 +95,10 @@ end
 %AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
 {BindEvents Window keys}
 {SetSpeed 5}
-{SetDelay 10}
-{SetProb  65}
+{SetDelay 70}
+{SetProb  90}% TODO: CORRIGER LA DOUBLE BATTLE ABSOLUMENT!!!!!
+            %         => Revoir completement le systeme de declenchement
+            %            des combats
 
 % Just for testing purposes
 {Window bind(event:"<3>" action:proc{$}

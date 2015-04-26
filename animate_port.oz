@@ -65,7 +65,7 @@ proc{AllTagsToList AllTags L1 L2}
    of tags(plateau:plateau(disk(D1 D2) pokemoz(P1 P2))
 	   attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
 					  bar(act:Ba2 Bb2)))
-	   others:_) then
+	   others:_ ball:_) then
       L1 = [D1 P1 T1 Ba1 Bb1]
       L2 = [D2 P2 T2 Ba2 Bb2]
    end
@@ -112,7 +112,7 @@ in
    end
 end
 %Intern
-proc{MoveDamage Tag Diff NTag Ty}%NTag will be deleted
+proc{MoveDamageComp Tag Diff NTag Ty B}%NTag will be deleted
    DT  = {DELAY.get} div 2
    Dx  = dx(5  ~25  15  15 ~10)
    Dy  = dy(20  10 ~15 ~5  ~10)
@@ -120,12 +120,15 @@ proc{MoveDamage Tag Diff NTag Ty}%NTag will be deleted
 in
    for I in 1..5 do
       {Tag move(Diff*Dx.I Diff*Dy.I)}
-      if I\=1 then
+      if I\=1 andthen B then
 	 {NTag set(image:{LoadImage [ Type "_" {IntToString I}]})}
       end
       {Delay DT}
    end
-   if NTag\=nil then {NTag delete} end
+   if B then {NTag delete} end
+end
+proc{MoveDamage Tag Diff NTag Ty}%NTag will be deleted
+   {MoveDamageComp Tag Diff NTag Ty true}
 end
 %Intern
 proc{ChangeBar Tag He X0 Y0}
@@ -144,6 +147,26 @@ in
    {Tag delete}
    {CanvasH create(rectangle X0 Y0 X0+Size Y0+H fill:Color tags:Tag)}
 end
+%Inter
+proc{MoveBall Tag}
+   Canvas = CANVAS.fight
+   Dt = {DELAY.get} div 3
+   XX = 195
+   YY = 190
+   Dx = dx( 20  18  15  15  15  15  10 10 10 10 9  6)
+   Dy = dy(~30 ~30 ~30 ~30 ~30 ~20 ~10 ~5 5  8  10 12)
+   Img= ball("ball_2" "ball_3" "ball_4" "ball_1"
+	     "ball_2" "ball_3" "ball_4" "ball_1"
+	     "ball_2" "ball_3" "ball_4" "ball_1")
+in
+   {Canvas create(image image:{LoadImage "ball_1"}
+		  XX YY tags:Tag)}
+   for I in 1..12 do
+      {Delay Dt}
+      {Tag move(Dx.I Dy.I)}
+      {Tag set(image:{LoadImage Img.I})}
+   end
+end
 %Extern
 fun{DrawFight Canvas PlayL NpcL B}
    AllTags
@@ -160,7 +183,7 @@ fun{DrawFight Canvas PlayL NpcL B}
 	   of exit(B Msg) then  DT = {DELAY.get} div 4 in
 	      {Delay DT*4}
 	      {Text Msg}
-	       
+	      {Delay DT*4}       
 	      for _ in 1..25 do
 		 {MoveFight LTagsNpc   1}
 		 {MoveFight LTagsPlay ~1}
@@ -265,14 +288,14 @@ fun{DrawFight Canvas PlayL NpcL B}
 		 DT = {DELAY.get} div 3
 	      in
 		 for _ in 1..25 do 
-		    {MoveFight LTagsPlay ~1}
+		    {MoveFight LTagsNpc 1}
 		    {Delay DT}
 		 end
 		 {Apply LTagsNpc proc{$ T} {T delete} end}
 		 %Switch the images here
 		 {RedrawFight npc New}
 		 for _ in 1..25 do 
-		    {MoveFight LTagsPlay 1}
+		    {MoveFight LTagsNpc 1}
 		    {Delay DT}
 		 end
 		 NewPlay = Play NewNpc = New
@@ -293,6 +316,34 @@ fun{DrawFight Canvas PlayL NpcL B}
 		 {Text "You're inventory is FULL!"}
 		 state(player:Play enemy:Npc)
 	      end
+	   [] catched(B) then
+	      Tag = AllTags.ball
+	      DT = {DELAY.get} div 4
+	   in
+               %handles the special exit too
+	      {MoveBall Tag}
+	      {Text {Flatten ["Your OzBall catched a wild " Npc.name "!"]}}
+	      {AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
+	      {Delay DT*2}
+	      {Apply LTagsNpc.2 proc{$ X} {X delete} end}
+	      {Delay DT*4}       
+	      for _ in 1..25 do
+		 {MoveFight LTagsPlay ~1}
+		 {MoveFight [LTagsNpc.1 AllTags.ball] 1}
+		 {Delay DT}
+	      end
+	      {Apply LTagsPlay proc{$ T} {T delete} end}
+	      {TAGS.fight2 delete}
+	      B=unit
+	      {AllTags.ball delete} {LTagsNpc.1 delete}
+	      state(killed)
+	   [] failCatch(B) then Tag = AllTags.ball in
+	      {MoveBall Tag}
+	      {Text "Your OzBall missed!"}
+	      {Tag delete}
+	      {MoveDamageComp  AllTags.plateau.2.2 ~1 Tag grass false}
+	      B = unit
+	      state(player:Play enemy:Npc)
 	   end
 	end}
 in

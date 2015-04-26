@@ -146,7 +146,8 @@ in
 	attrib:attrib(text({Ch newTag($)} {Ch newTag($)})
 		      bars(bar(act:{Ch newTag($)} {Ch newTag($)})
 			   bar(act:{Ch newTag($)} {Ch newTag($)})))
-	others:others({Ch newTag($)}))
+	others:others({Ch newTag($)})
+	ball:{Ch newTag($)})
    TAGS.fight2 = {CANVAS.fight2 newTag($)}
 end
 proc{DrawBar Act Max X0 Y0 Tag Tag2}
@@ -392,7 +393,7 @@ in
 					if Event == status then
 					   {Send MAINPO set(map)}
 					else
-					   if Event == fight(_) then
+					   if {Label Event} == fight then
 					      Event.1 = none
 					   else
 					      Event.1 = auto
