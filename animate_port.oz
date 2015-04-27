@@ -44,7 +44,7 @@ fun{AnimateTrainer X0 Y0 Speed Name}
 		  Mod
 		  if DX.x == 0 then Mod = (DX.y*67) mod Numb
 		  else              Mod = (DX.x*67) mod Numb end
-		  DMod  = {GETDIRSIDE Dir} 
+		  DMod  = {GETDIRSIDE Dir}
 	       in
 		  {Animate Dir2 DT Delta 0 Mod DMod}
 	       [] turn(Dir) then Dir2 = {AtomToString Dir} in
@@ -168,10 +168,11 @@ in
    end
 end
 %Extern
-fun{DrawFight Canvas PlayL NpcL B}
+fun{DrawFight PlayL NpcL Btn}
    AllTags
    LTagsNpc
    LTagsPlay
+   Canvas = CANVAS.fight
    FirstPlay = {Send PlayL getFirst($)}
    FirstNpc  = {Send NpcL  getFirst($)}
    Text = proc{$ X} {TAGS.fight2 set(text:X)} end
@@ -183,7 +184,7 @@ fun{DrawFight Canvas PlayL NpcL B}
 	   of exit(B Msg) then  DT = {DELAY.get} div 4 in
 	      {Delay DT*4}
 	      {Text Msg}
-	      {Delay DT*4}       
+	      {Delay DT*4}
 	      for _ in 1..25 do
 		 {MoveFight LTagsNpc   1}
 		 {MoveFight LTagsPlay ~1}
@@ -265,21 +266,21 @@ fun{DrawFight Canvas PlayL NpcL B}
 		 {MoveForward AllTags.plateau.2.1  1}
 	      end
 
-	      B = unit	      
+	      B = unit
 	      state(player:Play enemy:Npc)
 	   [] switch(Person New B) then NewPlay NewNpc in
 	      case Person
 	      of player then
 		 DT = {DELAY.get} div 4
 	      in
-		 for _ in 1..25 do 
+		 for _ in 1..25 do
 		    {MoveFight LTagsPlay ~1}
 		    {Delay DT}
 		 end
 		 {Apply LTagsPlay proc{$ T} {T delete} end}
 		 %Switch the images here
 		 {RedrawFight player New}
-		 for _ in 1..25 do 
+		 for _ in 1..25 do
 		    {MoveFight LTagsPlay ~1}
 		    {Delay DT}
 		 end
@@ -287,14 +288,14 @@ fun{DrawFight Canvas PlayL NpcL B}
 	      [] npc then
 		 DT = {DELAY.get} div 3
 	      in
-		 for _ in 1..25 do 
+		 for _ in 1..25 do
 		    {MoveFight LTagsNpc 1}
 		    {Delay DT}
 		 end
 		 {Apply LTagsNpc proc{$ T} {T delete} end}
 		 %Switch the images here
 		 {RedrawFight npc New}
-		 for _ in 1..25 do 
+		 for _ in 1..25 do
 		    {MoveFight LTagsNpc 1}
 		    {Delay DT}
 		 end
@@ -303,17 +304,17 @@ fun{DrawFight Canvas PlayL NpcL B}
 	      B=unit
 	      state(player:NewPlay enemy:NewNpc)
 	   [] illRun then
-	      {Text "You can't run from a Trainer-Battle!"}
+	      {Text "You can''t run from a Trainer-Battle!"}
 	      state(player:Play enemy:Npc)
 	   [] failRun then
-	      {Text "You couldn't escape this time!"}
+	      {Text "You couldn''t escape this time!"}
 	      state(player:Play enemy:Npc)
 	   [] illCatch(Msg) then
 	      if Msg == playVsNpc then
 		 {Text "Stop trying to steal pokemoz!"}
 		 state(player:Play enemy:Npc)
 	      else
-		 {Text "You're inventory is FULL!"}
+		 {Text "You''re inventory is FULL!"}
 		 state(player:Play enemy:Npc)
 	      end
 	   [] catched(B) then
@@ -326,7 +327,7 @@ fun{DrawFight Canvas PlayL NpcL B}
 	      {AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
 	      {Delay DT*2}
 	      {Apply LTagsNpc.2 proc{$ X} {X delete} end}
-	      {Delay DT*4}       
+	      {Delay DT*4}
 	      for _ in 1..25 do
 		 {MoveFight LTagsPlay ~1}
 		 {MoveFight [LTagsNpc.1 AllTags.ball] 1}
@@ -349,23 +350,24 @@ fun{DrawFight Canvas PlayL NpcL B}
 in
    thread
       if {Label FirstNpc} == wild then
-	 {Text "A wild Pokemoz appeared"}
-	 {Delay {DELAY.get}*6}
+         {Text "A wild Pokemoz appeared"}
+         {Delay {DELAY.get}*6}
       end
       {Text "Choose your action"}
    end
    thread
-      AllTags={FightScene FirstPlay FirstNpc}
+      Buttons={FightScene FirstPlay FirstNpc}
+   in
+      AllTags = TAGS.fight
       {AllTagsToList AllTags LTagsPlay LTagsNpc}
       local DT = {DELAY.get} div 4 in
-	 for _ in 1..25 do 
-	    {MoveFight LTagsNpc   1}
-	    {MoveFight LTagsPlay ~1}
-	    {Delay DT}
-	 end
+      	 for _ in 1..25 do
+      	    {MoveFight LTagsNpc   1}
+      	    {MoveFight LTagsPlay ~1}
+      	    {Delay DT}
+      	 end
       end
-
-      B=unit
+      Btn=Buttons
    end
    Fid
 end
