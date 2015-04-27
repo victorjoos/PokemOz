@@ -35,13 +35,12 @@ fun{Tile Init C}
 		  state(NewGround TrainerDir)
 	       [] addTrainer(Dir) then
 		  state(Ground Dir)
-	       [] switchTrainer then X=C.x Y=C.y in
-		  case TrainerDir
-		  of empty then {DrawTrainer TRAINERHANDLES.Y.X up} state(Ground up)
-		  [] up then {DrawTrainer TRAINERHANDLES.Y.X right} state(Ground right)
-		  [] right then {DrawTrainer TRAINERHANDLES.Y.X down} state(Ground down)
-		  [] down then {DrawTrainer TRAINERHANDLES.Y.X left} state(Ground left)
-		  [] left then {DrawTrainer TRAINERHANDLES.Y.X empty} state(Ground empty)
+	       [] switchTrainer then
+		  case TrainerDir of empty then state(Ground up)
+		  [] up then state(Ground right)
+		  [] right then state(Ground down)
+		  [] down then state(Ground left)
+		  [] left then state(Ground empty)
 		  end
 	       end
 	    end}
@@ -64,11 +63,10 @@ fun {MapEditor}
       MapRec
    end
    TilesID={CreateTiles}
-   MapId = {NewPortObject ground
+   MapId = {NewPortObject empty
 	    fun{$ Msg State}
 	       case Msg
-	       of state(X) then X=State State
-	       [] save(FileName) then Map={MakeTuple map MAXY} in
+	       of save(FileName) then Map={MakeTuple map MAXY} in
 		  for J in 1..MAXY do
 		     Map.J = {MakeTuple r MAXX}
 		     for I in 1..MAXX do Ground={Send TilesID.J.I getGround($)} in
@@ -77,7 +75,7 @@ fun {MapEditor}
 		     end
 		  end
 		  {Pickle.save Map FileName}
-		  State
+		  empty
 	       [] load(FileName) then Map={Pickle.load FileName} in
 		  for J in 1..MAXY do
 		     for I in 1..MAXX do
@@ -86,10 +84,7 @@ fun {MapEditor}
 			end
 		     end
 		  end
-		  State
-	       [] switch then
-		  if State==ground then trainer
-		  else ground end
+		  empty
 	       end
 	    end
 	   }

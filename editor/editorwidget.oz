@@ -6,10 +6,11 @@ declare
 % @pre: Name is a list of strings for a valid image:
 %            ex: ["Bulboz" "_back"]
 % @post: Returns a QTk image handler (nil in case of failure)
-Lib = {QTk.loadImageLibrary "LibImg.ozf"}
+Lib = {QTk.loadImageLibrary "../LibImg.ozf"}
 fun{LoadImage Name}
    Name2 = {Flatten Name}
 in
+   {Show {StringToAtom Name2}}
    try
       Img
       {Lib get(name:{StringToAtom Name2} image:Img)}
@@ -50,6 +51,12 @@ in
    if Ground==grass then {Handle set(fill:ColorGrass)}
    else {Handle set(fill:ColorPath)} end
 end
+proc{DrawTrainer Handle Dir}
+   if Dir \= empty then
+      {Handle 'raise'}
+      {Handle set(image:{LoadImage ["Red_" {AtomToString Dir} "_still"]})}
+   else {Handle lower} end
+end
 %@pre:  Draws the map given by the record read in File at once
 %        and Canvash is te handle to the canvas
 %@post: Returns a list of handles to be able to shift the map
@@ -61,7 +68,8 @@ fun{DrawMap Canvash Map MaxX MaxY}
    Tag={Canvash newTag($)}
    CanvasH = MAPCANVAS
    Handles = {MakeTuple 'maph' MAXY}
-   proc{DrawSquare index(X Y) MapHandles}
+   TrainerHandles = {MakeTuple 'trainerh' MAXY}
+   proc{DrawSquare index(X Y) MapHandles TrainerHandles}
       if Y>MaxY then skip
       else NewX NewY
 	 ActX = 1+DX*(X-1)
@@ -71,15 +79,19 @@ fun{DrawMap Canvash Map MaxX MaxY}
 	 {CanvasH create(rectangle ActX ActY ActX+DXn ActY+DXn
 			 fill:ColorPath
 			 tags:Tag handle:MapHandles.Y.X)}
+	 {CanvasH create(image ActX+33 ActY+33
+			 handle:TrainerHandles.Y.X)}
 	 if X==MaxX then NewX=1 NewY=Y+1
 	 else NewX=X+1 NewY=Y end
-	 {DrawSquare index(NewX NewY) MapHandles}
+	 {DrawSquare index(NewX NewY) MapHandles TrainerHandles}
       end
    end
 in
-   for I in 1..MAXY do Handles.I = {MakeTuple 'maph' MAXX} end
-   {DrawSquare index(1 1) Handles}
-   tags(tag:Tag handles:Handles)
+   for I in 1..MAXY do
+      Handles.I = {MakeTuple 'maph' MAXX}
+      TrainerHandles.I = {MakeTuple 'trainerh' MAXX} end
+   {DrawSquare index(1 1) Handles TrainerHandles}
+   tags(tag:Tag handles:Handles trainer:TrainerHandles)
 end
 
 %@pre: Shifts the map (decribed by the list of handles)

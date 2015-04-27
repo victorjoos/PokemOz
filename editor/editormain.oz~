@@ -13,7 +13,6 @@ BUTTONS %All the buttons' handles
 MAPID
 
 RECTHANDLES
-TRAINERHANDLES
 
 SPEED
 DELAY
@@ -33,12 +32,10 @@ fun{ReadMap _}%should be replaced by 'Name' afterwards
        r(0 0 0 0 0 0 0))
 end
 
-proc{BindEvents MapTiles RectHandles TrainerH MapID} %Input = {keys,autofight,
+proc{BindEvents MapTiles RectHandles} %Input = {keys,autofight,
    fun{GenerateProc TileId}
       proc{$}
-	 if {Send MapID state($)}==ground
-	 then {Send TileId switch}
-	 else {Show switching}{Send TileId switchTrainer} end
+	 {Send TileId switch}
       end
    end
 in
@@ -46,7 +43,6 @@ in
    for J in 1..MAXX do
       for I in 1..MAXY do
 	 {RectHandles.J.I bind(event:"<1>" action:{GenerateProc MapTiles.J.I})}
-	 {TrainerH.J.I bind(event:"<1>" action:{GenerateProc MapTiles.J.I})}
       end
    end
 end
@@ -60,7 +56,7 @@ Window = {QTk.build TopWidget}
 {Window show}
 % MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 Map = {ReadMap MapName}
-tags(tag:_ handles:RECTHANDLES trainer:TRAINERHANDLES) = {DrawMap MAPCANVAS Map MAXX MAXY}
+tags(tag:_ handles:RECTHANDLES) = {DrawMap MAPCANVAS Map MAXX MAXY}
 
 %%%%%% Creates the whole map tiles
 MAPID#MAPTILES = {MapEditor}
@@ -75,7 +71,4 @@ MAPID#MAPTILES = {MapEditor}
 {Window bind(event:"l" action:proc{$}
 				 {Send MAPID load('maptest.txt')}
 			      end)}
-{Window bind(event:"t" action:proc{$}
-				 {Send MAPID switch}
-			      end)}
-{BindEvents MAPTILES RECTHANDLES TRAINERHANDLES MAPID}
+{BindEvents MAPTILES RECTHANDLES}
