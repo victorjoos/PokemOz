@@ -10,7 +10,6 @@ Lib = {QTk.loadImageLibrary "../LibImg.ozf"}
 fun{LoadImage Name}
    Name2 = {Flatten Name}
 in
-   {Show {StringToAtom Name2}}
    try
       Img
       {Lib get(name:{StringToAtom Name2} image:Img)}
@@ -53,9 +52,8 @@ in
 end
 proc{DrawTrainer Handle Dir}
    if Dir \= empty then
-      {Handle 'raise'}
       {Handle set(image:{LoadImage ["Red_" {AtomToString Dir} "_still"]})}
-   else {Handle lower} end
+   else {Handle set(image:nil)} end
 end
 %@pre:  Draws the map given by the record read in File at once
 %        and Canvash is te handle to the canvas
