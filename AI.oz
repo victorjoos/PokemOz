@@ -166,7 +166,7 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
       elseif Right < Down andthen Right < Up andthen Right < Left then right
       else left end
    end
-   
+
    Init = state(Coords dir:up)
    ArtificialPlayerPort = {NewPortObject Init
 			   fun{$ Msg state(Pos dir:Dir)}
@@ -195,3 +195,57 @@ in
    {Show 'Hello!!'}
    ArtificialPlayerPort
 end
+
+
+
+%%%%%%%%%%% PART TO ADD!!! %%%%%%%%%
+
+fun{GetEnemyAi CtrlId Lmoves DelayTime}
+   fun{SendMove Msg} B in
+      case Msg
+      of move(Dir) then
+         {Send CtrlId move(Dir $)}
+      [] turn(Dir) then
+         {Send CtrlId turn(Dir $)}
+      end
+   end
+   Start
+   if Lmoves == nil then Start = blocked
+   else Start = free end
+   AIid = {NewPortObject state(Lmoves Start)
+               fun{$ Msg state(Lact State)}
+                  case Msg
+                  of go then
+                     if State == free then
+                        case Lact
+                        of nil then
+                           if {SendMove Lmoves.1} then
+                              state(Lmoves.2 State)
+                           else
+                              state(Lmoves blocked)
+                           end
+                        []H|T then
+                           if {SendMove Lact.1} then
+                              state(Lact.2 State)
+                           else
+                              state(Lact blocked)
+                           end
+                        end
+                     else
+                        state(Lact State)
+                     end
+                  [] rmBlock then
+                     state(Lact free)
+                  end
+               end}
+in
+   %Send first move signal
+   if Lmoves\=nil then
+      thread
+         {Delay DelayTime*{DELAY.get}}
+         {Send CtrlId Lmoves.1}
+      end
+   end
+   AIid
+end
+%%%%%%%%%%%% END PART TO ADD!!!! %%%%%%%%%

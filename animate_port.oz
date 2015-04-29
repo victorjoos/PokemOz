@@ -168,7 +168,7 @@ in
    end
 end
 %Extern
-fun{DrawFight PlayL NpcL Btn}
+fun{DrawFight PlayL NpcL}
    AllTags
    LTagsNpc
    LTagsPlay
@@ -179,173 +179,172 @@ fun{DrawFight PlayL NpcL Btn}
    Fid={NewPortObjectKillable
 	state(player:FirstPlay
 	       enemy:FirstNpc)
-	fun{$ Msg state(player:Play enemy:Npc)}
-	   case Msg
-	   of exit(B Msg) then  DT = {DELAY.get} div 4 in
-	      {Delay DT*4}
-	      {Text Msg}
-	      {Delay DT*4}
-	      for _ in 1..25 do
-		 {MoveFight LTagsNpc   1}
-		 {MoveFight LTagsPlay ~1}
-		 {Delay DT}
-	      end
-	      {Apply LTagsNpc  proc{$ T} {T delete} end}
-	      {Apply LTagsPlay proc{$ T} {T delete} end}
-	      {TAGS.fight2 delete}
-	      B = unit
-	      state(killed)
-	   [] attack(P B) then NTag = AllTags.others.1 in
-	      case P
-	      of npc then
-		 PlayHe = {Send Play.pid getHealth($)}
-	      in
-		 {Delay 200}
-		 {Text "The enemy attacked..."}
-		 {MoveBack AllTags.plateau.2.2 ~1}
-		 thread
-		    {Delay {DELAY.get}}
-		    {Text "...and HIT!"}
-		 end
-		 {MoveForward AllTags.plateau.2.2 ~1}
-		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
-				125 143)}
-		 {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
-		 {ChangeBar AllTags.attrib.2.1.act
-		  PlayHe 270 165}
-		 thread
-		    if PlayHe.act \= 0 then
-		       {Delay {DELAY.get}*6}
-		       {Text "Choose your action"}
-		    end
-		 end
-	      [] player then
-		 NpcHe = {Send Npc.pid getHealth($)}
-	      in
-		 %Show attack
-		 {Text "You attacked..."}
-		 {MoveBack    AllTags.plateau.2.1  1}
-		 thread
-		    {Delay {DELAY.get}}
-		    {Text "...and HIT!"}
-		 end
-		 {MoveForward AllTags.plateau.2.1  1}
-		 {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
-				345 45)}
-		 {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
-		 %Show damage taken on enemy health bar
-		 {ChangeBar AllTags.attrib.2.2.act
-		  NpcHe 110 35}
-	      end
+          fun{$ Msg state(player:Play enemy:Npc)}
+             case Msg
+             of exit(B Msg) then  DT = {DELAY.get} div 4 in
+                {Delay DT*4}
+                {Text Msg}
+                {Delay DT*4}
+                for _ in 1..25 do
+                   {MoveFight LTagsNpc   1}
+                   {MoveFight LTagsPlay ~1}
+                   {Delay DT}
+                end
+                {Apply LTagsNpc  proc{$ T} {T delete} end}
+                {Apply LTagsPlay proc{$ T} {T delete} end}
+                {TAGS.fight2 delete}
+                B = unit
+                state(killed)
+             [] attack(P B) then NTag = AllTags.others.1 in
+                case P
+                of npc then
+                   PlayHe = {Send Play.pid getHealth($)}
+                in
+                   {Delay 200}
+                   {Text "The enemy attacked..."}
+                   {MoveBack AllTags.plateau.2.2 ~1}
+                   thread
+                      {Delay {DELAY.get}}
+                      {Text "...and HIT!"}
+                   end
+                   {MoveForward AllTags.plateau.2.2 ~1}
+                   {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
+                   125 143)}
+                   {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
+                   {ChangeBar AllTags.attrib.2.1.act
+                   PlayHe 270 165}
+                   thread
+                      if PlayHe.act \= 0 then
+                         {Delay {DELAY.get}*6}
+                         {Text "Choose your action"}
+                      end
+                   end
+             [] player then
+                NpcHe = {Send Npc.pid getHealth($)}
+             in
+                %Show attack
+                {Text "You attacked..."}
+                {MoveBack    AllTags.plateau.2.1  1}
+                thread
+                   {Delay {DELAY.get}}
+                   {Text "...and HIT!"}
+                end
+                {MoveForward AllTags.plateau.2.1  1}
+                {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
+                345 45)}
+                {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
+                %Show damage taken on enemy health bar
+                {ChangeBar AllTags.attrib.2.2.act
+                NpcHe 110 35}
+             end
+             B = unit
+             state(player:Play enemy:Npc)
 
-	      B = unit
-	      state(player:Play enemy:Npc)
+       [] attackFail(P B) then
+         case P
+         of npc then
+            {Delay 200}
+            {Text "The enemy attacked..."}
+            {MoveBack    AllTags.plateau.2.2 ~1}
+            thread
+               {Delay {DELAY.get}}
+               {Text "...and missed!"}
+            end
+            {MoveForward AllTags.plateau.2.2 ~1}
+            thread
+               {Delay {DELAY.get}*6}
+               {Text "Choose your action"}
+            end
+         [] player then
+            {Text "You attacked..."}
+            {MoveBack    AllTags.plateau.2.1  1}
+            thread
+               {Delay {DELAY.get}}
+               {Text "...and missed!"}
+            end
+            {MoveForward AllTags.plateau.2.1  1}
+         end
 
-	   [] attackFail(P B) then
-	      case P
-	      of npc then
-		 {Delay 200}
-		 {Text "The enemy attacked..."}
-		 {MoveBack    AllTags.plateau.2.2 ~1}
-		 thread
-		    {Delay {DELAY.get}}
-		    {Text "...and missed!"}
-		 end
-		 {MoveForward AllTags.plateau.2.2 ~1}
-		 thread
-		    {Delay {DELAY.get}*6}
-		    {Text "Choose your action"}
-		 end
-	      [] player then
-		 {Text "You attacked..."}
-		 {MoveBack    AllTags.plateau.2.1  1}
-		 thread
-		    {Delay {DELAY.get}}
-		    {Text "...and missed!"}
-		 end
-		 {MoveForward AllTags.plateau.2.1  1}
-	      end
-
-	      B = unit
-	      state(player:Play enemy:Npc)
-	   [] switch(Person New B) then NewPlay NewNpc in
-	      case Person
-	      of player then
-		 DT = {DELAY.get} div 4
-	      in
-		 for _ in 1..25 do
-		    {MoveFight LTagsPlay ~1}
-		    {Delay DT}
-		 end
-		 {Apply LTagsPlay proc{$ T} {T delete} end}
-		 %Switch the images here
-		 {RedrawFight player New}
-		 for _ in 1..25 do
-		    {MoveFight LTagsPlay ~1}
-		    {Delay DT}
-		 end
-		 NewPlay = New NewNpc = Npc
-	      [] npc then
-		 DT = {DELAY.get} div 3
-	      in
-		 for _ in 1..25 do
-		    {MoveFight LTagsNpc 1}
-		    {Delay DT}
-		 end
-		 {Apply LTagsNpc proc{$ T} {T delete} end}
-		 %Switch the images here
-		 {RedrawFight npc New}
-		 for _ in 1..25 do
-		    {MoveFight LTagsNpc 1}
-		    {Delay DT}
-		 end
-		 NewPlay = Play NewNpc = New
-	      end
-	      B=unit
-	      state(player:NewPlay enemy:NewNpc)
-	   [] illRun then
-	      {Text "You can''t run from a Trainer-Battle!"}
-	      state(player:Play enemy:Npc)
-	   [] failRun then
-	      {Text "You couldn''t escape this time!"}
-	      state(player:Play enemy:Npc)
-	   [] illCatch(Msg) then
-	      if Msg == playVsNpc then
-		 {Text "Stop trying to steal pokemoz!"}
-		 state(player:Play enemy:Npc)
-	      else
-		 {Text "You''re inventory is FULL!"}
-		 state(player:Play enemy:Npc)
-	      end
-	   [] catched(B) then
-	      Tag = AllTags.ball
-	      DT = {DELAY.get} div 4
-	   in
-               %handles the special exit too
-	      {MoveBall Tag}
-	      {Text {Flatten ["Your OzBall catched a wild " Npc.name "!"]}}
-	      {AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
-	      {Delay DT*2}
-	      {Apply LTagsNpc.2 proc{$ X} {X delete} end}
-	      {Delay DT*4}
-	      for _ in 1..25 do
-		 {MoveFight LTagsPlay ~1}
-		 {MoveFight [LTagsNpc.1 AllTags.ball] 1}
-		 {Delay DT}
-	      end
-	      {Apply LTagsPlay proc{$ T} {T delete} end}
-	      {TAGS.fight2 delete}
-	      B=unit
-	      {AllTags.ball delete} {LTagsNpc.1 delete}
-	      state(killed)
-	   [] failCatch(B) then Tag = AllTags.ball in
-	      {MoveBall Tag}
-	      {Text "Your OzBall missed!"}
-	      {Tag delete}
-	      {MoveDamageComp  AllTags.plateau.2.2 ~1 Tag grass false}
-	      B = unit
-	      state(player:Play enemy:Npc)
-	   end
+         B = unit
+         state(player:Play enemy:Npc)
+      [] switch(Person New B) then NewPlay NewNpc in
+         case Person
+         of player then
+            DT = {DELAY.get} div 4
+         in
+            for _ in 1..25 do
+               {MoveFight LTagsPlay ~1}
+               {Delay DT}
+            end
+            {Apply LTagsPlay proc{$ T} {T delete} end}
+            %Switch the images here
+            {RedrawFight player New}
+            for _ in 1..25 do
+               {MoveFight LTagsPlay ~1}
+               {Delay DT}
+            end
+            NewPlay = New NewNpc = Npc
+         [] npc then
+            DT = {DELAY.get} div 3
+         in
+            for _ in 1..25 do
+               {MoveFight LTagsNpc 1}
+               {Delay DT}
+            end
+            {Apply LTagsNpc proc{$ T} {T delete} end}
+            %Switch the images here
+            {RedrawFight npc New}
+            for _ in 1..25 do
+               {MoveFight LTagsNpc 1}
+               {Delay DT}
+            end
+            NewPlay = Play NewNpc = New
+         end
+         B=unit
+         state(player:NewPlay enemy:NewNpc)
+      [] illRun then
+         {Text "You can''t run from a Trainer-Battle!"}
+         state(player:Play enemy:Npc)
+      [] failRun then
+         {Text "You couldn''t escape this time!"}
+         state(player:Play enemy:Npc)
+      [] illCatch(Msg) then
+         if Msg == playVsNpc then
+            {Text "Stop trying to steal pokemoz!"}
+            state(player:Play enemy:Npc)
+         else
+            {Text "You''re inventory is FULL!"}
+            state(player:Play enemy:Npc)
+         end
+      [] catched(B) then
+         Tag = AllTags.ball
+         DT = {DELAY.get} div 4
+      in
+         %handles the special exit too
+         {MoveBall Tag}
+         {Text {Flatten ["Your OzBall catched a wild " Npc.name "!"]}}
+         {AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
+         {Delay DT*2}
+         {Apply LTagsNpc.2 proc{$ X} {X delete} end}
+         {Delay DT*4}
+         for _ in 1..25 do
+            {MoveFight LTagsPlay ~1}
+            {MoveFight [LTagsNpc.1 AllTags.ball] 1}
+            {Delay DT}
+         end
+         {Apply LTagsPlay proc{$ T} {T delete} end}
+         {TAGS.fight2 delete}
+         B=unit
+         {AllTags.ball delete} {LTagsNpc.1 delete}
+         state(killed)
+      [] failCatch(B) then Tag = AllTags.ball in
+         {MoveBall Tag}
+         {Text "Your OzBall missed!"}
+         {Tag delete}
+         {MoveDamageComp  AllTags.plateau.2.2 ~1 Tag grass false}
+         B = unit
+         state(player:Play enemy:Npc)
+      end
 	end}
 in
    thread
@@ -356,7 +355,7 @@ in
       {Text "Choose your action"}
    end
    thread
-      Buttons={FightScene FirstPlay FirstNpc}
+      Buttons#Arrows={FightScene FirstPlay FirstNpc}
    in
       AllTags = TAGS.fight
       {AllTagsToList AllTags LTagsPlay LTagsNpc}
@@ -367,7 +366,6 @@ in
       	    {Delay DT}
       	 end
       end
-      Btn=Buttons
    end
-   Fid
+   Fid#Buttons#Arrows
 end

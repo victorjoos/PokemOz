@@ -30,9 +30,10 @@ fun{ReadMap _}%should be replaced by 'Name' afterwards
        r(0 0 0 1 1 0 0)
        r(0 0 0 0 0 0 0))
 end
-fun{ReadEnnemies _}
+fun{ReadEnemies _}
    %List of Names with their start Coordinates
-   nil
+   [npc("Red" delay:~1 start:init(x:6 y:6) speed:5 states:nil
+         poke:[poke("Charmandoz" 5)])]
 end
 proc{BindEvents Window Input} %Input = {keys,autofight,..}
    if Input == keys then
@@ -71,9 +72,10 @@ proc{SetProb X}
 end
 {OS.srand 0}
 %%%%% The Imports
+\insert 'definitions_port.oz'
 \insert 'widget.oz'
-\insert 'port_object.oz'
 \insert 'AI.oz'
+\insert 'port_object.oz'
 
 %%%%%% Launching the main operations
 Window = {QTk.build TopWidget}
@@ -98,7 +100,6 @@ MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 % Just for testing purposes
 {Window bind(event:"<3>" action:proc{$}
 				   thread {DrawPokeList status} end
-				   {Send MAINPO set(pokelist)}		   
+				   {Send MAINPO set(pokelist)}
 				end)}
 {Window bind(event:"<r>" action:proc{$} {Send PLAYER.poke refill} end)}
-

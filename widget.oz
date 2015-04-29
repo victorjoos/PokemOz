@@ -261,7 +261,7 @@ in
       {CANVAS.fight2 create(text   text:"Choose your action" 235 45
 			    font:{Font type(16)} tags:TAGS.fight2)}
    end
-   Buttons
+   Buttons#Arrows
 end
 proc{RedrawFight Person NewPkm}
    Xst = 500

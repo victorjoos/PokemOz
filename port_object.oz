@@ -6,131 +6,7 @@
 %MAXX  = 7
 %MAXY  = 7
 
-fun{GETDIR Dir}
-   case Dir
-   of up   then dx(x: 0 y:~1)
-   [] down then dx(x: 0 y: 1)
-   [] left then dx(x:~1 y: 0)
-   else         dx(x: 1 y: 0)
-   end
-end
-fun{GETDIRSIDE Dir}
-   case Dir
-   of up then ~1
-   [] left then ~1
-   else 1 end
-end
 
-%%%%% DEFINITION OF PORTOBJECTS' CREATION %%%%%%
-fun {NewPortObject Init Func}
-   proc {Loop S State}
-      case S of Msg|S2 then
-	 {Loop S2 {Func Msg State}}
-      end
-   end
-   P S
-in
-   P={NewPort S}
-   thread {Loop S Init} end
-   P
-   %replace by proc{$ X} {Send P X} end ?
-end
-fun {NewPortObjectKillable Init Func}
-   proc {Loop S State}
-      case State of state(killed) then
-	 {Show 'thread_killed'}
-	 skip
-      else
-	 case S of Msg|S2 then
-	    {Loop S2 {Func Msg State}}
-	 end
-      end
-   end
-   P S
-in
-   P={NewPort S}
-   thread {Loop S Init} end
-   P
-end
-fun {NewPortObjectMinor Func}
-   proc {Loop S}
-      case S of Msg|S2 then
-	 {Func Msg}
-	 {Loop S2}
-      end
-   end
-   P S
-in
-   P={NewPort S}
-   thread {Loop S} end
-   P
-end
-%@post : Returns a PortID for a timer. The timer can receive a
-%        signal and send out
-fun{Timer} % a simple timer function
-   {NewPortObjectMinor proc{$ Msg}
-			  case Msg
-			  of starttimer(Pid T) then
-			     thread
-				{Delay T}
-				{Send Pid stoptimer}
-			     end
-			  [] starttimer(Pid T Sig) then
-			     thread
-				{Delay T}
-				{Send Pid Sig}
-			     end
-			  end
-		       end}
-end
-fun{Waiter}
-   {NewPortObjectMinor proc{$ Msg}
-			  case Msg of wait(Pid X Sig) then
-			     thread
-				{Wait X}
-				{Send Pid Sig}
-			     end
-			  end
-		       end}
-end
-%%%%%%% SPECIAL ARROWMOVEMENTS %%%%%%%%%%%
-fun{GetArrows MaxX MaxY}
-   ArrowId = {NewPortObjectKillable state(1 1)
-	      fun{$ Msg state(X Y)}
-		 case Msg
-		 of up(NewX NewY) then
-		    if Y==1 then NewX=X NewY=MaxY
-		    else NewX=X NewY=Y-1 end
-		    state(NewX NewY)
-		 [] down(NewX NewY) then
-		    if Y==MaxY then NewX=X NewY=1
-		    else NewX=X NewY=Y+1 end
-		    state(NewX NewY)
-		 [] right(NewX NewY) then Nx Ny in
-		    if X==MaxX then Nx=1 Ny=Y+1
-		    else Nx=X+1 Ny=Y end
-		    if Ny==MaxY+1 then NewY=1
-		    else NewY=Ny end
-		    NewX=Nx
-		    state(NewX NewY)
-		 [] left(NewX NewY) then Nx Ny in
-		    if X==1 then Nx=MaxX Ny=Y-1
-		    else Nx=X-1 Ny=Y end
-		    if Ny==0 then NewY=MaxY
-		    else NewY=Ny end
-		    NewX=Nx
-		    state(NewX NewY)
-		 [] get(XX YY) then XX=X YY=Y state(X Y)
-		 [] getLast(XX YY B) then
-		    XX=X YY=Y
-		    if B==true then state(X Y)
-		    else state(killed) end
-		 [] kill then state(killed)
-		 end
-	      end}
-in
-   ArrowId
-end
 %%%%%%% MAPRELATED PORTOBJECTS %%%%%%%%%%%%
 
 %@pre:  C     = coord(x:X y:Y) with X and Y integers
@@ -141,8 +17,8 @@ end
 CreateFight
 GetWildling
 fun{Tile Init C Mapid Ground}
-   proc{SignalArrival Trainer}
-      %Signals arrival of someone to cases around
+   proc{SignalArrival Trainer}%Make this a recursive function
+      %Signals arrival of player to cases around
       {Send Mapid send(x:C.x   y:C.y+1 new(up Trainer))}
       {Send Mapid send(x:C.x+1 y:C.y   new(right Trainer))}
       {Send Mapid send(x:C.x-1 y:C.y   new(left Trainer))}
@@ -163,28 +39,32 @@ fun{Tile Init C Mapid Ground}
              state(reserved)
           [] arrived(Plid Val) then
              Val=unit
-             if Ground == grass andthen {Label Plid} == player then
+             if Ground == grass andthen
+                {Label Plid} == player then
                 Wild = {GetWildling}
              in
                 if Wild \= none then
-                   {CreateFight Plid Wild}
+                   {Send Plid fight(Wild)}
                 end
              end
              {SignalArrival Plid}
+             %TODO:should differenciate trainer from ai
+             %      + ADD case of checkInFront for ai moving and turning!
              state(occupied(Plid))
           [] new(Dir Trainer) then
              case State
              of occupied(Y) then LblY = {Label Y} in
                 if LblY\={Label Trainer} andthen
-                   {Send Y.pid getDir($)} == Dir
-                   then
-                   if LblY==player then
-                      if {Send Trainer.poke getFirst($)} \= none then
-                        {CreateFight Y Trainer}
+                   {Send Y.pid getDir($)} == Dir then
+                  if LblY==player then
+                     if {Send Trainer.poke getFirst($)} \= none then
+                        {Send Y startFight(Trainer)}
+                        %{CreateFight Y Trainer}
                      end
                   else
                      if {Send Y.poke       getFirst($)} \= none then
-                        {CreateFight Trainer Y}
+                        {Send Trainer startFight(Y)}
+                        %{CreateFight Trainer Y}
                      end
                   end
                end
@@ -250,7 +130,7 @@ in
    for J in 1..MAXY do
       MapRec.J = {MakeTuple 'mapids' MAXX}
       for I in 1..MAXX do
-	 MapRec.J.I = {Tile state(empty) coord(x:I y:J) Mapid
+	        MapRec.J.I = {Tile state(empty) coord(x:I y:J) Mapid
 		       Ground.(Map.J.I)}
       end
    end
@@ -273,6 +153,7 @@ fun{GetWildling}
       elseif Ra < 13 then R = 0
       else R = 1 end
       NLvl = {Max Lvl+R 5}
+      %TODO add dependency on first pokemoz type
       Pokemoz={CreatePokemoz {RandomName} {Min NLvl 10} wild}
       Ack
    in
@@ -294,20 +175,20 @@ fun{Trainer C Anid}
    Init = state(C dir:up)
    Trid = {NewPortObject Init
 	   fun{$ Msg state(Pos dir:Dir)}
-	      case Msg
-	      of getDir(X) then
-		 X=Dir
-		 state(Pos dir:Dir)
-	      [] getPos(X) then
-		 X=Pos
-		 state(Pos dir:Dir)
-	      [] moveTo(x:X y:Y) then
-		 {Send Anid move(Dir)}
-		 state(pos(x:X y:Y) dir:Dir)
-	      [] turn(NewDir) then
-		 {Send Anid turn(NewDir)}
-		 state(Pos dir:NewDir)
-	      end
+         case Msg
+         of getDir(X) then
+            X=Dir
+            state(Pos dir:Dir)
+         [] getPos(X) then
+            X=Pos
+            state(Pos dir:Dir)
+         [] moveTo(x:X y:Y) then
+            {Send Anid move(Dir)}
+            state(pos(x:X y:Y) dir:Dir)
+         [] turn(NewDir) then
+            {Send Anid turn(NewDir)}
+            state(Pos dir:NewDir)
+         end
 	   end}
 in
    Trid
@@ -317,55 +198,71 @@ end
 %@post: Returns the controler of the trainer
 fun{TrainerController Mapid Trid Speed TrainerObj}
    Wid  = {Waiter}
-   Plid = {NewPortObject state(still)
-	   fun{$ Msg state(State)}
-	      case Msg
-	      of endfight then
-		 state(still)
-	      [] getDir(X) then
-		 {Send Trid getDir(X)}
-		 state(State)
-	      [] move(NewDir) then
-		 if State == still then
-		    ActDir = {Send Trid getDir($)}
-		 in
-		    if ActDir == NewDir then
-		       Pos  = {Send Trid getPos($)}
-		       Dx   = {GETDIR NewDir}
-		       NewX = Pos.x+Dx.x
-		       NewY = Pos.y+Dx.y
-		       Val %will be bound on arrival
-		       ActDel = {DELAY.get}
-		       Sig  = coming(Speed*ActDel TrainerObj Val)
-		    in
-		       %Check for boundaries and if the tile is free
-		       %then send arriving signal
-		       if {Send Mapid checksig(x:NewX y:NewY $ sig:Sig)} then
-			  {Send Trid moveTo(x:NewX y:NewY)}
+   Plid = {NewPortObject state(still nil)
+	   fun{$ Msg state(State FSched)}%FSched = fight-scheduler
+         case Msg
+         of getDir(X) then
+            {Send Trid getDir(X)}
+            state(State FSched)
+         [] move(NewDir) then
+            if State == still then
+               ActDir = {Send Trid getDir($)}
+            in
+               if ActDir == NewDir then
+                  Pos  = {Send Trid getPos($)}
+                  Dx   = {GETDIR NewDir}
+                  NewX = Pos.x+Dx.x
+                  NewY = Pos.y+Dx.y
+                  Val %will be bound on arrival
+                  ActDel = {DELAY.get}
+                  Sig  = coming(Speed*ActDel TrainerObj Val)
+               in
+                  %Check for boundaries and if the tile is free
+                  %then send arriving signal
+                  if {Send Mapid checksig(x:NewX y:NewY $ sig:Sig)} then
+                     {Send Trid moveTo(x:NewX y:NewY)}
 
-			  {Send Wid wait(Plid  Val arrived)}
-			  {Send Wid wait(Mapid Val
-					 send(x:Pos.x y:Pos.y left))}
-			  state(moving)
-		       else
-			  state(still)
-		       end
-		    else
-		       {Send Trid turn(NewDir)}
-		       state(still)
-		    end
-		 else
-		    %Neglect info if moving
-		    state(State)
-		 end
-	      [] arrived then
-		 %{Send Trid arrived}
-		 state(still)
-	      end
-	   end}
+                     {Send Wid wait(Plid  Val arrived)}
+                     {Send Wid wait(Mapid Val
+                                    send(x:Pos.x y:Pos.y left))}
+                     state(moving FSched)
+                  else
+                     state(still FSched)
+                  end
+               else
+                  {Send Trid turn(NewDir)}
+                  %Todo : add case when ia turns while player just arrived
+                  % so when two fight signals from the same trainer come in
+                  % only one is treated
+                  state(still FSched)
+               end
+            else
+               %Neglect info if moving
+               state(State)
+            end
+         [] startFight(Npc) then %every npc has to be unique
+            if State == fighting then state(State {Append [Npc] FSched})
+            else %Then FSched HAS TO BE nil!!
+               {CreateFight Plid H}
+               state(fighting FSched)
+            end
+         [] nextFight then %on fight won
+            case FSched of nil then state(still FSched)
+            [] H|T then
+               {Delay {DELAY.get}*2}
+               {CreateFight Plid H}
+               state(fighting T)
+            end
+         [] reset(Ack) then %on fight lost
+            Ack=unit
+            %TODO!
+         [] arrived then
+            %{Send Trid arrived}
+            state(still nil)
+         end
+      end}
 in
-   %TODO: -need to check the 'fight' signal
-   %      -need to add smth for the AI of other players
+   %TODO: -need to add smth for the AI of other players
    Plid
 end
 
@@ -377,13 +274,13 @@ fun{GetDamage PlayType NpcType Hit} % Hit = player or npc
       case PlayType
       of fire  then if NpcType==grass then 3 else 1 end
       [] grass then if NpcType==water then 3 else 1 end
-      [] water then if NpcType==grass then 3 else 1 end
+      [] water then if NpcType==fire  then 3 else 1 end
       end
    else
       case NpcType
       of fire  then if PlayType==grass then 3 else 1 end
       [] grass then if PlayType==water then 3 else 1 end
-      [] water then if PlayType==grass then 3 else 1 end
+      [] water then if PlayType==fire  then 3 else 1 end
       end
    end
 end
@@ -420,11 +317,30 @@ end
 fun {CatchSuccessful Play Npc}
    true
 end
-fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
+fun {FightController PlayL NpcL FightAnim Arrows}%PlayL and NpcL are <PokemozList>
    WaitAnim = {Waiter}
+   proc{OnExit Ack}
+      thread
+         {Wait Ack}
+         {Send Arrows kill}
+         {Send Player nextFight}
+         {Send MAINPO set(map)}
+      end
+   end
+   proc{OnBadExit Ack}
+      {OnExit Ack}
+      /*TODO!!
+         thread Ack2 in
+         {Wait Ack}
+         {Send Arrows kill}
+         {Send Player reset(Ack2)}
+         {Wait Ack2}
+         {Send MAINPO set(map)}
+      end*/
+   end
    FightPort = {NewPortObjectKillable
-		state(player:{Send PlayL getFirst($)}
-		       enemy:{Send NpcL  getFirst($)}
+		state( player:{Send PlayL getFirst($)}
+		        enemy:{Send NpcL  getFirst($)}
 		      fighting:false)
 		fun{$ Msg state(player:Play enemy:Npc fighting:OK)}
 		   case Msg
@@ -435,10 +351,11 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 			      if {Label Npc}\=wild then
                   {Send FightAnim illRun}
 			         state(player:Play enemy:Npc fighting:OK)
-               elseif {RunSuccessful Play Npc} then B in
-                  {Send FightAnim exit(B "You ran away cowardly...")}
-                  {Send WaitAnim wait(MAINPO B set(map))}
-                  {Send WaitAnim wait(NpcL B releaseAll)}
+               elseif {RunSuccessful Play Npc} then Ack in
+                  {Send FightAnim exit(Ack "You ran away cowardly...")}
+                  %{Send WaitAnim wait(MAINPO Ack set(map))}
+                  {Send WaitAnim wait(NpcL Ack releaseAll)}
+                  {OnExit Ack}
                   state(killed)
 			      else
                   % Send signal to itself for AI turn = automatic
@@ -472,11 +389,10 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
                if NEState == alive then
                   {Send WaitAnim wait(FightPort Ack fightIA)}
                   state(player:Play enemy:Npc fighting:true)
-               elseif {Send NpcL getState($)} == allDead then
-                  B
-               in
-                  {Send FightAnim exit(B "You WON!")}
-                  {Send WaitAnim wait(MAINPO B set(map))}
+               elseif {Send NpcL getState($)} == allDead then Ack in
+                  {Send FightAnim exit(Ack "You WON!")}
+                  %{Send WaitAnim wait(MAINPO B set(map))}
+                  {OnExit Ack}
                   {Send PlayL shareExp({Send NpcL getAllExp($)})}
                   {Send NpcL releaseAll}
                   state(killed)
@@ -500,14 +416,14 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 		      if NTState == alive then
                {Send WaitAnim wait(FightPort Ack input)}
                state(player:Play enemy:Npc fighting:OK)
-            elseif {Send PlayL getState($)} == allDead then
-               B
-            in %TODO : reset Game in HOSPITAL
-               {Send FightAnim exit(B "You LOST!")}
+            elseif {Send PlayL getState($)} == allDead then Ack in
+               %TODO : reset Game in HOSPITAL
+               {Send FightAnim exit(Ack "You LOST!")}
                {Send NpcL refill}
-               {Send WaitAnim wait(MAINPO B set(map))}
+               %{Send WaitAnim wait(MAINPO B set(map))}
+               {OnBadExit Ack}
                if {Label Npc}==wild then
-                  {Send WaitAnim wait(NpcL B releaseAll)}
+                  {Send WaitAnim wait(NpcL Ack releaseAll)}
                end
 			      state(killed)
 		      else
@@ -573,8 +489,7 @@ fun {FightController PlayL NpcL FightAnim}%PlayL and NpcL are <PokemozList>
 		   end
 		end}
 in
-   % TODO add check on death
-   %      add chances of capture
+   % TODO add chances of capture
    %      add chances of running
    FightPort
 end
@@ -770,108 +685,108 @@ fun{CreatePokemozList Names Lvls Type}
    else Init.first = none end
    PokeLid = {NewPortObject Init
 	      fun{$ Msg State}
-		 case Msg
-		 of add(Pkm B) then
-		    if State.6 \= none then
-		       B = false
-		       State
-		    else
-		       NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-		    in
-		       {AddPokemoz State NewState Pkm 1 true}
-		       B = true
-		       NewState
-		    end
-		 [] switchFirst(Ind B) then
-		    if Ind == State.first then
-		       B=unit State
-		    else
-		       NewState = all(1:State.1 2:State.2 3:State.3
-				      4:State.4 5:State.5 6:State.6
-				      first:Ind) in
-		       B=unit
-		       NewState
-		    end
-		 [] release(Ind B) then
-		    if State.Ind == none then B=unit State
-		    else
-		       NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-		    in
-		       {RmPokemoz State NewState 1 Ind}
-		       {Send State.Ind.pid kill}
-		       if Ind == State.first then
-			  NewState.first = 1
-		       else
-			  NewState.first = State.first
-		       end
-		       B=unit
-		       NewState
-		    end
-		 [] get(X Ind) then  X=State.Ind State
-		 [] getAll(X) then X=State State
-		 [] getFirst(X) then
-		    if State.first == none then X = none
-		    else X=State.(State.first) end
-		    State
-		 [] getAverage(X) then %TODO : refaire pour faire le MAX
-                    %returns the average of the first 3 Pkm
-		    if State.2 == none then
-		       X = {IntToFloat {Send State.1.pid getLvl($)}}
-		    elseif State.3 == none then
-		       X = ({IntToFloat {Send State.1.pid getLvl($)}} +
-			    {IntToFloat {Send State.2.pid getLvl($)}})/2.0
-		    else
-		       X = ({IntToFloat {Send State.1.pid getLvl($)}} +
-			    {IntToFloat {Send State.2.pid getLvl($)}} +
-			    {IntToFloat {Send State.3.pid getLvl($)}})/3.0
-		    end
-		    State
-		 [] refill then
-		    for I in 1..6 do
-		       if State.I \= none then
-			  {Send State.I.pid refill}
-		       end
-		    end
-		    State
-		 [] releaseAll then
-		    for I in 1..6 do
-		       if State.I \= none then
-			  {Send State.I.pid kill}
-		       end
-		    end
-		    all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
-		 [] getAllExp(X) then
-		    X={GatherExp State 1 0}
-		    State
-		 [] captured then %only possible with wild pokemoz!
-		    all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
-		 [] shareExp(TotExp) then
-		    NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:State.first)
-		    First %checks if the first one is alive
-		    Length %number of alive pokemoz
-		    XP Rest List=list(1:_ 2:_ 3:_ 4:_ 5:_ 6:_)
-		    {GetAlive State First Length 1 0 State.first List}
-		    if First then
-		       XP = TotExp div (Length+1)
-		       Rest = TotExp mod (Length+1)
-		    else
-		       XP = TotExp div Length
-		       Rest = TotExp mod Length
-		    end
-		 in
-		    {DispatchExp State NewState 1 List XP Rest }
-		    NewState
-		 [] getAllLiving(X) then
-		    X={GetAllLiving State 1}
-		    State
-		 [] getState(X) then
-		    if {Length {GetAllLiving State 1}} == 0 then
-		       X=allDead
-		    else
-		       X=alive
-		    end
-		    State
-		 end
+            case Msg
+            of add(Pkm B) then
+               if State.6 \= none then
+                  B = false
+                  State
+               else
+                  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+               in
+                  {AddPokemoz State NewState Pkm 1 true}
+                  B = true
+                  NewState
+               end
+            [] switchFirst(Ind B) then
+               if Ind == State.first then
+                  B=unit State
+               else
+                  NewState = all(1:State.1 2:State.2 3:State.3
+                  4:State.4 5:State.5 6:State.6
+                  first:Ind) in
+                  B=unit
+                  NewState
+               end
+            [] release(Ind B) then
+               if State.Ind == none then B=unit State
+               else
+                  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+               in
+                  {RmPokemoz State NewState 1 Ind}
+                  {Send State.Ind.pid kill}
+                  if Ind == State.first then
+                     NewState.first = 1
+                  else
+                     NewState.first = State.first
+                  end
+                  B=unit
+                  NewState
+               end
+            [] get(X Ind) then  X=State.Ind State
+            [] getAll(X) then X=State State
+            [] getFirst(X) then
+               if State.first == none then X = none
+               else X=State.(State.first) end
+               State
+            [] getAverage(X) then %TODO : refaire pour faire le MAX
+               %returns the average of the first 3 Pkm
+               if State.2 == none then
+                  X = {IntToFloat {Send State.1.pid getLvl($)}}
+               elseif State.3 == none then
+                  X = ({IntToFloat {Send State.1.pid getLvl($)}} +
+                  {IntToFloat {Send State.2.pid getLvl($)}})/2.0
+               else
+                  X = ({IntToFloat {Send State.1.pid getLvl($)}} +
+                  {IntToFloat {Send State.2.pid getLvl($)}} +
+                  {IntToFloat {Send State.3.pid getLvl($)}})/3.0
+               end
+               State
+            [] refill then
+               for I in 1..6 do
+                  if State.I \= none then
+                     {Send State.I.pid refill}
+                  end
+               end
+               State
+            [] releaseAll then
+               for I in 1..6 do
+                  if State.I \= none then
+                     {Send State.I.pid kill}
+                  end
+               end
+               all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
+            [] getAllExp(X) then
+               X={GatherExp State 1 0}
+               State
+            [] captured then %only possible with wild pokemoz!
+               all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
+            [] shareExp(TotExp) then
+               NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:State.first)
+               First %checks if the first one is alive
+               Length %number of alive pokemoz
+               XP Rest List=list(1:_ 2:_ 3:_ 4:_ 5:_ 6:_)
+               {GetAlive State First Length 1 0 State.first List}
+               if First then
+                  XP = TotExp div (Length+1)
+                  Rest = TotExp mod (Length+1)
+               else
+                  XP = TotExp div Length
+                  Rest = TotExp mod Length
+               end
+            in
+               {DispatchExp State NewState 1 List XP Rest }
+               NewState
+            [] getAllLiving(X) then
+               X={GetAllLiving State 1}
+               State
+            [] getState(X) then
+               if {Length {GetAllLiving State 1}} == 0 then
+                  X=allDead
+               else
+                  X=alive
+               end
+               State
+            end
 	      end}
 in
    PokeLid
@@ -893,10 +808,10 @@ end
 % Function that creates a fight
 proc{CreateFight Player NPC}
    {Send MAINPO set(fight)}
-   Buttons
-   Animation = {DrawFight Player.poke NPC.poke Buttons}
+   %Buttons Arrows
+   Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
    %Add support for on exit of buttons!
-   Fight = {FightController Player.poke NPC.poke Animation}
+   Fight = {FightController Player.poke NPC.poke Animation Arrows}
 in
    {Wait Buttons}
    Buttons.fight.onclick  = proc{$} {Send Fight fight} end
@@ -939,50 +854,50 @@ fun{MAIN Init Frames PlaceH MapName Handles}
    %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
    Main = {NewPortObjectKillable state(Init)
 	   fun{$ Msg state(Frame)}
-	      case Msg
-	      of set(NewFrame) then
-		 if NewFrame == Frame then {Show error#NewFrame}
-		    state(Frame)
-		 else
-		    {Show set#NewFrame}
-		    {CANVAS.NewFrame getFocus(force:true)}
-		    {PlaceH set(Handles.NewFrame)}
-		    state(NewFrame)
-		 end
-	      [] get(X) then X=Frame state(Frame)
-	      [] makeTrainer(Name) then
-		 if Frame\=starters then
-		    state(Frame)
-		 else
-		    Name2 = {AtomToString Name}
-		    Name3 = (Name2.1-32)|Name2.2
-		    Map = {ReadMap MapName}
-		    Enemy
-		 in
-		    % Initialize the tags
-		    thread {InitFightTags} end
-		    thread {InitPokeTags} end
-		    % Create the Map Environment
-		    MAPID = {MapController Map}
-		    TAGS.map={DrawMap Map 7 7}%should NOT EVER
-		                              % be threaded!!!
-		    {PlaceH set(Handles.map)}
-		    {CANVAS.map getFocus(force:true)}
-		    PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
-			      [Name3 "Bulbasoz"] [9 5] player}
-		    {Send MAPID init(x:7 y:7 PLAYER)}
-		    %TODO:add ennemies to the map
-		    Enemy = {CreateTrainer "Red" 6 6 SPEED MAPID
-		    	     ["Oztirtle" "Oztirtle"] [5 7] trainer}
-		    {Send MAPID init(x:6 y:6 Enemy)}
-		    state(map)
-		 end
-	      end
+         case Msg
+         of set(NewFrame) then
+            if NewFrame == Frame then {Show error#NewFrame}
+               state(Frame)
+            else
+               {Show set#NewFrame}
+               {CANVAS.NewFrame getFocus(force:true)}
+               {PlaceH set(Handles.NewFrame)}
+               state(NewFrame)
+            end
+         [] get(X) then X=Frame state(Frame)
+         [] makeTrainer(Name) then
+            if Frame\=starters then%should not happen
+               state(Frame)
+            else
+               Name2 = {AtomToString Name}
+               Name3 = (Name2.1-32)|Name2.2
+               Map = {ReadMap MapName}
+               Enemies = {ReadEnemies _}
+            in
+               % Initialize the tags
+               thread {InitFightTags} end
+               thread {InitPokeTags} end
+               % Create the Map Environment
+               MAPID = {MapController Map}
+               TAGS.map={DrawMap Map 7 7}%should NOT EVER
+                                         % be threaded!!!
+               {PlaceH set(Handles.map)}
+               {CANVAS.map getFocus(force:true)}
+               PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
+                           [Name3 "Bulbasoz"] [9 5] player}
+               {Send MAPID init(x:7 y:7 PLAYER)}
+
+               for Enemy in Ennemies do
+                  {Send MAPID Enemy.start {CreateNpc Enemy}}
+               end
+               {Send MAPID init(x:6 y:6 Enemy)}
+               state(map)
+            end
+         end
 	  end}
 
 in
    for I in Sort do
-      {Show I}
       {PlaceH set(Frames.I)}
    end
    {PlaceH set(Handles.Init)}
