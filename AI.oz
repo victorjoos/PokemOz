@@ -1,8 +1,8 @@
 fun {ArtificialPlayer Coords MapPort PlayerPort}
    TRAINERADD=1
-   GRASSPENALTY=0
-   DIRBONUS=0
-   RECURSIONLIMIT=0
+   GRASSPENALTY=1
+   DIRBONUS=10
+   RECURSIONLIMIT=4
    % Checks if the coordinates aren't out of bounds
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
@@ -35,27 +35,55 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
       case Dir
       of up then
 	 if {CheckEdges X Y-1} then
-	    [trainer(x:X y:Y-1 dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir)
+	     trainer(x:X y:Y-1 dir:Dir)
+	     trainer(x:X y:Y dir:down)
+	     trainer(x:X y:Y dir:left)
+	     trainer(x:X y:Y dir:right)]
 	 else
-	    [trainer(x:X y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir)
+	     trainer(x:X y:Y dir:down)
+	     trainer(x:X y:Y dir:left)
+	     trainer(x:X y:Y dir:right)]
 	 end
       [] down then
 	 if {CheckEdges X Y+1} then
-	    [trainer(x:X y:Y+1 dir:Dir) trainer(x:X y:Y dir:up) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir)
+	     trainer(x:X y:Y+1 dir:Dir)
+	     trainer(x:X y:Y dir:up)
+	     trainer(x:X y:Y dir:left)
+	     trainer(x:X y:Y dir:right)]
 	 else
-	    [trainer(x:X y:Y dir:Dir) trainer(x:X y:Y dir:up) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir)
+	     trainer(x:X y:Y dir:up)
+	     trainer(x:X y:Y dir:left)
+	     trainer(x:X y:Y dir:right)]
 	 end
       [] right then
 	 if {CheckEdges X+1 Y} then
-	    [trainer(x:X+1 y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:up)]
+	    [trainer(x:X y:Y dir:Dir)
+	     trainer(x:X+1 y:Y dir:Dir)
+	     trainer(x:X y:Y dir:down)
+	     trainer(x:X y:Y dir:left)
+	     trainer(x:X y:Y dir:up)]
 	 else
-	    [trainer(x:X y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:left) trainer(x:X y:Y dir:up)]
+	    [trainer(x:X y:Y dir:Dir)
+	     trainer(x:X y:Y dir:down)
+	     trainer(x:X y:Y dir:left)
+	     trainer(x:X y:Y dir:up)]
 	 end
       [] left then
 	 if {CheckEdges X-1 Y} then
-	    [trainer(x:X-1 y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:up) trainer(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir)
+	     trainer(x:X-1 y:Y dir:Dir)
+	     trainer(x:X y:Y dir:down)
+	     trainer(x:X y:Y dir:up)
+	     trainer(x:X y:Y dir:right)]
 	 else
-	    [trainer(x:X y:Y dir:Dir) trainer(x:X y:Y dir:down) trainer(x:X y:Y dir:up) trainer(x:X y:Y dir:right)]
+	    [trainer(x:X y:Y dir:Dir)
+	     trainer(x:X y:Y dir:down)
+	     trainer(x:X y:Y dir:up)
+	     trainer(x:X y:Y dir:right)]
 	 end
       end
    end
@@ -89,60 +117,108 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
    % - It's better to stay on the road
    % - Avoid trainer interactions
    % - Get closer to our goal (the end tile)
-   fun {MoveTree Px Py Pdir TrainerPositions RecursionDepth}
-      Ground = {Send MapPort send(x:Px y:Py getGround($))}
+   %fun {AvoidGrass Px Py Pdir TrainerPositions Dir#Number}
+   %    Ground = {Send MapPort send(x:Px y:Py getGround($))}
+   % in
+   %    if Ground == grass then move(leaf)
+   %    else
+   % 	 if Px==MAXX andthen Py==1 then move(destination)
+   % 	 else
+   % 	    case Pdir
+   % 	    of up then move(
+   % 			  up:{AvoidGrass Px Py-1 Pdir TrainerPositions}
+   % 			  down:{AvoidGrass Px Py down TrainerPositions}
+   % 			  left:{AvoidGrass Px Py left TrainerPositions}
+   % 			  right:{AvoidGrass Px Py right TrainerPositions})
+   % 	    [] down then move(
+   % 			    up:{AvoidGrass Px Py up TrainerPositions}
+   % 			    down:{AvoidGrass Px Py+1 down TrainerPositions}
+   % 			    left:{AvoidGrass Px Py left TrainerPositions}
+   % 			    right:{AvoidGrass Px Py right TrainerPositions})
+   % 	    [] left then move(
+   % 			    up:{AvoidGrass Px Py up TrainerPositions}
+   % 			    down:{AvoidGrass Px Py down TrainerPositions}
+   % 			    left:{AvoidGrass Px-1 Py left TrainerPositions}
+   % 			    right:{AvoidGrass Px Py right TrainerPositions})
+   % 	    [] right then move(
+   % 			     up:{AvoidGrass Px Py up TrainerPositions}
+   % 			     down:{AvoidGrass Px Py down TrainerPositions}
+   % 			     left:{AvoidGrass Px Py left TrainerPositions}
+   % 			     right:{AvoidGrass Px+1 Py right TrainerPositions})
+   % 	    end
+   % 	 end
+   %    end
+   % end
+
+   % TODO(victor) : check this code !!!!!!!!!!!!!!!!! Fuck up here !!!!!!
+   fun {MinD Up Down Left Right}
+      if Up < 0 then
+	 if Down < 0 then
+	    if Left < 0 then
+	       if Right < 0 then Up
+	       else Right end
+	    else {Min Left Right} end
+	 else {Min Down {Min Left Right}} end
+      else {Min Up {Min Down {Min Left Right}}} end
+   end
+		  
+   fun {MoveTree Px Py Pdir TrainerPositions RecursionDepth ScoreSum}
+      Ground
+      if {CheckEdges Px Py} then 
+	 Ground = {Send MapPort send(x:Px y:Py getGround($))}
+      else
+	 Ground = road
+      end
       NewTrainerPos = {MakeNewTrainerList TrainerPositions nil}
       BaseScore
       FinalScore
       Up Down Right Left
    in
-      {Browse Pdir#TrainerPositions}
-      {Browse Pdir#Px#Py}
-      if Ground==grass then BaseScore=GRASSPENALTY+(Px-1)+(MAXY-Py)
+      if Px==MAXX andthen Py==1 then BaseScore=2000
+      elseif Ground==grass then BaseScore=GRASSPENALTY+(Px-1)+(MAXY-Py)
       else BaseScore={Abs MAXX-Px}+{Abs 1-Py} end
-      {Browse Pdir#BaseScore}
+      % {Browse Pdir#BaseScore}
       FinalScore={CalculateScore Px Py TrainerPositions BaseScore}
-      if RecursionDepth>RECURSIONLIMIT then move(leaf value:FinalScore)
+      if RecursionDepth>RECURSIONLIMIT then {Browse ScoreSum+FinalScore}ScoreSum+FinalScore
       else
 	 case Pdir
 	 of up then
 	    if {CheckEdges Px Py-1} then
-	       Up={MoveTree Px Py-1 up NewTrainerPos RecursionDepth+1}
+	       {MinD {MoveTree Px Py-1 up NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py down NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py right NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py left NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}}
 	    else
-	       Up=move(leaf value:FinalScore)
+	       ~1
 	    end
-	    Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
-	    Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
-	    Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
 	 [] down then
-	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
 	    if {CheckEdges Px Py+1} then
-	       Down={MoveTree Px Py+1 down NewTrainerPos RecursionDepth+1}
+	       {MinD {MoveTree Px Py up NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py+1 down NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py right NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py left NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}}
 	    else
-	       Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
+	       ~1
 	    end
-	    Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
-	    Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
 	 [] right then
-	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
-	    Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
-	    if {CheckEdges Px Py+1} then
-	       Right={MoveTree Px Py+1 right NewTrainerPos RecursionDepth+1}
+	    if {CheckEdges Px+1 Py} then
+	       {MinD {MoveTree Px Py up NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py down NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px+1 Py right NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py left NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}}
 	    else
-	       Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
+	       ~1
 	    end
-	    Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
 	 [] left then
-	    Up={MoveTree Px Py up NewTrainerPos RecursionDepth+1}
-	    Down={MoveTree Px Py down NewTrainerPos RecursionDepth+1}
-	    Right={MoveTree Px Py right NewTrainerPos RecursionDepth+1}
-	    if {CheckEdges Px Py-1} then
-	       Left={MoveTree Px Py-1 left NewTrainerPos RecursionDepth+1}
+	    if {CheckEdges Px-1 Py} then
+	       {MinD {MoveTree Px Py up NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py down NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px Py right NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}
+		{MoveTree Px+1 Py left NewTrainerPos RecursionDepth+1 ScoreSum+FinalScore}}
 	    else
-	       Left={MoveTree Px Py left NewTrainerPos RecursionDepth+1}
+	       ~1
 	    end
 	 end
-	 move(value:FinalScore up:Up down:Down right:Right left:Left)
       end
    end
    fun {ListMoveTree Tree}
@@ -161,21 +237,55 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
       else 0 end
    end
    fun {MinDir dir(X DirX) dir(Y DirY)}
-      if (X =< Y) then dir(X DirX) else dir(Y DirY) end
+      if X<0 then dir(Y DirY)
+      else
+	 if (X =< Y) then dir(X DirX) else dir(Y DirY) end
+      end
    end
    % Uses the move tree to determine the best move.
+   % fun {Intelligence Px Py Pdir}
+   %    TrainerList = {GetTrainerList 1 1} % Get all the trainers in a *flat* list
+   %    Tree = {MoveTree Px Py Pdir TrainerList 0}
+   %    Up Down Right Left
+   %    Bdir
+   % in
+   %    {Browse Tree}
+   %    Up = {Sum {Flatten {ListMoveTree Tree.up}} 0}-{CheckDir Pdir up}*DIRBONUS
+   %    Down = {Sum {Flatten {ListMoveTree Tree.down}} 0}-{CheckDir Pdir down}*DIRBONUS
+   %    Right = {Sum {Flatten {ListMoveTree Tree.right}} 0}-{CheckDir Pdir right}*DIRBONUS
+   %    Left = {Sum {Flatten {ListMoveTree Tree.left}} 0}-{CheckDir Pdir left}*DIRBONUS
+   %    {Show Up#Down#Right#Left}
+   %    dir(_ Bdir) = {MinDir dir(Up up) {MinDir dir(Down down) {MinDir dir(Right right) dir(Left left)}}}
+   %    Bdir
+   % end
    fun {Intelligence Px Py Pdir}
       TrainerList = {GetTrainerList 1 1} % Get all the trainers in a *flat* list
-      Tree = {MoveTree Px Py Pdir TrainerList 0}
       Up Down Right Left
       Bdir
    in
-      {Browse Tree}
-      Up = {Sum {Flatten {ListMoveTree Tree.up}} 0}-{CheckDir Pdir up}*DIRBONUS
-      Down = {Sum {Flatten {ListMoveTree Tree.down}} 0}-{CheckDir Pdir down}*DIRBONUS
-      Right = {Sum {Flatten {ListMoveTree Tree.right}} 0}-{CheckDir Pdir right}*DIRBONUS
-      Left = {Sum {Flatten {ListMoveTree Tree.left}} 0}-{CheckDir Pdir left}*DIRBONUS
-      {Show Up#Down#Right#Left}
+      case Pdir
+      of up then
+	 Up={MoveTree Px Py-1 up TrainerList 0 ~1}
+	 Down={MoveTree Px Py down TrainerList 0 ~1}
+	 Right={MoveTree Px Py right TrainerList 0 ~1}
+	 Left={MoveTree Px Py left TrainerList 0 ~1}
+      [] down then
+	 Up={MoveTree Px Py up TrainerList 0 ~1}
+	 Down={MoveTree Px Py+1 down TrainerList 0 ~1}
+	 Right={MoveTree Px Py right TrainerList 0 ~1}
+	 Left={MoveTree Px Py left TrainerList 0 ~1}
+      [] right then
+	 Up={MoveTree Px Py up TrainerList 0 ~1}
+	 Down={MoveTree Px Py down TrainerList 0 ~1}
+	 Right={MoveTree Px+1 Py right TrainerList 0 ~1}
+	 Left={MoveTree Px Py left TrainerList 0 ~1}
+      [] left then
+	 Up={MoveTree Px Py up TrainerList 0 ~1}
+	 Down={MoveTree Px Py down TrainerList 0 ~1}
+	 Right={MoveTree Px Py right TrainerList 0 ~1}
+	 Left={MoveTree Px-1 Py left TrainerList 0 ~1}
+      end
+      {Show Up#Down#Left#Right}
       dir(_ Bdir) = {MinDir dir(Up up) {MinDir dir(Down down) {MinDir dir(Right right) dir(Left left)}}}
       Bdir
    end
