@@ -222,13 +222,13 @@ fun{GetEnemyAi CtrlId Lmoves DelayTime}
                            if {SendMove Lmoves.1} then
                               state(Lmoves.2 State)
                            else
-                              state(Lmoves blocked)
+                              state(Lmoves State)
                            end
                         [] H|T then
                            if {SendMove Lact.1} then
                               state(Lact.2 State)
                            else
-                              state(Lact blocked)
+                              state(Lact State)
                            end
                         end
                      else

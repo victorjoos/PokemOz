@@ -32,7 +32,8 @@ fun{ReadMap _}%should be replaced by 'Name' afterwards
 end
 fun{ReadEnemies _}
    %List of Names with their start Coordinates
-   [npc("Red" delay:500 start:init(x:5 y:5) speed:5 states:[turn(right) turn(left)]
+   [npc("Red" delay:500 start:init(x:5 y:5) speed:5
+	states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
    poke:[poke("Charmandoz" 5)])]
 end
 proc{BindEvents Window Input} %Input = {keys,autofight,..}
