@@ -35,20 +35,24 @@ fun{AnimateTrainer X0 Y0 Speed Name}
    Anid  = {NewPortObjectMinor
 	    proc{$ Msg}
 	       case Msg
-	       of move(Dir) then
-		  Numb = 8
-		  Dir2 = {AtomToString Dir}
-		  DT    = ({DELAY.get}*Speed) div Numb
-		  DX    = {GETDIR Dir}
-		  Delta = delta(x:(DX.x*67) div Numb y:(DX.y*67) div Numb)
-		  Mod
-		  if DX.x == 0 then Mod = (DX.y*67) mod Numb
-		  else              Mod = (DX.x*67) mod Numb end
-		  DMod  = {GETDIRSIDE Dir}
-	       in
-		  {Animate Dir2 DT Delta 0 Mod DMod}
-	       [] turn(Dir) then Dir2 = {AtomToString Dir} in
-		  {TagIm set(image:{LoadImage [Name "_" Dir2 "_still"]})}
+          of move(Dir) then
+             Numb = 8
+             Dir2 = {AtomToString Dir}
+             DT    = ({DELAY.get}*Speed) div Numb
+             DX    = {GETDIR Dir}
+             Delta = delta(x:(DX.x*67) div Numb y:(DX.y*67) div Numb)
+             Mod
+             if DX.x == 0 then Mod = (DX.y*67) mod Numb
+             else              Mod = (DX.x*67) mod Numb end
+             DMod  = {GETDIRSIDE Dir}
+          in
+             {Animate Dir2 DT Delta 0 Mod DMod}
+          [] turn(Dir) then Dir2 = {AtomToString Dir} in
+             {TagIm set(image:{LoadImage [Name "_" Dir2 "_still"]})}
+          [] reset then
+             {TagIm delete}
+             {Canvash create(image image:{LoadImage [Name "_up" "_still"]}
+          		   X0*67+33 Y0*67+33 tags:TagIm)}
 	       end
 	    end}
 in
@@ -346,6 +350,7 @@ fun{DrawFight PlayL NpcL}
          state(player:Play enemy:Npc)
       end
 	end}
+   Btn Arw
 in
    thread
       if {Label FirstNpc} == wild then
@@ -357,6 +362,7 @@ in
    thread
       Buttons#Arrows={FightScene FirstPlay FirstNpc}
    in
+      Btn = Buttons Arw = Arrows
       AllTags = TAGS.fight
       {AllTagsToList AllTags LTagsPlay LTagsNpc}
       local DT = {DELAY.get} div 4 in
@@ -367,5 +373,5 @@ in
       	 end
       end
    end
-   Fid#Buttons#Arrows
+   Fid#Btn#Arw
 end

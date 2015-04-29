@@ -4,10 +4,10 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
    % Checks if the coordinates aren't out of bounds
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
-	 Y>0 andthen Y=<MAXY then
-	 true
+   	 Y>0 andthen Y=<MAXY then
+   	  true
       else
-	 false
+   	  false
       end
    end
    % Sends a query to each tile to have the position of each
@@ -224,7 +224,7 @@ fun{GetEnemyAi CtrlId Lmoves DelayTime}
                            else
                               state(Lmoves blocked)
                            end
-                        []H|T then
+                        [] H|T then
                            if {SendMove Lact.1} then
                               state(Lact.2 State)
                            else
@@ -239,7 +239,7 @@ fun{GetEnemyAi CtrlId Lmoves DelayTime}
                   end
                end}
 in
-   %Send first move signal
+   %Send first move signal, move to controller?
    if Lmoves\=nil then
       thread
          {Delay DelayTime*{DELAY.get}}

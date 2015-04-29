@@ -17,12 +17,17 @@
 CreateFight
 GetWildling
 fun{Tile Init C Mapid Ground}
-   proc{SignalArrival Trainer}%Make this a recursive function
-      %Signals arrival of player to cases around
-      {Send Mapid send(x:C.x   y:C.y+1 new(up Trainer))}
-      {Send Mapid send(x:C.x+1 y:C.y   new(right Trainer))}
-      {Send Mapid send(x:C.x-1 y:C.y   new(left Trainer))}
-      {Send Mapid send(x:C.x   y:C.y-1 new(down Trainer))}
+   fun{SignalArrival Trainer Ldir}%Make this a recursive function
+      case Ldir of nil then nil
+      [] H|T then Dir = {GETDIR H} Ack in
+         {Send Mapid send(x:C.x+Dir.x y:C.y+Dir.y new(H Trainer Ack))}
+         Ack|{SignalArrival Trainer T}
+      end
+   end
+   proc{WaitList L}
+      case L of nil then skip
+      [] H|T then {Wait H} {WaitList T}
+      end
    end
    Tid   = {Timer}
    Tilid = {NewPortObject Init
@@ -34,11 +39,11 @@ fun{Tile Init C Mapid Ground}
           [] getGround(X) then
              X=Ground
              state(State)
-          [] coming(T Plid Val) then
+          [] coming(T Plid Val) then %VAL is NOT bound properly!
              {Send Tid starttimer(Tilid T arrived(Plid Val))}
              state(reserved)
-          [] arrived(Plid Val) then
-             Val=unit
+          [] arrived(Plid Val) then AckL in
+             {Browse arrived}
              if Ground == grass andthen
                 {Label Plid} == player then
                 Wild = {GetWildling}
@@ -47,30 +52,41 @@ fun{Tile Init C Mapid Ground}
                    {Send Plid fight(Wild)}
                 end
              end
-             {SignalArrival Plid}
-             %TODO:should differenciate trainer from ai
-             %      + ADD case of checkInFront for ai moving and turning!
+             if {Label Plid} == player then
+                AckL={SignalArrival Plid [up left down right]}
+             else
+                AckL={SignalArrival Plid [{Send Plid.pid getDir($)}]}
+             end
+             {WaitList AckL}%It slows down the whol process but blocks EVERY
+                            %concurrency issue we had!
+             Val=unit
              state(occupied(Plid))
-          [] new(Dir Trainer) then
+          [] new(Dir Trainer Ack) then
              case State
-             of occupied(Y) then LblY = {Label Y} in
+             of occupied(Y) then LblY = {Label Y} Ack2 in
                 if LblY\={Label Trainer} andthen
                    {Send Y.pid getDir($)} == Dir then
                   if LblY==player then
                      if {Send Trainer.poke getFirst($)} \= none then
-                        {Send Y startFight(Trainer)}
+                        {Send Y.pid startFight(Trainer Ack2)}
                         %{CreateFight Y Trainer}
                      end
                   else
                      if {Send Y.poke       getFirst($)} \= none then
-                        {Send Trainer startFight(Y)}
+                        {Send Trainer.pid startFight(Y Ack2)}
                         %{CreateFight Trainer Y}
                      end
                   end
                end
+               thread
+                  {Wait Ack2} %to be sure that the trainer can't move away
+                              % before being set to fightmode or fightWait
+                  Ack = unit
+               end
                state(State)
             else
                % We don't care
+               Ack = unit
                state(State)
             end
          [] left then
@@ -188,6 +204,9 @@ fun{Trainer C Anid}
          [] turn(NewDir) then
             {Send Anid turn(NewDir)}
             state(Pos dir:NewDir)
+         [] reset then
+            {Send Anid reset}
+            state(pos(x:7 y:7) dir:up)
          end
 	   end}
 in
@@ -200,6 +219,7 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
    Wid  = {Waiter}
    Plid = {NewPortObject state(still nil)
 	   fun{$ Msg state(State FSched)}%FSched = fight-scheduler
+         {Browse Msg}
          case Msg
          of getDir(X) then
             {Send Trid getDir(X)}
@@ -238,12 +258,16 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
                end
             else
                %Neglect info if moving
-               state(State)
+               state(State FSched)
             end
-         [] startFight(Npc) then %every npc has to be unique
-            if State == fighting then state(State {Append [Npc] FSched})
+         [] startFight(Npc Ack) then %every npc has to be unique
+            {Send Npc.pid waitFight}
+            if State == fighting then
+               Ack = unit
+               state(State {Append [Npc] FSched})
             else %Then FSched HAS TO BE nil!!
-               {CreateFight Plid H}
+               {CreateFight TrainerObj Npc}
+               Ack = unit
                state(fighting FSched)
             end
          [] nextFight then %on fight won
@@ -254,10 +278,14 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
                state(fighting T)
             end
          [] reset(Ack) then %on fight lost
+            Pos = {Send Trid getPos($)}
+         in
+            {Send Plid.poke refill}
+            {Send Mapid send(x:Pos.x y:Pos.y left)}
+            {Send Mapid init(x:7 y:7 PLAYER)}
             Ack=unit
-            %TODO!
+            state(still nil)
          [] arrived then
-            %{Send Trid arrived}
             state(still nil)
          end
       end}
@@ -265,6 +293,79 @@ in
    %TODO: -need to add smth for the AI of other players
    Plid
 end
+%       Trid  = the Pid of the trainer this controller is destined to
+%@post: Returns the controler of the trainer
+fun{TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
+   Wid  = {Waiter}
+   Plid = {NewPortObject state(still)
+	   fun{$ Msg state(State)}
+         case Msg
+         of getDir(X) then
+            {Send Trid getDir(X)}
+            state(State)
+         [] move(NewDir B) then
+            if State == still then
+               %ActDir = {Send Trid getDir($)}
+               Pos  = {Send Trid getPos($)}
+               Dx   = {GETDIR NewDir}
+               NewX = Pos.x+Dx.x
+               NewY = Pos.y+Dx.y
+               Val %will be bound on arrival
+               ActDel = {DELAY.get}
+               Sig  = coming(Speed*ActDel TrainerObj Val)
+            in
+               %Check for boundaries and if the tile is free
+               %then send arriving signal
+               if {Send Mapid checksig(x:NewX y:NewY $ sig:Sig)} then
+                  {Send Trid moveTo(x:NewX y:NewY)}
+
+                  {Send Wid wait(Plid  Val arrived)}
+                  {Send Wid wait(Mapid Val send(x:Pos.x y:Pos.y left))}
+                  B = true
+                  state(moving)
+               else
+                  B = false
+                  state(still)
+               end
+            else
+               B = false
+               state(State)
+            end
+         [] turn(NewDir B) then
+            if State == still then
+               %ActDir = {Send Trid getDir($)}
+               Pos  = {Send Trid getPos($)}
+               Dx   = {GETDIR NewDir}
+               NewX = Pos.x+Dx.x
+               NewY = Pos.y+Dx.y
+               Ack
+               Sig = new(NewDir TrainerObj Ack)
+            in
+
+               {Send Mapid checksig(x:NewX y:NewY _ sig:Sig)}
+               {Wait Ack}
+               B=true
+            else
+               B = false
+               state(State)
+            end
+         [] waitFight then
+            state(waiting)
+         [] endFight then
+            state(still)
+         [] arrived then%should only be bound when everything has been checked
+            if State == moving then
+               {Send AIid go}
+               state(still)
+            else
+               state(State)
+            end
+         end
+      end}
+in
+   Plid
+end
+
 
 
 %%%%%%% FIGHT PORTOBJECTS %%%%%%%%%%%
@@ -317,13 +418,15 @@ end
 fun {CatchSuccessful Play Npc}
    true
 end
-fun {FightController PlayL NpcL FightAnim Arrows}%PlayL and NpcL are <PokemozList>
+fun {FightController Play Npc FightAnim Arrows}%PlayL and NpcL are <PokemozList>
+   PlayL = Play.poke NpcL=Npc.poke
    WaitAnim = {Waiter}
    proc{OnExit Ack}
       thread
          {Wait Ack}
          {Send Arrows kill}
-         {Send Player nextFight}
+         {Send Npc.pid endFight}
+         {Send Play nextFight}
          {Send MAINPO set(map)}
       end
    end
@@ -793,7 +896,7 @@ in
 end
 % Function that creates a trainer
 %@post: returns the id of the PlayerController
-fun{CreateTrainer Name X0 Y0 Speed Mapid Names Lvls Type}
+fun{CreatePlayer Name X0 Y0 Speed Mapid Names Lvls Type}
    Pokemoz = {CreatePokemozList Names Lvls Type}
    Trpid
    TrainerObj = Type(poke:Pokemoz pid:Trpid)
@@ -804,14 +907,37 @@ in
    %trainer(poke:<PokemOzList> pid:<TrainerController>)
    TrainerObj
 end
+proc{Seperate L L3}
+   case L of nil then L3=nil#nil
+   [] poke(Name Lvl)|Tail then N2 Lvl2 in
+      L3=(Name|N2)#(Lvl|Lvl2)
+      N2#Lvl2 = {Seperate Tail $}
+   end
+end
+fun{CreateNpc npc(TName delay:DelT start:init(x:X0 y:Y0) speed:Speed
+                     states:LDir poke:PokeL) Mapid}
+   Names#Lvls = {Seperate PokeL $}
+   Type = npc
+   Pokemoz = {CreatePokemozList Names Lvls Type}
+   Trpid
+   TrainerObj = npc(poke:Pokemoz pid:Trpid)
+
+   AIid = {GetEnemyAi Trpid LDir DelT}
+   Anid = {AnimateTrainer X0-1 Y0-1 Speed TName}
+   Trid = {Trainer pos(x:X0 y:Y0) Anid}
+   Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
+in
+   TrainerObj
+end
 
 % Function that creates a fight
 proc{CreateFight Player NPC}
+   {Browse Player#NPC}
    {Send MAINPO set(fight)}
    %Buttons Arrows
    Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
    %Add support for on exit of buttons!
-   Fight = {FightController Player.poke NPC.poke Animation Arrows}
+   Fight = {FightController Player NPC Animation Arrows}
 in
    {Wait Buttons}
    Buttons.fight.onclick  = proc{$} {Send Fight fight} end
@@ -883,14 +1009,13 @@ fun{MAIN Init Frames PlaceH MapName Handles}
                                          % be threaded!!!
                {PlaceH set(Handles.map)}
                {CANVAS.map getFocus(force:true)}
-               PLAYER = {CreateTrainer "Red" 7 7 SPEED MAPID
+               PLAYER = {CreatePlayer "Red" 7 7 SPEED MAPID
                            [Name3 "Bulbasoz"] [9 5] player}
                {Send MAPID init(x:7 y:7 PLAYER)}
-
-               for Enemy in Ennemies do
-                  {Send MAPID Enemy.start {CreateNpc Enemy}}
+               for Enemy in Enemies do
+                  {Send MAPID init(x:Enemy.start.x y:Enemy.start.y
+                                    {CreateNpc Enemy MAPID})}
                end
-               {Send MAPID init(x:6 y:6 Enemy)}
                state(map)
             end
          end
