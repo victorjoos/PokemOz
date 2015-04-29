@@ -6,6 +6,14 @@ fun{GETDIR Dir}
    else         dx(x: 1 y: 0)
    end
 end
+fun{GETINVDIR Dir}
+   case Dir
+   of down  then dx(x: 0 y:~1)
+   [] up    then dx(x: 0 y: 1)
+   [] right then dx(x:~1 y: 0)
+   else          dx(x: 1 y: 0)
+   end
+end
 fun{GETDIRSIDE Dir}
    case Dir
    of up then ~1

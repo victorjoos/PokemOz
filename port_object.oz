@@ -19,9 +19,14 @@ GetWildling
 fun{Tile Init C Mapid Ground}
    fun{SignalArrival Trainer Ldir}%Make this a recursive function
       case Ldir of nil then nil
-      [] H|T then Dir = {GETDIR H} Ack in
-         {Send Mapid send(x:C.x+Dir.x y:C.y+Dir.y new(H Trainer Ack))}
-         Ack|{SignalArrival Trainer T}
+      [] H|T then Dir = {GETINVDIR H} Ack in
+         if {Send Mapid checkSimple(x:C.x+Dir.x y:C.y+Dir.y $
+                  sig:new(H Trainer Ack))} then
+            Ack|{SignalArrival Trainer T}
+         else
+            Ack = unit
+            {SignalArrival Trainer T}
+         end
       end
    end
    proc{WaitList L}
@@ -43,13 +48,12 @@ fun{Tile Init C Mapid Ground}
              {Send Tid starttimer(Tilid T arrived(Plid Val))}
              state(reserved)
           [] arrived(Plid Val) then AckL in
-             {Browse arrived}
              if Ground == grass andthen
                 {Label Plid} == player then
                 Wild = {GetWildling}
              in
                 if Wild \= none then
-                   {Send Plid fight(Wild)}
+                   {Send Plid.pid startFight(Wild _)}
                 end
              end
              if {Label Plid} == player then
@@ -57,44 +61,45 @@ fun{Tile Init C Mapid Ground}
              else
                 AckL={SignalArrival Plid [{Send Plid.pid getDir($)}]}
              end
-             {WaitList AckL}%It slows down the whol process but blocks EVERY
+             {WaitList AckL}%It slows down the whole process but blocks EVERY
                             %concurrency issue we had!
              Val=unit
              state(occupied(Plid))
           [] new(Dir Trainer Ack) then
+             {Browse received}
              case State
              of occupied(Y) then LblY = {Label Y} Ack2 in
-                if LblY\={Label Trainer} andthen
-                   {Send Y.pid getDir($)} == Dir then
+                {Browse occupied#LblY#{Label Trainer}}
+                if LblY\={Label Trainer} then
                   if LblY==player then
+                     {Browse 'should be here'}
                      if {Send Trainer.poke getFirst($)} \= none then
                         {Send Y.pid startFight(Trainer Ack2)}
-                        %{CreateFight Y Trainer}
                      end
-                  else
+                  elseif {Send Y.pid getDir($)} == Dir then
                      if {Send Y.poke       getFirst($)} \= none then
                         {Send Trainer.pid startFight(Y Ack2)}
-                        %{CreateFight Trainer Y}
                      end
                   end
+                  thread
+                     {Wait Ack2} %to be sure that the trainer can't move away
+                                 % before being set to fightmode or fightWait
+                     Ack = unit end
+
+               else Ack = unit
                end
-               thread
-                  {Wait Ack2} %to be sure that the trainer can't move away
-                              % before being set to fightmode or fightWait
+               state(State)
+               else
+                  % We don't care
                   Ack = unit
+                  state(State)
                end
-               state(State)
-            else
-               % We don't care
-               Ack = unit
-               state(State)
+            [] left then
+               state(empty)
+            [] init(X) then
+               state(occupied(X))
             end
-         [] left then
-            state(empty)
-         [] init(X) then
-            state(occupied(X))
-         end
-      end}
+         end}
 in
    Tilid
 end
@@ -106,38 +111,45 @@ fun{MapController Map}
    Ground = ground(0:road 1:grass)
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
-	 Y>0 andthen Y=<MAXY then
-	 true
+   	 Y>0 andthen Y=<MAXY then
+   	  true
       else
-	 false
+   	 false
       end
    end
    Mapid = {NewPortObjectMinor
 	    proc{$ Msg}
-	       case Msg
-	       of send(x:X y:Y Sig) then
-		  if{CheckEdges X Y} then
-		     {Send MapRec.Y.X Sig}
-		  end
-		%plus nécessaire, supprimer a la fin
-	       [] check(x:X y:Y B) then
-		  if {CheckEdges X Y} andthen
-		     {Send MapRec.Y.X get($)}==empty then
-		     B=true
-		  else
-		     B=false
-		  end
-	       [] checksig(x:X y:Y B sig:Sig) then
-		  if {CheckEdges X Y} andthen
-		     {Send MapRec.Y.X get($)}==empty then
-		     B=true
-		     {Send MapRec.Y.X Sig}
-		  else
-		     B=false
-		  end
-	       [] init(x:X y:Y Plid) then
-		  {Send MapRec.Y.X init(Plid)}
-	       end
+          case Msg
+          of send(x:X y:Y Sig) then
+             if{CheckEdges X Y} then
+                {Send MapRec.Y.X Sig}
+             end
+         [] checkSimple(x:X y:Y B sig:Sig)  then
+            if {CheckEdges X Y} then
+               B=true
+               {Send MapRec.Y.X Sig}
+            else
+               B=false
+            end
+             %plus nécessaire, supprimer a la fin
+          [] check(x:X y:Y B) then
+             if {CheckEdges X Y} andthen
+                {Send MapRec.Y.X get($)}==empty then
+                B=true
+             else
+                B=false
+             end
+          [] checksig(x:X y:Y B sig:Sig) then
+             if {CheckEdges X Y} andthen
+                {Send MapRec.Y.X get($)}==empty then
+                B=true
+                {Send MapRec.Y.X Sig}
+             else
+                B=false
+             end
+          [] init(x:X y:Y Plid) then
+             {Send MapRec.Y.X init(Plid)}
+          end
 	    end}
 
 in
@@ -219,7 +231,7 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
    Wid  = {Waiter}
    Plid = {NewPortObject state(still nil)
 	   fun{$ Msg state(State FSched)}%FSched = fight-scheduler
-         {Browse Msg}
+         {Browse trCtrl#Msg}
          case Msg
          of getDir(X) then
             {Send Trid getDir(X)}
@@ -258,10 +270,13 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
                end
             else
                %Neglect info if moving
+               {Browse is#State#cantmove}
                state(State FSched)
             end
          [] startFight(Npc Ack) then %every npc has to be unique
-            {Send Npc.pid waitFight}
+            if {Label Npc}\=wild then
+               {Send Npc.pid waitFight}
+            end
             if State == fighting then
                Ack = unit
                state(State {Append [Npc] FSched})
@@ -274,7 +289,7 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
             case FSched of nil then state(still FSched)
             [] H|T then
                {Delay {DELAY.get}*2}
-               {CreateFight Plid H}
+               {CreateFight TrainerObj H}
                state(fighting T)
             end
          [] reset(Ack) then %on fight lost
@@ -286,7 +301,11 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
             Ack=unit
             state(still nil)
          [] arrived then
-            state(still nil)
+            if State == moving then
+               state(still nil)
+            else
+               state(State FSched)
+            end
          end
       end}
 in
@@ -299,6 +318,7 @@ fun{TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
    Wid  = {Waiter}
    Plid = {NewPortObject state(still)
 	   fun{$ Msg state(State)}
+         {Browse msgAi#Msg}
          case Msg
          of getDir(X) then
             {Send Trid getDir(X)}
@@ -341,10 +361,13 @@ fun{TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
                Ack
                Sig = new(NewDir TrainerObj Ack)
             in
-
-               {Send Mapid checksig(x:NewX y:NewY _ sig:Sig)}
-               {Wait Ack}
+               {Send Trid turn(NewDir)}
+               {Browse sent#{Send Mapid checkSimple(x:NewX y:NewY $ sig:Sig)}}
                B=true
+               %{Wait Ack}
+               %{Send AIid go}
+               {Send Wid wait(AIid Ack go)}
+               state(still)
             else
                B = false
                state(State)
@@ -352,6 +375,7 @@ fun{TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
          [] waitFight then
             state(waiting)
          [] endFight then
+            {Send AIid go}
             state(still)
          [] arrived then%should only be bound when everything has been checked
             if State == moving then
@@ -425,8 +449,10 @@ fun {FightController Play Npc FightAnim Arrows}%PlayL and NpcL are <PokemozList>
       thread
          {Wait Ack}
          {Send Arrows kill}
-         {Send Npc.pid endFight}
-         {Send Play nextFight}
+         if {Label Npc}\=wild then
+            {Send Npc.pid endFight}
+         end
+         {Send Play.pid nextFight}
          {Send MAINPO set(map)}
       end
    end
@@ -932,7 +958,6 @@ end
 
 % Function that creates a fight
 proc{CreateFight Player NPC}
-   {Browse Player#NPC}
    {Send MAINPO set(fight)}
    %Buttons Arrows
    Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}

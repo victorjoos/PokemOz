@@ -522,6 +522,6 @@ WIDGETS.pokelist = canvas(height:470 width:470 handle:HANDLES.pokelist
 thread CANVAS.pokelist = HANDLES.pokelist end
 %%%%%%% TOPWIDGET %%%%%%%%%%
 TopWidget  = td( placeholder(handle:PLACEHOLDER)
-		 geometry:geometry(height:470 width:470 x:600 y:200)
+		 geometry:geometry(height:470 width:470 x:200 y:200)
 		 resizable:resizable(width:false height:false)
 	       )

@@ -32,20 +32,21 @@ fun{ReadMap _}%should be replaced by 'Name' afterwards
 end
 fun{ReadEnemies _}
    %List of Names with their start Coordinates
-   [npc("Red" delay:~1 start:init(x:6 y:6) speed:5 states:nil
-         poke:[poke("Charmandoz" 5)])]
+   [npc("Red" delay:500 start:init(x:5 y:5) speed:5 states:[turn(right) turn(left)]
+   poke:[poke("Charmandoz" 5)])]
 end
 proc{BindEvents Window Input} %Input = {keys,autofight,..}
    if Input == keys then
       fun{GenerateMoveProc Dir}
-	 proc{$}
-	    if {Send MAINPO get($)} == map then
-	       {Send PLAYER.pid move(Dir)}
-	      % {Send AI move}
-	    else
-	       skip
-	    end
-	 end
+      	 proc{$}
+      	    if {Send MAINPO get($)} == map then
+                {Show 'sent move'}
+      	       {Send PLAYER.pid move(Dir)}
+      	      % {Send AI move}
+      	    else
+      	       skip
+      	    end
+      	 end
       end
    in
       {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
@@ -93,7 +94,7 @@ MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 {BindEvents Window keys}
 {SetSpeed 5}
 {SetDelay 70}
-{SetProb  90}% TODO: CORRIGER LA DOUBLE BATTLE ABSOLUMENT!!!!!
+{SetProb  0}% TODO: CORRIGER LA DOUBLE BATTLE ABSOLUMENT!!!!!
             %         => Revoir completement le systeme de declenchement
             %            des combats
 

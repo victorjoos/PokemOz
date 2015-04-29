@@ -206,7 +206,7 @@ fun{GetEnemyAi CtrlId Lmoves DelayTime}
       of move(Dir) then
          {Send CtrlId move(Dir $)}
       [] turn(Dir) then
-         {Send CtrlId turn(Dir $)}
+         thread {Delay 5000} {Send CtrlId turn(Dir $)} end
       end
    end
    Start
@@ -240,10 +240,13 @@ fun{GetEnemyAi CtrlId Lmoves DelayTime}
                end}
 in
    %Send first move signal, move to controller?
+   {Browse Lmoves#l}
    if Lmoves\=nil then
       thread
-         {Delay DelayTime*{DELAY.get}}
-         {Send CtrlId Lmoves.1}
+         %{Delay DelayTime}
+         {Browse sending}
+         {Send AIid go}
+         {Browse sent}
       end
    end
    AIid
