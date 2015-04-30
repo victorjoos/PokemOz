@@ -524,4 +524,5 @@ thread CANVAS.pokelist = HANDLES.pokelist end
 TopWidget  = td( placeholder(handle:PLACEHOLDER)
 		 geometry:geometry(height:470 width:470 x:200 y:200)
 		 resizable:resizable(width:false height:false)
+		 action:proc{$}{Application.exit 0} end
 	       )
