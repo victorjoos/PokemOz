@@ -7,6 +7,7 @@ declare
 MAINPO  %The main portobject
 PLAYER  %The player's trainer
 WILD    %The wild pokemoz thread
+LISTAI  %List of all the enenmy ai's
 
 WIDGETS %All the widgets' descriptions
 CANVAS  %All the canvases' handles

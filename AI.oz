@@ -164,10 +164,10 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
 	 {Min Nup {Min Ndown {Min Nleft Nright}}}
       end
    end
-		  
+
    fun {MoveTree Px Py Pdir TrainerPositions RecursionDepth ScoreSum}
       Ground
-      if {CheckEdges Px Py} then 
+      if {CheckEdges Px Py} then
 	 Ground = {Send MapPort send(x:Px y:Py getGround($))}
       else
 	 Ground = road
@@ -307,7 +307,7 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
       [] down then if Move==down then pos(x:X y:Y+1 dir:Move) else pos(x:X y:Y dir:Move) end
       [] right then if Move==right then pos(x:X+1 y:Y dir:Move) else pos(x:X y:Y dir:Move) end
       [] left then if Move==left then pos(x:X-1 y:Y dir:Move) else pos(x:X y:Y dir:Move) end
-      end	    
+      end
    end
    Init = state(Coords dir:up)
    ArtificialPlayerPort = {NewPortObject Init
@@ -362,31 +362,33 @@ fun{GetEnemyAi CtrlId Lmoves DelayTime}
                            if {SendMove Lmoves.1} then
                               state(Lmoves.2 State)
                            else
-                              state(Lmoves State)
+                              state(Lmoves blocked)
                            end
                         [] H|T then
                            if {SendMove Lact.1} then
                               state(Lact.2 State)
                            else
-                              state(Lact State)
+                              state(Lact blocked)
                            end
 			end
                      else
                         state(Lact State)
                      end
+                  [] block then
+                     state(Lact blocked)
                   [] rmBlock then
+                     if State==blocked then
+                        {Send AIid go}
+                     end
                      state(Lact free)
                   end
                end}
 in
    %Send first move signal, move to controller?
-   {Browse Lmoves#l}
    if Lmoves\=nil then
       thread
          %{Delay DelayTime}
-         {Browse sending}
          {Send AIid go}
-         {Browse sent}
       end
    end
    AIid

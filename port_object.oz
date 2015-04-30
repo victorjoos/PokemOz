@@ -74,39 +74,49 @@ fun{Tile Init C Mapid Ground}
           [] new(Dir Trainer Ack) then
              case State
              of occupied(Y) then LblY = {Label Y} Ack2 in
-                if LblY\={Label Trainer} then
+               if LblY\={Label Trainer} then
                   if LblY==player then
                      if {Send Trainer.poke getFirst($)} \= none then
                         {Send Y.pid startFight(Trainer Ack2)}
-                     else Ack2 = unit end
+                     else Ack2 = unit
+                     end
 
                   elseif {Send Y.pid getDir($)} == Dir then
                      if {Send Y.poke       getFirst($)} \= none then
                         {Send Trainer.pid startFight(Y Ack2)}
-                     else Ack2 = unit end
-
-                  else
-                     Ack2=unit
+                     else Ack2 = unit
+                     end
+                  else Ack2=unit
                   end
                   thread
                      {Wait Ack2} %to be sure that the trainer can't move away
-                                 % before being set to fightmode or fightWait
-                     Ack = unit end
-
+                     % before being set to fightmode or fightWait
+                     Ack = unit
+                  end
                else Ack = unit
                end
                state(State)
-               else
-                  % We don't care
-                  Ack = unit
-                  state(State)
-               end
-            [] left then
-               state(empty)
-            [] init(X) then
-               state(occupied(X))
+            else
+               % We don't care
+               Ack = unit
+               state(State)
             end
-         end}
+         [] restart then
+            case State
+            of occupied(Y) then
+               if{Label Y} == npc then
+                  {Send Y.pid rmBlock}
+               else skip
+               end
+            else skip
+            end
+            state(State)
+         [] left then
+            state(empty)
+         [] init(X) then
+            state(occupied(X))
+         end
+      end}
 in
    Tilid
 end
@@ -122,6 +132,19 @@ fun{MapController Map}
    	  true
       else
    	 false
+      end
+   end
+   proc{SignalSides L X Y}
+      case L of nil then skip
+      [] H|T then
+         Dx = {GETDIR H}
+         NewX = X+Dx.x
+         NewY = Y+Dx.y
+      in
+         if{CheckEdges NewX NewY} then
+            {Send MapRec.NewY.NewX restart}
+         end
+         {SignalSides T X Y}
       end
    end
    Mapid = {NewPortObjectMinor
@@ -154,6 +177,35 @@ fun{MapController Map}
              else
                 B=false
              end
+          [] movingTo(old:pos(OldX OldY) new:pos(X Y) B sig:Sig) then
+             if {CheckEdges X Y} andthen
+                {Send MapRec.Y.X get($)}==empty then
+                B=true
+                {Send MapRec.OldY.OldX leaving}
+                {Send MapRec.Y.X Sig}
+                %if {Label Sig.2} == player then
+             else
+                B=false
+             end
+         [] movingToNew(X Y dir:Dir B sig:Sig) then
+            Dx   = {GETDIR Dir}
+            NewX = X+Dx.x
+            NewY = Y+Dx.y
+         in
+            if {CheckEdges NewX NewY} andthen
+              {Send MapRec.NewY.NewX get($)}==empty then
+               B=true
+              {Send MapRec.Y.X leaving}
+              {Send MapRec.NewY.NewX Sig}
+              %if {Label Sig.2} == player then
+              %Free the AI if their path was blocked!
+               thread
+                  {Wait Sig.3}
+                  {SignalSides {GETMISSINGDIR Dir} X Y}
+               end
+            else
+              B=false
+            end
           [] init(x:X y:Y Plid) then
              {Send MapRec.Y.X init(Plid)}
           end
@@ -231,6 +283,24 @@ fun{Trainer C Anid}
 in
    Trid
 end
+proc{BlockAI}
+   proc{Loop L}
+      case L of nil then skip
+      [] H|T then {Send H.pid block}
+      end
+   end
+in
+   {Loop LISTAI}
+end
+proc{ReleaseAI}
+   proc{Loop L}
+      case L of nil then skip
+      [] H|T then {Send H.pid rmBlock}
+      end
+   end
+in
+   {Loop LISTAI}
+end
 %@pre : Mapid = the Pid of the mapControler
 %       Trid  = the Pid of the trainer this controller is destined to
 %@post: Returns the controler of the trainer
@@ -243,6 +313,39 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
          of getDir(X) then
             {Send Trid getDir(X)}
             state(State FSched)
+         /*[] move(NewDir) then
+            if State == still then
+               ActDir = {Send Trid getDir($)}
+            in
+               if ActDir == NewDir then
+                  Pos  = {Send Trid getPos($)}
+                  Dx   = {GETDIR NewDir}
+                  NewX = Pos.x+Dx.x
+                  NewY = Pos.y+Dx.y
+                  Val %will be bound on arrival
+                  ActDel = {DELAY.get}
+                  Sig  = coming(Speed*ActDel TrainerObj Val)
+               in
+                  %Check for boundaries and if the tile is free
+                  %then send arriving signal
+                  if {Send Mapid movingTo(old:pos(Pos.x Pos.y) new:pos(NewX NewY) $ sig:Sig)} then
+                     {Send Trid moveTo(x:NewX y:NewY)}
+
+                     {Send Wid wait(Plid  Val arrived)}
+                     {Send Wid wait(Mapid Val send(x:Pos.x y:Pos.y left))}
+                     state(moving FSched)
+                  else
+                     state(still FSched)
+                  end
+               else
+                  {Send Trid turn(NewDir)}
+                  state(still FSched)
+               end
+            else
+               %Neglect info if moving
+               %{Browse is#State#cantmove}
+               state(State FSched)
+            end*/
          [] move(NewDir) then
             if State == still then
                ActDir = {Send Trid getDir($)}
@@ -258,7 +361,7 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
                in
                   %Check for boundaries and if the tile is free
                   %then send arriving signal
-                  if {Send Mapid checksig(x:NewX y:NewY $ sig:Sig)} then
+                  if {Send Mapid movingToNew(Pos.x Pos.y dir:NewDir $ sig:Sig)} then
                      {Send Trid moveTo(x:NewX y:NewY)}
 
                      {Send Wid wait(Plid  Val arrived)}
@@ -269,14 +372,11 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
                   end
                else
                   {Send Trid turn(NewDir)}
-                  %Todo : add case when ia turns while player just arrived
-                  % so when two fight signals from the same trainer come in
-                  % only one is treated
                   state(still FSched)
                end
             else
                %Neglect info if moving
-               {Browse is#State#cantmove}
+               %{Browse is#State#cantmove}
                state(State FSched)
             end
          [] startFight(Npc Ack) then %every npc has to be unique
@@ -287,12 +387,13 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
                Ack = unit
                state(State {Append [Npc] FSched})
             else %Then FSched HAS TO BE nil!!
+               {BlockAI}
                {CreateFight TrainerObj Npc}
                Ack = unit
                state(fighting FSched)
             end
          [] nextFight then %on fight won
-            case FSched of nil then state(still FSched)
+            case FSched of nil then {ReleaseAI} state(still FSched)
             [] H|T then
                {Delay {DELAY.get}*2}
                {CreateFight TrainerObj H}
@@ -318,6 +419,7 @@ in
    %TODO: -need to add smth for the AI of other players
    Plid
 end
+
 %       Trid  = the Pid of the trainer this controller is destined to
 %@post: Returns the controler of the trainer
 fun{TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
@@ -342,7 +444,7 @@ fun{TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
             in
                %Check for boundaries and if the tile is free
                %then send arriving signal
-               if {Send Mapid checksig(x:NewX y:NewY $ sig:Sig)} then
+               if {Send Mapid movingTo(old:pos(Pos.x Pos.y) new:pos(NewX NewY) $ sig:Sig)} then
                   {Send Trid moveTo(x:NewX y:NewY)}
 
                   {Send Wid wait(Plid  Val arrived)}
@@ -359,20 +461,12 @@ fun{TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
             end
          [] turn(NewDir B) then
             if State == still then
-               %ActDir = {Send Trid getDir($)}
                Pos  = {Send Trid getPos($)}
-               %Dx   = {GETDIR NewDir}
-               %NewX = Pos.x+Dx.x
-               %NewY = Pos.y+Dx.y
                Ack
-               %Sig = new(NewDir TrainerObj Ack)
             in
                {Send Trid turn(NewDir)}
                {Send Mapid send(x:Pos.x y:Pos.y arrived(TrainerObj Ack))}
-               %{Browse sent#{Send Mapid checkSimple(x:NewX y:NewY $ sig:Sig)}}
                B=true
-               %{Wait Ack}
-               %{Send AIid go}
                {Send Wid wait(AIid Ack go)}
                state(still)
             else
@@ -382,8 +476,15 @@ fun{TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
          [] waitFight then
             state(waiting)
          [] endFight then
-            {Send AIid go}
             state(still)
+         [] rmBlock then
+            {Browse 'rmblock should be working!'}
+            {Send AIid rmBlock}
+            state(State)
+         [] block then
+            {Browse 'sent block signal'}
+            {Send AIid block}
+            state(State)
          [] arrived then%should only be bound when everything has been checked
             if State == moving then
                {Send AIid go}
@@ -580,7 +681,7 @@ fun {FightController Play Npc FightAnim Arrows}%PlayL and NpcL are <PokemozList>
                   end
                end
 		      in
-               thread {FigureLoop first} end
+               thread {Wait Ack} {FigureLoop first} end
 	            state(player:Play enemy:Npc fighting:true)
 		      end
 		   [] input then
@@ -1045,9 +1146,11 @@ fun{MAIN Init Frames PlaceH MapName Handles}
                PLAYER = {CreatePlayer "Red" 7 7 SPEED MAPID
                            [Name3 "Bulbasoz"] [9 5] player}
                {Send MAPID init(x:7 y:7 PLAYER)}
-               for Enemy in Enemies do
+               %Transform into function to englobe every enemy!
+               for Enemy in Enemies do Npc = {CreateNpc Enemy MAPID} in
+                  LISTAI = [Npc]
                   {Send MAPID init(x:Enemy.start.x y:Enemy.start.y
-                                    {CreateNpc Enemy MAPID})}
+                                    Npc)}
                end
                state(map)
             end
