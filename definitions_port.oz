@@ -20,6 +20,14 @@ fun{GETDIRSIDE Dir}
    [] left then ~1
    else 1 end
 end
+fun{GETMISSINGDIR Dir}
+   case Dir
+   of up    then [left down right]
+   [] down  then [up left right]
+   [] right then [up down left]
+   else [up down right]
+   end
+end
 
 %%%%% DEFINITION OF PORTOBJECTS' CREATION %%%%%%
 fun {NewPortObject Init Func}

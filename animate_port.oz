@@ -136,7 +136,6 @@ proc{MoveDamage Tag Diff NTag Ty}%NTag will be deleted
 end
 %Intern
 proc{ChangeBar Tag He X0 Y0}
-   {Show He}
    W = 100
    H = 10
    Size = (W*He.act) div He.max
@@ -147,7 +146,6 @@ proc{ChangeBar Tag He X0 Y0}
    elseif Divi =< 0.5 then Color = yellow
    else Color = green end
 in
-   {Show Color}
    {Tag delete}
    {CanvasH create(rectangle X0 Y0 X0+Size Y0+H fill:Color tags:Tag)}
 end
