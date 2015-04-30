@@ -2,7 +2,7 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
    TRAINERADD=1
    GRASSPENALTY=1
    DIRBONUS=10
-   RECURSIONLIMIT=4
+   RECURSIONLIMIT=2
    % Checks if the coordinates aren't out of bounds
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
@@ -152,14 +152,14 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
 
    % TODO(victor) : check this code !!!!!!!!!!!!!!!!! Fuck up here !!!!!!
    fun {MinD Up Down Left Right}
-      if Up < 0 then
-	 if Down < 0 then
-	    if Left < 0 then
-	       if Right < 0 then Up
-	       else Right end
-	    else {Min Left Right} end
-	 else {Min Down {Min Left Right}} end
-      else {Min Up {Min Down {Min Left Right}}} end
+      Nup Ndown Nleft Nright
+      MaxVal = {Max Up {Max Down {Max Left Right}}}+1
+   in
+      if Up < 0 then Nup = MaxVal else Nup = Up end
+      if Down < 0 then Ndown = MaxVal else Ndown = Down end
+      if Left < 0 then Nleft = MaxVal else Nleft = Left end
+      if Right < 0 then Nright = MaxVal else Nright = Right end
+      {Min Nup {Min Ndown {Min Nleft Nright}}}
    end
 		  
    fun {MoveTree Px Py Pdir TrainerPositions RecursionDepth ScoreSum}
@@ -265,25 +265,25 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
    in
       case Pdir
       of up then
-	 Up={MoveTree Px Py-1 up TrainerList 0 ~1}
-	 Down={MoveTree Px Py down TrainerList 0 ~1}
-	 Right={MoveTree Px Py right TrainerList 0 ~1}
-	 Left={MoveTree Px Py left TrainerList 0 ~1}
+	 Up={MoveTree Px Py-1 up TrainerList 0 0}
+	 Down={MoveTree Px Py down TrainerList 0 0}
+	 Right={MoveTree Px Py right TrainerList 0 0}
+	 Left={MoveTree Px Py left TrainerList 0 0}
       [] down then
-	 Up={MoveTree Px Py up TrainerList 0 ~1}
-	 Down={MoveTree Px Py+1 down TrainerList 0 ~1}
-	 Right={MoveTree Px Py right TrainerList 0 ~1}
-	 Left={MoveTree Px Py left TrainerList 0 ~1}
+	 Up={MoveTree Px Py up TrainerList 0 0}
+	 Down={MoveTree Px Py+1 down TrainerList 0 0}
+	 Right={MoveTree Px Py right TrainerList 0 0}
+	 Left={MoveTree Px Py left TrainerList 0 0}
       [] right then
-	 Up={MoveTree Px Py up TrainerList 0 ~1}
-	 Down={MoveTree Px Py down TrainerList 0 ~1}
-	 Right={MoveTree Px+1 Py right TrainerList 0 ~1}
-	 Left={MoveTree Px Py left TrainerList 0 ~1}
+	 Up={MoveTree Px Py up TrainerList 0 0}
+	 Down={MoveTree Px Py down TrainerList 0 0}
+	 Right={MoveTree Px+1 Py right TrainerList 0 0}
+	 Left={MoveTree Px Py left TrainerList 0 0}
       [] left then
-	 Up={MoveTree Px Py up TrainerList 0 ~1}
-	 Down={MoveTree Px Py down TrainerList 0 ~1}
-	 Right={MoveTree Px Py right TrainerList 0 ~1}
-	 Left={MoveTree Px-1 Py left TrainerList 0 ~1}
+	 Up={MoveTree Px Py up TrainerList 0 0}
+	 Down={MoveTree Px Py down TrainerList 0 0}
+	 Right={MoveTree Px Py right TrainerList 0 0}
+	 Left={MoveTree Px-1 Py left TrainerList 0 0}
       end
       {Show Up#Down#Left#Right}
       dir(_ Bdir) = {MinDir dir(Up up) {MinDir dir(Down down) {MinDir dir(Right right) dir(Left left)}}}
