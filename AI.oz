@@ -6,10 +6,10 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
    % Checks if the coordinates aren't out of bounds
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
-	 Y>0 andthen Y=<MAXY then
-	 true
+   	 Y>0 andthen Y=<MAXY then
+   	  true
       else
-	 false
+   	  false
       end
    end
    % Sends a query to each tile to have the position of each
@@ -327,3 +327,56 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
 in
    ArtificialPlayerPort
 end
+
+fun{GetEnemyAi CtrlId Lmoves DelayTime}
+   fun{SendMove Msg} B in
+      case Msg
+      of move(Dir) then
+         {Send CtrlId move(Dir $)}
+      [] turn(Dir) then
+         thread {Delay 5000} {Send CtrlId turn(Dir $)} end
+      end
+   end
+   Start
+   if Lmoves == nil then Start = blocked
+   else Start = free end
+   AIid = {NewPortObject state(Lmoves Start)
+               fun{$ Msg state(Lact State)}
+                  case Msg
+                  of go then
+                     if State == free then
+                        case Lact
+                        of nil then
+                           if {SendMove Lmoves.1} then
+                              state(Lmoves.2 State)
+                           else
+                              state(Lmoves State)
+                           end
+                        [] H|T then
+                           if {SendMove Lact.1} then
+                              state(Lact.2 State)
+                           else
+                              state(Lact State)
+                           end
+                        end
+                     else
+                        state(Lact State)
+                     end
+                  [] rmBlock then
+                     state(Lact free)
+                  end
+               end}
+in
+   %Send first move signal, move to controller?
+   {Browse Lmoves#l}
+   if Lmoves\=nil then
+      thread
+         %{Delay DelayTime}
+         {Browse sending}
+         {Send AIid go}
+         {Browse sent}
+      end
+   end
+   AIid
+end
+%%%%%%%%%%%% END PART TO ADD!!!! %%%%%%%%%

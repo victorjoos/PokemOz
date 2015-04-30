@@ -1,7 +1,9 @@
 % This file will contain all the thread launches
 declare
 %%%% The GLOBAL Variables
+%[QTk]={Module.link ['/etinfo/users/2014/vanderschuea/Downloads/Mozart/mozart/cache/x-oz/system/wp/QTk.ozf']}
 [QTk]={Module.link ["x-oz://system/wp/QTk.ozf"]}
+
 MAINPO  %The main portobject
 PLAYER  %The player's trainer
 WILD    %The wild pokemoz thread
@@ -28,21 +30,24 @@ fun{ReadMap _}%should be replaced by 'Name' afterwards
        r(0 0 0 1 1 0 0)
        r(0 0 0 0 0 0 0))
 end
-fun{ReadEnnemies _}
+fun{ReadEnemies _}
    %List of Names with their start Coordinates
-   nil
+   [npc("Red" delay:500 start:init(x:5 y:5) speed:5
+	states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
+   poke:[poke("Charmandoz" 5)])]
 end
-proc{BindEvents Window Input} %Input = {keys,autofight,
+proc{BindEvents Window Input} %Input = {keys,autofight,..}
    if Input == keys then
       fun{GenerateMoveProc Dir}
-	 proc{$}
-	    if {Send MAINPO get($)} == map then
-	       % {Send PLAYER.pid move(Dir)}
-	       {Send AI move}
-	    else
-	       skip
-	    end
-	 end
+      	 proc{$}
+      	    if {Send MAINPO get($)} == map then
+                {Show 'sent move'}
+      	       {Send PLAYER.pid move(Dir)}
+      	      % {Send AI move}
+      	    else
+      	       skip
+      	    end
+      	 end
       end
    in
       {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
@@ -67,11 +72,12 @@ end
 proc{SetProb X}
    PROBABILITY = X % [0-100]
 end
-
+{OS.srand 0}
 %%%%% The Imports
+\insert 'definitions_port.oz'
 \insert 'widget.oz'
-\insert 'port_object.oz'
 \insert 'AI.oz'
+\insert 'port_object.oz'
 
 %%%%%% Launching the main operations
 Window = {QTk.build TopWidget}
@@ -84,14 +90,18 @@ MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 					{Window close}
 					{Application.exit 0}
 				     end)}
-for I in [bulbasoz charmandoz oztirtle] do
-   {BUTTONS.starters.I bind(event:"<1>" action:proc{$}
-						  {Send MAINPO makeTrainer(I)}
-					       end)}
-end
-AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
+
+%AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
 {BindEvents Window keys}
 {SetSpeed 5}
-{SetDelay 50}
-{SetProb  65}
-{Show gotTotheEndOfConfig}
+{SetDelay 70}
+{SetProb  0}% TODO: CORRIGER LA DOUBLE BATTLE ABSOLUMENT!!!!!
+            %         => Revoir completement le systeme de declenchement
+            %            des combats
+
+% Just for testing purposes
+{Window bind(event:"<3>" action:proc{$}
+				   thread {DrawPokeList status} end
+				   {Send MAINPO set(pokelist)}
+				end)}
+{Window bind(event:"<r>" action:proc{$} {Send PLAYER.poke refill} end)}
