@@ -539,8 +539,7 @@ in
    {Canvash create(image image:{LoadImage "continue"} 235 235 tags:TAGS.lost)}
 end
 WIDGETS.lost = canvas(height:470 width:470 handle:HANDLES.lost bg:white)
-thread CANVAS.lost = HANDLES.lost {Wait CANVAS.lost} %{Delay 1000}
- {DrawLost} end
+thread CANVAS.lost = HANDLES.lost end
 
 
 %%%%%%%% STARTING SCREEN %%%%%%%%%

@@ -1,8 +1,8 @@
 fun {ArtificialPlayer Coords MapPort PlayerPort}
    TRAINERADD=1
-   GRASSPENALTY=100
+   GRASSPENALTY=1
    DIRBONUS=10
-   RECURSIONLIMIT=1
+   RECURSIONLIMIT=2
    % Checks if the coordinates aren't out of bounds
    fun{CheckEdges X Y}
       if X>0 andthen X=<MAXX andthen
@@ -155,14 +155,11 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
       Nup Ndown Nleft Nright
       MaxVal = {Max Up {Max Down {Max Left Right}}}+1
    in
-      if Up<0 andthen Down<0 andthen Right<0 andthen Left<0 then ~1
-      else 
-	 if Up < 0 then Nup = MaxVal else Nup = Up end
-	 if Down < 0 then Ndown = MaxVal else Ndown = Down end
-	 if Left < 0 then Nleft = MaxVal else Nleft = Left end
-	 if Right < 0 then Nright = MaxVal else Nright = Right end
-	 {Min Nup {Min Ndown {Min Nleft Nright}}}
-      end
+      if Up < 0 then Nup = MaxVal else Nup = Up end
+      if Down < 0 then Ndown = MaxVal else Ndown = Down end
+      if Left < 0 then Nleft = MaxVal else Nleft = Left end
+      if Right < 0 then Nright = MaxVal else Nright = Right end
+      {Min Nup {Min Ndown {Min Nleft Nright}}}
    end
 
    fun {MoveTree Px Py Pdir TrainerPositions RecursionDepth ScoreSum}
@@ -182,7 +179,7 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
       else BaseScore={Abs MAXX-Px}+{Abs 1-Py} end
       % {Browse Pdir#BaseScore}
       FinalScore={CalculateScore Px Py TrainerPositions BaseScore}
-      if RecursionDepth>RECURSIONLIMIT then ScoreSum+FinalScore
+      if RecursionDepth>RECURSIONLIMIT then {Browse ScoreSum+FinalScore}ScoreSum+FinalScore
       else
 	 case Pdir
 	 of up then
@@ -268,36 +265,27 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
    in
       case Pdir
       of up then
-	 if {CheckEdges Px Py-1} then 
-	   thread Up={MoveTree Px Py-1 up TrainerList 0 0} end
-	 else Up=~1 end
-	 thread Down={MoveTree Px Py down TrainerList 0 0} end
-	 thread Right={MoveTree Px Py right TrainerList 0 0} end
-	 thread Left={MoveTree Px Py left TrainerList 0 0} end
+	 Up={MoveTree Px Py-1 up TrainerList 0 0}
+	 Down={MoveTree Px Py down TrainerList 0 0}
+	 Right={MoveTree Px Py right TrainerList 0 0}
+	 Left={MoveTree Px Py left TrainerList 0 0}
       [] down then
-	 thread Up={MoveTree Px Py up TrainerList 0 0} end
-	 if {CheckEdges Px Py+1} then
-	    thread Down={MoveTree Px Py+1 down TrainerList 0 0} end
-	 else Down=~1 end
-	 thread Right={MoveTree Px Py right TrainerList 0 0} end
-	 thread Left={MoveTree Px Py left TrainerList 0 0} end
+	 Up={MoveTree Px Py up TrainerList 0 0}
+	 Down={MoveTree Px Py+1 down TrainerList 0 0}
+	 Right={MoveTree Px Py right TrainerList 0 0}
+	 Left={MoveTree Px Py left TrainerList 0 0}
       [] right then
-	 thread Up={MoveTree Px Py up TrainerList 0 0} end
-	 thread Down={MoveTree Px Py down TrainerList 0 0} end
-	 if {CheckEdges Px+1 Py} then
-	    thread Right={MoveTree Px+1 Py right TrainerList 0 0} end
-	 else Right=~1 end
-	 thread Left={MoveTree Px Py left TrainerList 0 0} end
+	 Up={MoveTree Px Py up TrainerList 0 0}
+	 Down={MoveTree Px Py down TrainerList 0 0}
+	 Right={MoveTree Px+1 Py right TrainerList 0 0}
+	 Left={MoveTree Px Py left TrainerList 0 0}
       [] left then
-	 thread Up={MoveTree Px Py up TrainerList 0 0} end
-	 thread Down={MoveTree Px Py down TrainerList 0 0} end
-	 thread Right={MoveTree Px Py right TrainerList 0 0} end
-	 if {CheckEdges Px-1 Py} then
-	    thread Left={MoveTree Px-1 Py left TrainerList 0 0} end
-	 else Left=~1 end
+	 Up={MoveTree Px Py up TrainerList 0 0}
+	 Down={MoveTree Px Py down TrainerList 0 0}
+	 Right={MoveTree Px Py right TrainerList 0 0}
+	 Left={MoveTree Px-1 Py left TrainerList 0 0}
       end
-      
-      {Show Up+Down+Left+Right#Up#Down#Left#Right}
+      {Show Up#Down#Left#Right}
       dir(_ Bdir) = {MinDir dir(Up up) {MinDir dir(Down down) {MinDir dir(Right right) dir(Left left)}}}
       Bdir
    end
@@ -370,7 +358,7 @@ fun{GetEnemyAi CtrlId Lmoves DelayTime}
                            else
                               state(Lact blocked)
                            end
-			end
+                        end
                      else
                         state(Lact State)
                      end

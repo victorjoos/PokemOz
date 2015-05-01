@@ -377,21 +377,22 @@ end
 proc{AnimLost X}
    Tag = TAGS.lost
 in
-   if X == 0 then {Tag blank()}
+   if X then {Tag set(image:nil)}
    else {Tag set(image:{LoadImage "continue"})} end
 end
 proc{GetLostScreen}
    {Send MAINPO set(lost)}
    Tid = {Timer}
    Canvash = CANVAS.lost
-   Lostid = {NewPortObjectKillable state(0)
+   Lostid = {NewPortObjectKillable state(true)
                   fun{$ Msg state(State)}
+                     {Browse lost#Msg}
                      case Msg
                      of kill then
                         state(killed)
                      [] next then X in
-                        if State == 0 then X = 1
-                        else X = 0 end
+                        if State then X = false
+                        else X = true end
                         {AnimLost X}
                         {Send Tid starttimer(Lostid {DELAY.get}*10 next)}
                         state(X)
@@ -402,4 +403,5 @@ in
                                        {Send Lostid kill}
                                        {ReleaseAI}
                                        {Send MAINPO set(map)} end)}
+   {Send Lostid next}
 end

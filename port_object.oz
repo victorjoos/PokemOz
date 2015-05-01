@@ -1152,6 +1152,7 @@ fun{MAIN Frames PlaceH MapName Handles}
                   {Send MAPID init(x:Enemy.start.x y:Enemy.start.y
                                     Npc)}
                end
+               thread {DrawLost} end
                state(map)
             end
          end
