@@ -22,21 +22,6 @@ MAXX  = 7
 MAXY  = 7
 
 %%%% The IO functions (TODO import from seperate functor)
-fun{ReadMap _}%should be replaced by 'Name' afterwards
-   map(r(1 1 1 0 0 0 0)
-       r(1 1 1 0 0 1 1)
-       r(1 1 1 0 0 1 1)
-       r(0 0 0 0 0 1 1)
-       r(0 0 0 1 1 1 1)
-       r(0 0 0 1 1 0 0)
-       r(0 0 0 0 0 0 0))
-end
-fun{ReadEnemies _}
-   %List of Names with their start Coordinates
-   [npc("Red" delay:500 start:init(x:5 y:5) speed:5
-	states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-   poke:[poke("Charmandoz" 10)])]
-end
 proc{BindEvents Window Input} %Input = {keys,autofight,..}
    if Input == keys then
       fun{GenerateMoveProc Dir}

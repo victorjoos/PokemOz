@@ -32,27 +32,26 @@ define
    PROBABILITY = Widget.probability
    MAXX = Widget.maxX
    MAXY = Widget.maxY
-   
+
    MAXX = 7
    MAXY = 7
-   
+
    proc{BindEvents Window Input} %Input = {keys,autofight,..}
       if Input == keys then
-	 fun{GenerateMoveProc Dir}
-	    proc{$}
-	       if {Send MAINPO get($)} == map then
-		  {Show 'sent move'}
-		  {Send PLAYER.pid move(Dir)}
-	       else
-		  skip
-	       end
-	    end
-	 end
+         fun{GenerateMoveProc Dir}
+            proc{$}
+               if {Send MAINPO get($)} == map then
+                  {Send PLAYER.pid move(Dir)}
+               else
+                  skip
+               end
+            end
+         end
       in
-	 {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
-	 {Window bind(event:"<Left>" action:{GenerateMoveProc left})}
-	 {Window bind(event:"<Right>" action:{GenerateMoveProc right})}
-	 {Window bind(event:"<Down>" action:{GenerateMoveProc down})}
+         {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
+         {Window bind(event:"<Left>" action:{GenerateMoveProc left})}
+         {Window bind(event:"<Right>" action:{GenerateMoveProc right})}
+         {Window bind(event:"<Down>" action:{GenerateMoveProc down})}
       else skip
       end
    end
@@ -66,7 +65,7 @@ define
 				  [] get(Y) then Y=State State end end}
    in
       DELAY= delay(get:fun{$} {Send Delid get($)} end
-		   set:proc{$ X} {Send Delid set(X)} end)
+		             set:proc{$ X} {Send Delid set(X)} end)
    end
    proc{SetProb X}
       PROBABILITY = X % [0-100]
@@ -87,10 +86,8 @@ in
 
    {BindEvents Window keys}
    {SetSpeed 5}
-   {SetDelay 70}
-   {SetProb  0}% TODO: CORRIGER LA DOUBLE BATTLE ABSOLUMENT!!!!!
-            %         => Revoir completement le systeme de declenchement
-            %            des combats
+   {SetDelay 150}
+   {SetProb  0}
 
 % Just for testing purposes
    {Window bind(event:"<3>" action:proc{$}
@@ -98,4 +95,10 @@ in
 				      {Send MAINPO set(pokelist)}
 				   end)}
    {Window bind(event:"<r>" action:proc{$} {Send PLAYER.poke refill} end)}
+   {Window bind(event:"<d>" action: proc{$} DelT={DELAY.get} X in
+                                       if DelT >= 150 then X=50
+                                       elseif DelT >= 100 then X=150
+                                       else X=100 end
+                                       {DELAY.set X}
+                                    end)}
 end

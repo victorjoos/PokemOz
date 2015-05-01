@@ -3,7 +3,7 @@ import
    System
    Application
    OS
-   
+
    PortDefinitions
    Widget
 export
@@ -11,7 +11,7 @@ export
    GetEnemyAi
 define
    Show = System.show
-   
+   DELAY = Widget.delay
    NewPortObject = PortDefinitions.port
 
    MAXX = Widget.maxX
@@ -175,7 +175,7 @@ define
 	 MaxVal = {Max Up {Max Down {Max Left Right}}}+1
       in
 	 if Up<0 andthen Down<0 andthen Right<0 andthen Left<0 then ~1
-	 else 
+	 else
 	    if Up < 0 then Nup = MaxVal else Nup = Up end
 	    if Down < 0 then Ndown = MaxVal else Ndown = Down end
 	    if Left < 0 then Nleft = MaxVal else Nleft = Left end
@@ -287,7 +287,7 @@ define
       in
 	 case Pdir
 	 of up then
-	    if {CheckEdges Px Py-1} then 
+	    if {CheckEdges Px Py-1} then
 	       thread Up={MoveTree Px Py-1 up TrainerList 0 0} end
 	    else Up=~1 end
 	    thread Down={MoveTree Px Py down TrainerList 0 0} end
@@ -315,7 +315,7 @@ define
 	       thread Left={MoveTree Px-1 Py left TrainerList 0 0} end
 	    else Left=~1 end
 	 end
-      
+
 	 {Show Up+Down+Left+Right#Up#Down#Left#Right}
 	 dir(_ Bdir) = {MinDir dir(Up up) {MinDir dir(Down down) {MinDir dir(Right right) dir(Left left)}}}
 	 Bdir
@@ -335,7 +335,7 @@ define
 	    else {Send PlayerPort turn(Move $)} end
 	 end
       end
-   
+
       Init = state(Coords dir:up free)
       ArtificialPlayerPort = {NewPortObject Init
 			      fun{$ Msg state(Pos dir:Dir State)}
@@ -349,7 +349,7 @@ define
 				    state(Pos dir:Dir State)
 				 [] go then
 				    Move
-				    if ({OS.rand} mod 10) > 5 then 
+				    if ({OS.rand} mod 10) > 5 then
 				       Move = up % {Intelligence Pos.x Pos.y Dir}
 				    else
 				       Move = left
@@ -399,56 +399,53 @@ define
       ArtificialPlayerPort
    end
 
-   fun{GetEnemyAi CtrlId Lmoves DelayTime}
+   fun{GetEnemyAi CtrlId Lmoves}
       fun{SendMove Msg} B in
-	 case Msg
-	 of move(Dir) then
-	    {Send CtrlId move(Dir $)}
-	 [] turn(Dir) then
-	    thread {Delay 5000} {Send CtrlId turn(Dir $)} end
-	 end
+         case Msg
+         of move(Dir) then
+            {Send CtrlId move(Dir $)}
+         [] turn(Dir) then
+            thread {Delay {DELAY.get}} {Send CtrlId turn(Dir $)} end
+         end
       end
       Start
       if Lmoves == nil then Start = blocked
       else Start = free end
       AIid = {NewPortObject state(Lmoves Start)
-	      fun{$ Msg state(Lact State)}
-		 case Msg
-		 of go then
-		    if State == free then
-		       case Lact
-		       of nil then
-			  if {SendMove Lmoves.1} then
-			     state(Lmoves.2 State)
-			  else
-			     state(Lmoves blocked)
-			  end
-		       [] H|T then
-			  if {SendMove Lact.1} then
-			     state(Lact.2 State)
-			  else
-			     state(Lact blocked)
-			  end
-		       end
-		    else
-		       state(Lact State)
-		    end
-		 [] block then
-		    state(Lact blocked)
-		 [] rmBlock then
-		    if State==blocked then
-		       {Send AIid go}
-		    end
-		    state(Lact free)
-		 end
-	      end}
+      fun{$ Msg state(Lact State)}
+         case Msg
+         of go then
+            if State == free then
+               case Lact
+               of nil then
+                  if {SendMove Lmoves.1} then
+                     state(Lmoves.2 State)
+                  else
+                     state(Lmoves blocked)
+                  end
+               [] H|T then
+                  if {SendMove Lact.1} then
+                     state(Lact.2 State)
+                  else
+                     state(Lact blocked)
+                  end
+               end
+            else
+               state(Lact State)
+            end
+         [] block then
+            state(Lact blocked)
+         [] rmBlock then
+            if State==blocked then
+               {Send AIid go}
+            end
+            state(Lact free)
+         end
+      end}
    in
-   %Send first move signal, move to controller?
+      %Send first move signal, move to controller?
       if Lmoves\=nil then
-	 thread
-         %{Delay DelayTime}
-	    {Send AIid go}
-	 end
+         {Send AIid go}
       end
       AIid
    end
