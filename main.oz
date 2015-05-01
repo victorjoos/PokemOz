@@ -1,44 +1,93 @@
-% This file will contain all the thread launches
-declare
-[QTk]={Module.link ["x-oz://system/wp/QTk.ozf"]}
-\insert 'widget.oz'
-\insert 'port_object.oz'
-%\insert 'animate_port.oz'
+functor
+import
+   QTk at 'x-oz://system/wp/QTk.ozf'
+   System
+   
+   PortObject
+   Widget
+define
+   % This file will contain all the thread launches
+%%%% The GLOBAL Variables
+   Show = System.show
+   
+   MAIN = PortObject.main
+   
+   MAINPO = Widget.mainPO
+   PLAYER = Widget.player
+   WILD = Widget.wild
+   LISTAI = Widget.listAI
+   WIDGETS = Widget.widgets
+   CANVAS = Widget.canvas
+   MAPID = Widget.mapID
+   SPEED = Widget.speed
+   DELAY = Widget.delay
+   PROBABILITY = Widget.probability
+   MAXX = Widget.maxX
+   MAXY = Widget.maxY
+   
+   MAXX = 7
+   MAXY = 7
+   
+   proc{BindEvents Window Input} %Input = {keys,autofight,..}
+      if Input == keys then
+	 fun{GenerateMoveProc Dir}
+	    proc{$}
+	       if {Send MAINPO get($)} == map then
+		  {Show 'sent move'}
+		  {Send PLAYER.pid move(Dir)}
+	       else
+		  skip
+	       end
+	    end
+	 end
+      in
+	 {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
+	 {Window bind(event:"<Left>" action:{GenerateMoveProc left})}
+	 {Window bind(event:"<Right>" action:{GenerateMoveProc right})}
+	 {Window bind(event:"<Down>" action:{GenerateMoveProc down})}
+      else skip
+      end
+   end
+   proc{SetSpeed X}
+      SPEED = X
+   end
+   proc{SetDelay X}
+      Delid = {NewPortObject X fun{$ Msg State}
+				  case Msg
+				  of set(Y) then Y
+				  [] get(Y) then Y=State State end end}
+   in
+      DELAY= delay(get:fun{$} {Send Delid get($)} end
+		   set:proc{$ X} {Send Delid set(X)} end)
+   end
+   proc{SetProb X}
+      PROBABILITY = X % [0-100]
+   end
+   {OS.srand 0}
+%%%%%% Launching the main operations
+in
+   Window = {QTk.build TopWidget}
+   {Window show}
+   MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 
-Window = {QTk.build TopWidget}
-{Window show}
-{Window bind(event:"<Escape>" action:proc{$}
-					{Window close}
-					{Application.exit 0}
-				     end)}
 
-%%%%% FIGHT-RELATED %%%%
-P2=pokemoz(name:"Bulbasoz" type:grass  health:health(20 30) lvl:5)
-P1=pokemoz(name:"Charmandoz" type:fire health:health(20 40) lvl:5)
-MAPID = {MapController}
-% Player = {CreateTrainer "Red" 6 6 SPEED MAPID CANVASH}
-FightId = {CreateFight P1 P2 F_CANVASH}
-% _={FightScene F_CANVASH P1 P2}
-%{Send FightId attack(pnj _)}
+%%%%%% Binding the necessary Active Input
+   {Window bind(event:"<Escape>" action:proc{$}
+					   {Window close}
+					   {Application.exit 0}
+					end)}
 
-%%%% MAP-RELATED %%%%
-% Map = map(r(1 1 1 0 0 0 0)
-% 	  r(1 1 1 0 0 1 1)
-% 	  r(1 1 1 0 0 1 1)
-% 	  r(0 0 0 0 0 1 1)
-% 	  r(0 0 0 1 1 1 1)
-% 	  r(0 0 0 1 1 0 0)
-% 	  r(0 0 0 0 0 0 0))
-% _={DrawMap CANVASH Map 7 7 $}
-% MAPID  = {MapController}
-% PLAYER = {CreateTrainer "Red" 6 6 SPEED MAPID CANVASH}
-% fun{GenerateMoveProc Dir}
-%    proc{$}
-%       {Send PLAYER move(Dir)}
-%    end
-% end
-% {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
-% {Window bind(event:"<Left>" action:{GenerateMoveProc left})}
-% {Window bind(event:"<Right>" action:{GenerateMoveProc right})}
-% {Window bind(event:"<Down>" action:{GenerateMoveProc down})}
+   {BindEvents Window keys}
+   {SetSpeed 5}
+   {SetDelay 70}
+   {SetProb  0}% TODO: CORRIGER LA DOUBLE BATTLE ABSOLUMENT!!!!!
+            %         => Revoir completement le systeme de declenchement
+            %            des combats
 
+% Just for testing purposes
+   {Window bind(event:"<3>" action:proc{$}
+				      thread {DrawPokeList status} end
+				      {Send MAINPO set(pokelist)}
+				   end)}
+   {Window bind(event:"<r>" action:proc{$} {Send PLAYER.poke refill} end)}
+end
