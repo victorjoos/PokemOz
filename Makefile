@@ -10,7 +10,12 @@ PortDefinitions.ozf : definitions_port.oz
 	ozc -c definitions_port.oz -o PortDefinitions.ozf
 AI.ozf : AI.oz PortDefinitions.ozf Widget.ozf
 	ozc -c AI.oz -o AI.ozf
-run : main.oza
+LibImg.ozf : make_lib.oz
+	ozc -c make_lib.oz
+	ozengine make_lib.ozf
+lib : LibImg.ozf
+	@echo done
+run : main.oza LibImg.ozf
 	ozengine main.oza
 clean :
 	rm PortObject.ozf
