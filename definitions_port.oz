@@ -94,19 +94,19 @@ end
 %        signal and send out
 fun{Timer} % a simple timer function
    {NewPortObjectMinor proc{$ Msg}
-   case Msg
-   of starttimer(Pid T) then
-      thread
-      {Delay T}
-      {Send Pid stoptimer}
-   end
-[] starttimer(Pid T Sig) then
-   thread
-   {Delay T}
-   {Send Pid Sig}
-end
-end
-end}
+      case Msg
+      of starttimer(Pid T) then
+         thread
+         {Delay T}
+         {Send Pid stoptimer}
+      end
+      [] starttimer(Pid T Sig) then
+         thread
+         {Delay T}
+         {Send Pid Sig}
+         end
+      end
+   end}
 end
 fun{Waiter}
    {NewPortObjectMinor proc{$ Msg}

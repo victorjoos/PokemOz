@@ -8,7 +8,7 @@ Lib = {QTk.newImageLibrary}
 proc{LoadImage Name Name2}
    try
       {Lib newPhoto(file:Name2 name:{StringToAtom Name})}
-   catch _ then {Show 'Error opening gif'}  {Show {StringToAtom Name2}} end 
+   catch _ then {Show 'Error opening gif'#{StringToAtom Name2}} end 
 end
 
 DIRECTORY      = "Images/Gifs/"
@@ -66,7 +66,8 @@ end
 
 OTHERS = others("Fight_disk" "bg_fight" "Bulbasoz_full" "Oztirtle_full"
 		"Charmandoz_full" "leader" "ball_1" "ball_2" "ball_3" "ball_4"
-		"run_button" "fight_button" "switch_button" "capture_button")
+		"run_button" "fight_button" "switch_button" "capture_button"
+	       "continue" "lost_screen" "start_screen")
 Ow     = {Width OTHERS}
 for I in 1..Ow do Name Name2 in
    Name  = OTHERS.I

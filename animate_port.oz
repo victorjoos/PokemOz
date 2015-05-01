@@ -373,3 +373,33 @@ in
    end
    Fid#Btn#Arw
 end
+%%%%%%% LostScreen %%%%%%%%
+proc{AnimLost X}
+   Tag = TAGS.lost
+in
+   if X == 0 then {Tag blank()}
+   else {Tag set(image:{LoadImage "continue"})} end
+end
+proc{GetLostScreen}
+   {Send MAINPO set(lost)}
+   Tid = {Timer}
+   Canvash = CANVAS.lost
+   Lostid = {NewPortObjectKillable state(0)
+                  fun{$ Msg state(State)}
+                     case Msg
+                     of kill then
+                        state(killed)
+                     [] next then X in
+                        if State == 0 then X = 1
+                        else X = 0 end
+                        {AnimLost X}
+                        {Send Tid starttimer(Lostid {DELAY.get}*10 next)}
+                        state(X)
+                     end
+                  end}
+in
+   {Canvash bind(event:"<a>" action:proc{$}
+                                       {Send Lostid kill}
+                                       {ReleaseAI}
+                                       {Send MAINPO set(map)} end)}
+end

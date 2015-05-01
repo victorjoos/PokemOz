@@ -399,24 +399,24 @@ fun{TrainerController Mapid Trid Speed TrainerObj}
                {CreateFight TrainerObj H}
                state(fighting T)
             end
-         [] reset(Ack) then %on fight lost
-            Pos = {Send Trid getPos($)}
-         in
-            {Send Plid.poke refill}
-            {Send Mapid send(x:Pos.x y:Pos.y left)}
-            {Send Mapid init(x:7 y:7 PLAYER)}
-            Ack=unit
-            state(still nil)
          [] arrived then
             if State == moving then
                state(still nil)
             else
                state(State FSched)
             end
+         [] reset(Ack) then %on fight lost
+            Pos = {Send Trid getPos($)}
+         in
+            {Send TrainerObj.poke refill}
+            {Send Mapid send(x:Pos.x y:Pos.y left)}
+            {Send Mapid init(x:7 y:7 PLAYER)}
+            {Send Trid reset}
+            Ack=unit
+            state(still nil)
          end
       end}
 in
-   %TODO: -need to add smth for the AI of other players
    Plid
 end
 
@@ -557,7 +557,7 @@ fun {FightController Play Npc FightAnim Arrows}%PlayL and NpcL are <PokemozList>
       thread
          {Wait Ack}
          {Send Arrows kill}
-         if {Label Npc}\=wild then
+         if {Label Npc}\=wild then %a supprimer?????
             {Browse sentEndfight}
             {Send Npc.pid endFight}
          end
@@ -566,15 +566,14 @@ fun {FightController Play Npc FightAnim Arrows}%PlayL and NpcL are <PokemozList>
       end
    end
    proc{OnBadExit Ack}
-      {OnExit Ack}
-      /*TODO!!
-         thread Ack2 in
+      %{OnExit Ack}
+      thread Ack2 in
          {Wait Ack}
          {Send Arrows kill}
-         {Send Player reset(Ack2)}
+         {Send Play.pid reset(Ack2)}
          {Wait Ack2}
-         {Send MAINPO set(map)}
-      end*/
+         {GetLostScreen}
+      end
    end
    FightPort = {NewPortObjectKillable
 		state( player:{Send PlayL getFirst($)}
@@ -1109,8 +1108,9 @@ end
 % @pre: -Frames = a record with all the frame-descriptions in it
 %       -Init   = the initial state (<Atom>)
 %       -PlaceH = handle of the placeholder
-fun{MAIN Init Frames PlaceH MapName Handles}
-   Sort =[starters map fight pokelist]% lost won]
+fun{MAIN Frames PlaceH MapName Handles}
+   Init = starters
+   Sort =[starters map fight pokelist lost]% won]
    %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
    Main = {NewPortObjectKillable state(Init)
 	   fun{$ Msg state(Frame)}
@@ -1139,12 +1139,12 @@ fun{MAIN Init Frames PlaceH MapName Handles}
                thread {InitPokeTags} end
                % Create the Map Environment
                MAPID = {MapController Map}
-               TAGS.map={DrawMap Map 7 7}%should NOT EVER
-                                         % be threaded!!!
+               {DrawMap Map 7 7}%should NOT EVER
+                                % be threaded!!!
                {PlaceH set(Handles.map)}
                {CANVAS.map getFocus(force:true)}
                PLAYER = {CreatePlayer "Red" 7 7 SPEED MAPID
-                           [Name3 "Bulbasoz"] [9 5] player}
+                           [Name3] [5] player}
                {Send MAPID init(x:7 y:7 PLAYER)}
                %Transform into function to englobe every enemy!
                for Enemy in Enemies do Npc = {CreateNpc Enemy MAPID} in

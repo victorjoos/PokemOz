@@ -47,9 +47,10 @@ end
 %%%%%%%%% ALL THE WIDGET HANDLES AND NAMES %%%%%%
 
 WIDGETS = widgets(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_)
-CANVAS  =  canvas(starters:_ map:_ fight:_ fight2:_ fight3:_ pokelist:_)
+CANVAS  =  canvas(starters:_ map:_ fight:_ fight2:_ fight3:_ pokelist:_ lost:_)
 HANDLES = handles(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_)
-TAGS    =    tags(           map:_ fight:_ fight2:_ fight3:_ pokelist:_)
+TAGS    =    tags(           map:_ map2:_ fight:_ fight2:_ fight3:_ pokelist:_
+                     lost:_)
 PLACEHOLDER
 %%%%%%% STARTWIDGET %%%%%%%
 
@@ -118,7 +119,7 @@ thread CANVAS.starters = HANDLES.starters end
 %@pre:  Draws the map given by the record read in File at once
 %        and Canvash is te handle to the canvas
 %@post: Returns a list of handles to be able to shift the map
-fun{DrawMap Map MaxX MaxY}
+proc{DrawMap Map MaxX MaxY}
    Canvash = CANVAS.map
    ColorGrass = c(38 133 30)
    ColorPath  = c(49 025 05)
@@ -129,20 +130,21 @@ fun{DrawMap Map MaxX MaxY}
    proc{DrawSquare index(X Y)}
       if Y>MaxY then skip
       else NewX NewY
-	 ActX = 1+DX*(X-1)
-	 ActY = 1+DX*(Y-1)
+         ActX = 1+DX*(X-1)
+         ActY = 1+DX*(Y-1)
       in
-	 {CanvasH create(rectangle ActX ActY ActX+DXn ActY+DXn
-			 fill:Color.(Map.Y.X)
-			 tags:Tag)}
-	 if X==MaxX then NewX=1 NewY=Y+1
-	 else NewX=X+1 NewY=Y end
-	 {DrawSquare index(NewX NewY)}
+         {CanvasH create(rectangle ActX ActY ActX+DXn ActY+DXn
+            fill:Color.(Map.Y.X)
+            tags:Tag)}
+         if X==MaxX then NewX=1 NewY=Y+1
+         else NewX=X+1 NewY=Y end
+         {DrawSquare index(NewX NewY)}
       end
    end
 in
    {DrawSquare index(1 1)}
-   Tag
+   TAGS.map = Tag
+   TAGS.map2 = {Canvash newTag($)}
 end
 
 %@pre: Shifts the map (decribed by the list of handles)
@@ -522,7 +524,23 @@ WIDGETS.pokelist = canvas(height:470 width:470 handle:HANDLES.pokelist
 thread CANVAS.pokelist = HANDLES.pokelist end
 %%%%%%% TOPWIDGET %%%%%%%%%%
 TopWidget  = td( placeholder(handle:PLACEHOLDER)
-		 geometry:geometry(height:470 width:470 x:200 y:200)
-		 resizable:resizable(width:false height:false)
-		 action:proc{$}{Application.exit 0} end
-	       )
+            		geometry:geometry(height:470 width:470 x:200 y:200)
+            		resizable:resizable(width:false height:false)
+            		action:proc{$}{Application.exit 0} end
+	               )
+
+%%%%%%% LOST SCREEN %%%%%%%
+proc{DrawLost}
+   {Browse called}
+   Canvash = CANVAS.lost
+   TAGS.lost = {Canvash newTag($)}
+in
+   {Canvash create(image image:{LoadImage "lost_screen"} 235 235)}
+   {Canvash create(image image:{LoadImage "continue"} 235 235 tags:TAGS.lost)}
+end
+WIDGETS.lost = canvas(height:470 width:470 handle:HANDLES.lost bg:white)
+thread CANVAS.lost = HANDLES.lost {Wait CANVAS.lost} %{Delay 1000}
+ {DrawLost} end
+
+
+%%%%%%%% STARTING SCREEN %%%%%%%%%
