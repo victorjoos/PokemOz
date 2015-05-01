@@ -1,15 +1,12 @@
 functor
 import
-   System
-
    PortDefinitions
    Widget
 export
-   trainer: AnimateTrainer
-   fight: DrawFight
+   trainer:AnimateTrainer
+   fight:DrawFight
 define
    % Imports
-   Show = System.show
    GETDIR = PortDefinitions.getDir
    GETDIRSIDE = PortDefinitions.getDirSide
    NewPortObjectKillable = PortDefinitions.kPort
