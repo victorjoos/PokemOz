@@ -1034,14 +1034,22 @@ end
 fun{CreatePlayer Name X0 Y0 Speed Mapid Names Lvls Type}
    Pokemoz = {CreatePokemozList Names Lvls Type}
    Trpid
+   AIid
    TrainerObj = Type(poke:Pokemoz pid:Trpid)
    Anid = {AnimateTrainer X0-1 Y0-1 Speed Name}
    Trid = {Trainer pos(x:X0 y:Y0) Anid}
-   Trpid = {TrainerController Mapid Trid Speed TrainerObj}
+   % Trpid = {TrainerController Mapid Trid Speed TrainerObj}
 in
+   if Type==player then
+      Trpid = {TrainerController Mapid Trid Speed TrainerObj}
+   else
+      AIid = {ArtificialPlayer pos(x:X0 y:Y0) Mapid Trpid}
+      Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
+   end
    %trainer(poke:<PokemOzList> pid:<TrainerController>)
    TrainerObj
 end
+
 proc{Seperate L L3}
    case L of nil then L3=nil#nil
    [] poke(Name Lvl)|Tail then N2 Lvl2 in
@@ -1144,7 +1152,7 @@ fun{MAIN Init Frames PlaceH MapName Handles}
                {PlaceH set(Handles.map)}
                {CANVAS.map getFocus(force:true)}
                PLAYER = {CreatePlayer "Red" 7 7 SPEED MAPID
-                           [Name3 "Bulbasoz"] [9 5] player}
+                           [Name3 "Bulbasoz"] [9 5] ai}
                {Send MAPID init(x:7 y:7 PLAYER)}
                %Transform into function to englobe every enemy!
                for Enemy in Enemies do Npc = {CreateNpc Enemy MAPID} in

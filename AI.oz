@@ -309,25 +309,64 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
       [] left then if Move==left then pos(x:X-1 y:Y dir:Move) else pos(x:X y:Y dir:Move) end
       end
    end
-   Init = state(Coords dir:up)
+   fun {SendMove Msg}
+      case Msg
+      of Move#Dir then
+	 if Move == Dir then {Send PlayerPort move(Move $)}
+	 else {Send PlayerPort turn(Move $)} end
+      end
+   end
+   
+   Init = state(Coords dir:up free)
    ArtificialPlayerPort = {NewPortObject Init
-			   fun{$ Msg state(Pos dir:Dir)}
+			   fun{$ Msg state(Pos dir:Dir State)}
 			      {Show aiMsg#Msg}
 			      case Msg
 			      of getMove(X) then
 				 X=Dir
-				 state(Pos dir:Dir)
+				 state(Pos dir:Dir State)
 			      [] getPos(X) then
 				 X=Pos
-				 state(Pos dir:Dir)
-			      [] move then
-				 Move = {Intelligence Pos.x Pos.y Dir}
+				 state(Pos dir:Dir State)
+			      [] go then
+				 Move
+				 if ({OS.rand} mod 10) > 5 then 
+				    Move = up % {Intelligence Pos.x Pos.y Dir}
+				 else
+				    Move = left
+				 end
 				 NewCoord
+				 NewState
 			      in
-				 {Show move#Move}
-				 {Send PlayerPort move(Move)}
-				 NewCoord = {MakeNewCoordinates pos(x:Pos.x y:Pos.y dir:Dir) Move}
-				 state(pos(x:NewCoord.x y:NewCoord.y) dir:NewCoord.dir)
+				 if State == free then
+				    if {SendMove Move#Dir} then
+				       NewCoord = {MakeNewCoordinates
+						   pos(x:Pos.x y:Pos.y dir:Dir) Move}
+				       NewState = State
+				    else
+				       NewCoord = pos(x:Pos.x y:Pos.y dir:Dir)
+				       NewState = blocked
+				    end
+				 else
+				    NewCoord = pos(x:Pos.x y:Pos.y dir:Dir)
+				    NewState = State
+				 end
+				 state(pos(x:NewCoord.x y:NewCoord.y) dir:NewCoord.dir NewState)
+			      [] block then
+				 state(Pos dir:Dir blocked)
+			      [] rmBlock then
+				 if State==blocked then
+				    {Send ArtificialPlayerPort go}
+				 end
+				 state(Pos dir:Dir free)
+			      % [] move then
+			      % 	 Move = {Intelligence Pos.x Pos.y Dir}
+			      % 	 NewCoord
+			      % in
+			      % 	 {Show move#Move}
+			      % 	 {Send PlayerPort move(Move)}
+			      % 	 NewCoord = {MakeNewCoordinates pos(x:Pos.x y:Pos.y dir:Dir) Move}
+			      % 	 state(pos(x:NewCoord.x y:NewCoord.y) dir:NewCoord.dir)
 			      [] fight(PlayerH TrainerH PlayerLvl TrainerLvl) then
 				 if PlayerLvl>TrainerLvl andthen PlayerH>5 then fight
 				 elseif PlayerLvl==TrainerLvl andthen PlayerH>10 then fight
@@ -337,6 +376,7 @@ fun {ArtificialPlayer Coords MapPort PlayerPort}
 			      end
 			   end}
 in
+   thread {Send ArtificialPlayerPort go} end
    ArtificialPlayerPort
 end
 

@@ -20,7 +20,7 @@ DELAY
 PROBABILITY
 MAXX  = 7
 MAXY  = 7
-AI
+
 %%%% The IO functions (TODO import from seperate functor)
 fun{ReadMap _}%should be replaced by 'Name' afterwards
    map(r(1 1 1 0 0 0 0)
@@ -44,7 +44,6 @@ proc{BindEvents Window Input} %Input = {keys,autofight,..}
       	    if {Send MAINPO get($)} == map then
                 {Show 'sent move'}
       	       {Send PLAYER.pid move(Dir)}
-      	      % {Send AI move}
       	    else
       	       skip
       	    end
@@ -92,7 +91,6 @@ MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 					{Application.exit 0}
 				     end)}
 
-%AI={ArtificialPlayer pos(x:7 y:7) MAPID PLAYER.pid}
 {BindEvents Window keys}
 {SetSpeed 5}
 {SetDelay 70}
