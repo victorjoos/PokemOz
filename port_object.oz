@@ -782,7 +782,6 @@ define
       FightPort
    end
 
-   \insert 'animate_port.oz'
 
 %%%%%%% THE EXTERN FUNCTIONS %%%%%%
    EXPER = exp(5:5 6:12 7:20 8:30 9:50 10:~0)

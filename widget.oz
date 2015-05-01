@@ -13,6 +13,10 @@ export
    InitPokeTags
    DrawMap
    StarterPokemoz
+
+   TopWidget
+   placeholder:PLACEHOLDER
+   handles:HANDLES
    
    mainPO: MAINPO % port_object, main
    player: PLAYER % port_object, main

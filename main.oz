@@ -2,16 +2,24 @@ functor
 import
    QTk at 'x-oz://system/wp/QTk.ozf'
    System
-   
+   Application
+   OS
+
+   PortDefinitions
    PortObject
    Widget
 define
    % This file will contain all the thread launches
 %%%% The GLOBAL Variables
    Show = System.show
-   
+
+   NewPortObject = PortDefinitions.port
    MAIN = PortObject.main
-   
+
+   TopWidget = Widget.topWidget
+   PLACEHOLDER = Widget.placeholder
+   HANDLES = Widget.handles
+   DrawPokeList = Widget.drawPokeList
    MAINPO = Widget.mainPO
    PLAYER = Widget.player
    WILD = Widget.wild
@@ -65,8 +73,8 @@ define
    end
    {OS.srand 0}
 %%%%%% Launching the main operations
-in
    Window = {QTk.build TopWidget}
+in
    {Window show}
    MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 
