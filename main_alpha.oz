@@ -35,7 +35,7 @@ fun{ReadEnemies _}
    %List of Names with their start Coordinates
    [npc("Red" delay:500 start:init(x:5 y:5) speed:5
 	states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-   poke:[poke("Charmandoz" 5)])]
+   poke:[poke("Charmandoz" 10)])]
 end
 proc{BindEvents Window Input} %Input = {keys,autofight,..}
    if Input == keys then
@@ -82,7 +82,7 @@ end
 %%%%%% Launching the main operations
 Window = {QTk.build TopWidget}
 {Window show}
-MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
+MAINPO = {MAIN WIDGETS PLACEHOLDER _ HANDLES}
 
 
 %%%%%% Binding the necessary Active Input
@@ -93,11 +93,8 @@ MAINPO = {MAIN starters WIDGETS PLACEHOLDER _ HANDLES}
 
 {BindEvents Window keys}
 {SetSpeed 5}
-{SetDelay 70}
-{SetProb  0}% TODO: CORRIGER LA DOUBLE BATTLE ABSOLUMENT!!!!!
-            %         => Revoir completement le systeme de declenchement
-            %            des combats
-
+{SetDelay 40}
+{SetProb  0}
 % Just for testing purposes
 {Window bind(event:"<3>" action:proc{$}
 				   thread {DrawPokeList status} end
