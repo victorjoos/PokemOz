@@ -233,9 +233,9 @@ define
                      {Wait Sig.3}
                      {SignalSides {GETMISSINGDIR Dir} X Y}
                      if {Label Sig.2}==player then
-                        if NewX == 7 andthen NewY==7 then
+                        if NewX == MAXX andthen NewY==MAXY then
                            {Send Sig.2.poke refill}
-                        elseif NewX==7 andthen NewY==1 then
+                        elseif NewX==MAXX andthen NewY==1 then
                            {Send MAINPO set(won)}
                            {GetWonScreen}
                         end
@@ -315,7 +315,7 @@ define
             state(Pos dir:NewDir)
          [] reset then
             {Send Anid reset}
-            state(pos(x:7 y:7) dir:up)
+            state(pos(x:MAXX y:MAXY) dir:up)
          end
       end}
    in
@@ -424,7 +424,7 @@ define
             thread {ReleaseWaitingAI} end
             {Send TrainerObj.poke refill}
             {Send Mapid send(x:Pos.x y:Pos.y left)}
-            {Send Mapid init(x:7 y:7 PLAYER)}
+            {Send Mapid init(x:MAXX y:MAXY PLAYER)}
             {Send Trid reset}
             Ack=unit
             state(still nil)
@@ -924,6 +924,15 @@ define
          State.Ind|{GetAllLiving State Ind+1}
       end
    end
+   fun{GetAllBalls State Ind}
+      if Ind==7 then nil
+      elseif State.Ind == none then nil
+      elseif{Send State.Ind.pid getHealth($)}.act == 0 then
+         dead|{GetAllBalls State Ind+1}
+      else
+         alive|{GetAllBalls State Ind+1}
+      end
+   end
    fun{CreatePokemozList Names Lvls Type}
       Init = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
       Q =  {GetPokemoz Names Lvls Init 1 $ Type}
@@ -935,109 +944,112 @@ define
       PokeLid = {NewPortObject Init
       fun{$ Msg State}
          case Msg
-	 of add(Pkm B) then
-            if State.6 \= none then
-               B = false
-               State
-            else
-               NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-            in
-               {AddPokemoz State NewState Pkm 1 true}
-	       B = true
-	       {Browse NewState}
-               NewState
-            end
-         [] switchFirst(Ind B) then
-            if Ind == State.first then
-               B=unit State
-            else
-               NewState = all(1:State.1 2:State.2 3:State.3
-               4:State.4 5:State.5 6:State.6
-               first:Ind) in
-               B=unit
-               NewState
-            end
-         [] release(Ind B) then
-            if State.Ind == none then B=unit State
-            else
-               NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-            in
-               {RmPokemoz State NewState 1 Ind}
-               {Send State.Ind.pid kill}
-               if Ind == State.first then
-                  NewState.first = 1
+            of add(Pkm B) then
+               if State.6 \= none then
+                  B = false
+                  State
                else
-                  NewState.first = State.first
+                  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+               in
+                  {AddPokemoz State NewState Pkm 1 true}
+                  B = true
+                  {Browse NewState}
+                  NewState
                end
-               B=unit
+            [] switchFirst(Ind B) then
+               if Ind == State.first then
+                  B=unit State
+               else
+                  NewState = all(1:State.1 2:State.2 3:State.3
+                  4:State.4 5:State.5 6:State.6
+                  first:Ind) in
+                  B=unit
+                  NewState
+               end
+            [] release(Ind B) then
+               if State.Ind == none then B=unit State
+               else
+                  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+               in
+                  {RmPokemoz State NewState 1 Ind}
+                  {Send State.Ind.pid kill}
+                  if Ind == State.first then
+                     NewState.first = 1
+                  else
+                     NewState.first = State.first
+                  end
+                  B=unit
+                  NewState
+               end
+            [] get(X Ind) then  X=State.Ind State
+            [] getAll(X) then X=State State
+            [] getFirst(X) then
+               if State.first == none then X = none
+               else X=State.(State.first) end
+               State
+            [] getAverage(X) then %TODO : refaire pour faire le MAX
+               %returns the average of the first 3 Pkm
+               if State.2 == none then
+                  X = {IntToFloat {Send State.1.pid getLvl($)}}
+               elseif State.3 == none then
+                  X = ({IntToFloat {Send State.1.pid getLvl($)}} +
+                  {IntToFloat {Send State.2.pid getLvl($)}})/2.0
+               else
+                  X = ({IntToFloat {Send State.1.pid getLvl($)}} +
+                  {IntToFloat {Send State.2.pid getLvl($)}} +
+                  {IntToFloat {Send State.3.pid getLvl($)}})/3.0
+               end
+               State
+            [] refill then
+               for I in 1..6 do
+                  if State.I \= none then
+                     {Send State.I.pid refill}
+                  end
+               end
+               State
+            [] releaseAll then
+               for I in 1..6 do
+                  if State.I \= none then
+                     {Send State.I.pid kill}
+                  end
+               end
+               all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
+            [] getAllExp(X) then
+               X={GatherExp State 1 0}
+               State
+            [] captured then %only possible with wild pokemoz!
+               all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
+            [] shareExp(TotExp) then
+               NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:State.first)
+               First %checks if the first one is alive
+               Length %number of alive pokemoz
+               XP Rest List=list(1:_ 2:_ 3:_ 4:_ 5:_ 6:_)
+               {GetAlive State First Length 1 0 State.first List}
+               if First then
+                  XP = TotExp div (Length+1)
+                  Rest = TotExp mod (Length+1)
+               else
+                  XP = TotExp div Length
+                  Rest = TotExp mod Length
+               end
+            in
+               {DispatchExp State NewState 1 List XP Rest }
                NewState
-            end
-         [] get(X Ind) then  X=State.Ind State
-         [] getAll(X) then X=State State
-         [] getFirst(X) then
-            if State.first == none then X = none
-            else X=State.(State.first) end
-            State
-         [] getAverage(X) then %TODO : refaire pour faire le MAX
-            %returns the average of the first 3 Pkm
-            if State.2 == none then
-               X = {IntToFloat {Send State.1.pid getLvl($)}}
-            elseif State.3 == none then
-               X = ({IntToFloat {Send State.1.pid getLvl($)}} +
-               {IntToFloat {Send State.2.pid getLvl($)}})/2.0
-            else
-               X = ({IntToFloat {Send State.1.pid getLvl($)}} +
-               {IntToFloat {Send State.2.pid getLvl($)}} +
-               {IntToFloat {Send State.3.pid getLvl($)}})/3.0
-            end
-            State
-         [] refill then
-            for I in 1..6 do
-               if State.I \= none then
-                  {Send State.I.pid refill}
+            [] getAllLiving(X) then
+               X={GetAllLiving State 1}
+               State
+            [] getState(X) then
+               if {Length {GetAllLiving State 1}} == 0 then
+                  X=allDead
+               else
+                  X=alive
                end
+               State
+            [] getBalls(X) then
+               X={GetAllBalls State 1}
+               State
             end
-            State
-         [] releaseAll then
-            for I in 1..6 do
-               if State.I \= none then
-                  {Send State.I.pid kill}
-               end
-            end
-            all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
-         [] getAllExp(X) then
-            X={GatherExp State 1 0}
-            State
-         [] captured then %only possible with wild pokemoz!
-            all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
-         [] shareExp(TotExp) then
-            NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:State.first)
-            First %checks if the first one is alive
-            Length %number of alive pokemoz
-            XP Rest List=list(1:_ 2:_ 3:_ 4:_ 5:_ 6:_)
-            {GetAlive State First Length 1 0 State.first List}
-            if First then
-               XP = TotExp div (Length+1)
-               Rest = TotExp mod (Length+1)
-            else
-               XP = TotExp div Length
-               Rest = TotExp mod Length
-            end
-         in
-            {DispatchExp State NewState 1 List XP Rest }
-            NewState
-         [] getAllLiving(X) then
-            X={GetAllLiving State 1}
-            State
-         [] getState(X) then
-            if {Length {GetAllLiving State 1}} == 0 then
-               X=allDead
-            else
-               X=alive
-            end
-            State
-         end
-      end}
+         end}
    in
       PokeLid
    end
@@ -1160,13 +1172,13 @@ define
                thread {InitPokeTags} end
                % Create the Map Environment
                MAPID = {MapController Map}
-               {DrawMap Map 7 7}%should NOT EVER
+               {DrawMap Map MAXX MAXY}%should NOT EVER
                % be threaded!!!
                {PlaceH set(Handles.map)}
                {CANVAS.map getFocus(force:true)}
-               PLAYER = {CreatePlayer "Red" 7 7 SPEED MAPID
+               PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
                            [Name3] [5] player}
-               {Send MAPID init(x:7 y:7 PLAYER)}
+               {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}
                      case L of nil then nil
@@ -1195,6 +1207,8 @@ define
    end
 
    fun{ReadMap _}%should be replaced by 'Name' afterwards
+      MAXX = 7
+      MAXY = 7
       map(  r(1 1 1 0 0 0 0)
             r(1 1 1 0 0 1 1)
             r(1 1 1 0 0 1 1)

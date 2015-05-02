@@ -95,17 +95,18 @@ define
    proc{AllTagsToList AllTags L1 L2}
       case AllTags
          of tags(plateau:plateau(disk(D1 D2) pokemoz(P1 P2))
-         attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
-         bar(act:Ba2 Bb2)))
-         others:_ ball:_) then
-         L1 = [D1 P1 T1 Ba1 Bb1]
-         L2 = [D2 P2 T2 Ba2 Bb2]
+                  attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
+                                                bar(act:Ba2 Bb2))
+                                 balls(B1 B2))
+                  others:_ ball:_) then
+         L1 = [D1 P1 T1 Ba1 Bb1 B1]
+         L2 = [D2 P2 T2 Ba2 Bb2 B2]
       end
    end
    %Intern
    fun{GetMove Dx} Cst = 20 in
       if     Dx ==  1 then proc{$ Tag} {Tag move( Cst 0)} end
-   elseif Dx == ~1 then proc{$ Tag} {Tag move(~Cst 0)} end end
+      elseif Dx == ~1 then proc{$ Tag} {Tag move(~Cst 0)} end end
    end
    %Intern
    proc{Apply L F}
@@ -180,7 +181,7 @@ define
    %Inter
    proc{MoveBall Tag}
       Canvas = CANVAS.fight
-      Dt = {DELAY.get} div 4
+      Dt = {DELAY.get} div 3
       XX = 195
       YY = 190
       Dx = dx( 20  18  15  15  15  15  10 10 10 10 9  6)
@@ -307,7 +308,7 @@ define
                         end
                         {Apply LTagsPlay proc{$ T} {T delete} end}
                         %Switch the images here
-                        {RedrawFight player New}
+                        {RedrawFight player New {Send PlayL getBalls($)}}
                         for _ in 1..25 do
                            {MoveFight LTagsPlay ~1}
                            {Delay DT}
@@ -322,7 +323,7 @@ define
                         end
                         {Apply LTagsNpc proc{$ T} {T delete} end}
                         %Switch the images here
-                        {RedrawFight npc New}
+                        {RedrawFight npc New {Send NpcL getBalls($)}}
                         for _ in 1..25 do
                            {MoveFight LTagsNpc 1}
                            {Delay DT}
@@ -385,7 +386,7 @@ define
          {Text "Choose your action"}
       end
       thread
-         Buttons#Arrows={FightScene FirstPlay FirstNpc}
+         Buttons#Arrows={FightScene FirstPlay FirstNpc {Send PlayL getBalls($)} {Send NpcL getBalls($)}}
       in
          Btn = Buttons Arw = Arrows
          AllTags = TAGS.fight
