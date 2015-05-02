@@ -263,23 +263,77 @@ define
    end
    %%%%%%%% WILD-POKEMOZ  %%%%%%%%
    CreatePokemoz CreatePokemozList
-   fun{RandomName}
-      "Bulbasoz"
+   fun{RandomName Type}
+      Names=
+      pokemoz( grass:grass( %poke("Bulbasoz" "Ivysoz" "Venusoz")
+                           poke("Ozweed" "Kakunoz" "Ozdrill")
+                           poke("Machoz" "Machozman" "Ozchamp")
+                           poke("Rozzozoz" "Roticoz"))
+
+               water:water(%poke("Otirtle" "Wartoztle" "Blastoz")
+                           poke("Zoizoz" "Grozoizoz")
+                           poke("Magiciendoz" "Pytagyroz")
+                           poke("Ozcool" "Ozcruel")
+                           poke("Coincwoz" "Goldoz"))
+
+               fire:fire(  %poke("Charmandoz" "Charmeleoz" "Charozard")
+                           poke("Vulpox" "9xOz")
+                           poke("Oz2_0")
+                           poke("Ozachu" "Ozmouse")
+                           poke("Pidgeoz" "Pidgeozoz" "Ozpidgeoz")))
+      X R
+   in
+      if Type == grass then X = 3
+      else X = 4
+      end
+      Names.Type.(({OS.rand} mod X)+1)
    end
    WildlingTrainer
    thread WildlingTrainer = wild(poke:{CreatePokemozList nil nil wild}) end
    %CreateTrainer Name X0 Y0 Speed Mapid Names Lvls Type}
    fun{GetWildling}
+      fun{Opposite Type}
+         case Type
+         of water then grass
+         [] grass then fire
+         [] fire  then water
+         end
+      end
+   in
       if ({OS.rand} mod 100)+1 =< PROBABILITY then
+         %Calculating lvl
          Lvl={FloatToInt {Round {Send PLAYER.poke getAverage($)}}}
          R
          Ra = {OS.rand} mod 15
          if Ra < 10 then R = ~1
          elseif Ra < 13 then R = 0
-         else R = 1 end
-         NLvl = {Max Lvl+R 5}
-         %TODO add dependency on first pokemoz type
-         Pokemoz={CreatePokemoz {RandomName} {Min NLvl 10} wild}
+         else R = 1
+         end
+         Lvl2 = {Max Lvl+R 5}
+         Lvl3 = {Min Lvl2 10}
+
+         %Choosing type
+         Type = {Send PLAYER.poke getFirst($)}.type
+         Type2
+         Ra2 = {OS.rand} mod 15
+         if Ra2 < 10 then Type2 = {Opposite {Opposite Type}}
+         elseif Ra2 < 13 then Type2 = Type
+         else Type2 = {Opposite Type}
+         end
+
+         %Getting pokemoz
+         Name = {RandomName Type2} Name2
+         case Name
+         of poke(X) then Name2 = X
+         [] poke(X1 X2) then
+            if Lvl3<8 then Name2 = X1
+            else Name2 = X2 end
+         [] poke(X1 X2 X3) then
+            if Lvl3<7 then Name2 = X1
+            elseif Lvl3<9 then Name2 = X2
+            else Name2 = X3 end
+         end
+         Pokemoz={CreatePokemoz Name2 Lvl3 wild}
          Ack
       in
          {Send WildlingTrainer.poke add(Pokemoz Ack)}
@@ -748,10 +802,17 @@ define
    %%%%%%% THE EXTERN FUNCTIONS %%%%%%
    EXPER = exp(5:5 6:12 7:20 8:30 9:50 10:~0)
    fun{GETTYPE Name}
-      case Name
-      of "Bulbasoz"   then grass
-      [] "Charmandoz" then fire
-      [] "Oztirtle"   then water
+      Grass = ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
+               "Zoizoz" "Grozoizoz" "Machoz" "Machozman" "Ozchamp"]
+      Water = ["Otirtle" "Wartoztle" "Charozard" "Rozzozoz" "Roticoz" "Coincwoz"
+               "Goldoz" "Ozcool" "Ozcruel" "Magiciendoz" "Pytagyroz"]
+      Fire  = ["Charmandoz" "Charmeleoz" "Charozard" "Pidgeoz" "Pidgeozoz"
+               "Ozpidgeoz" "Ozachu" "Ozmouse" "Vulpox" "9xOz" "Oz2_0"]
+   in
+      if {Member Name Grass} then grass
+      elseif {Member Name Water} then water
+      %elseif {Member Name Grass} then fire
+      else fire
       end
    end
    proc{GetLevel Exp Lvl Ne Le}

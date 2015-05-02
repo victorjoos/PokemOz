@@ -353,7 +353,7 @@ define
                   %handles the special exit too
                      {MoveBall Tag}
                      {Text {Flatten ["Your OzBall catched a wild " Npc.name "!"]}}
-                     {AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
+                     %{AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
                      {Delay DT*2}
                      {Apply LTagsNpc.2 proc{$ X} {X delete} end}
                      {Delay DT*4}

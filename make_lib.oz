@@ -17,8 +17,13 @@ define
    EXTENSION      = ".gif"
 
 %%%%%%% Pokemoz %%%%%%%
-   ALL_NAMES      = pokemoz("Bulbasoz" "Oztirtle" "Charmandoz")
-   ALL_ATTRIBUTES = attrib("_back" "_front" "_small")
+   ALL_NAMES      = pokemoz("Bulbasoz" "Oztirtle" "Charmandoz" "Ivysoz" "Venusoz"
+			    "Charmeleoz" "Charozard" "Wartoztle" "Blastoz" "Ozweed"
+			    "Kakunoz" "Ozdrill" "Pidgeoz" "Pidgeozoz" "Ozpidgeoz"
+			    "Rozzozoz" "Roticoz" "Ozachu" "Ozmouse" "Vulpoz" "9xOz"
+			    "Zoizoz" "Grozoizoz" "Coincwoz" "Goldoz" "Machoz" "Machozman"
+			    "Ozchamp" "Ozcool" "Ozcruel" "Oz2_0" "Magiciendoz" "Pytagyroz")
+   ALL_ATTRIBUTES = attrib("_back" "_front" )%"_small")
 
    ANw = {Width ALL_NAMES}
    AAw = {Width ALL_ATTRIBUTES}
