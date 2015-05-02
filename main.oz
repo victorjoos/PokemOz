@@ -84,7 +84,7 @@ in
    {BindEvents keys}
    {SetSpeed 5}
    {SetDelay 50}
-   {SetProb  0}
+   {SetProb  100}
 
    %Has to be always bound even when in autofight mode
    {Window bind(event:"<Escape>" action:toplevel#close)}

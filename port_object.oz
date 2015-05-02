@@ -728,11 +728,12 @@ define
             {Send NpcL captured}
             {Send PlayL add(Npc _)}
             {Send FightAnim catched(Ack)}
-            {Send WaitAnim wait(MAINPO Ack set(map))}
+	    {Send WaitAnim wait(MAINPO Ack set(map))}
+	    {OnExit Ack}
             state(killed)
          else Ack in
             {Send FightAnim failCatch(Ack)}
-            {Send WaitAnim wait(FightPort Ack fightIA)}
+	    {Send WaitAnim wait(FightPort Ack fightIA)}
             state(player:Play enemy:Npc fighting:true)
          end
       end
@@ -934,7 +935,7 @@ define
       PokeLid = {NewPortObject Init
       fun{$ Msg State}
          case Msg
-         of add(Pkm B) then
+	 of add(Pkm B) then
             if State.6 \= none then
                B = false
                State
@@ -942,7 +943,8 @@ define
                NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
             in
                {AddPokemoz State NewState Pkm 1 true}
-               B = true
+	       B = true
+	       {Browse NewState}
                NewState
             end
          [] switchFirst(Ind B) then
