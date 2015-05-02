@@ -21,3 +21,6 @@ clean :
 	rm PortObject.ozf
 	rm AnimatePort.ozf
 	rm Widget.ozf
+	rm PortDefinitions.ozf
+	rm LibImg.ozf
+	rm main.oza
