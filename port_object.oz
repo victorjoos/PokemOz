@@ -277,7 +277,7 @@ define
                            poke("Coincwoz" "Goldoz"))
 
                fire:fire(  %poke("Charmandoz" "Charmeleoz" "Charozard")
-                           poke("Vulpox" "9xOz")
+                           poke("Vulpoz" "9xOz")
                            poke("Oz2_0")
                            poke("Ozachu" "Ozmouse")
                            poke("Pidgeoz" "Pidgeozoz" "Ozpidgeoz")))
@@ -304,9 +304,9 @@ define
          %Calculating lvl
          Lvl={FloatToInt {Round {Send PLAYER.poke getAverage($)}}}
          R
-         Ra = {OS.rand} mod 15
-         if Ra < 10 then R = ~1
-         elseif Ra < 13 then R = 0
+         Ra = {OS.rand} mod 50
+         if Ra < 35 then R = ~1
+         elseif Ra < 48 then R = 0
          else R = 1
          end
          Lvl2 = {Max Lvl+R 5}
@@ -315,12 +315,11 @@ define
          %Choosing type
          Type = {Send PLAYER.poke getFirst($)}.type
          Type2
-         Ra2 = {OS.rand} mod 15
-         if Ra2 < 10 then Type2 = {Opposite {Opposite Type}}
-         elseif Ra2 < 13 then Type2 = Type
+         Ra2 = {OS.rand} mod 50
+         if Ra2 < 38 then Type2 = {Opposite {Opposite Type}}
+         elseif Ra2 < 48 then Type2 = Type
          else Type2 = {Opposite Type}
          end
-
          %Getting pokemoz
          Name = {RandomName Type2} Name2
          case Name
@@ -719,7 +718,7 @@ define
          end
 
          if NTState == alive then
-            {Send WaitAnim wait(FightPort Ack input)}
+            {Send WaitAnim wait(FightPort Ack endAttack)}
             state(player:Play enemy:Npc fighting:OK)
          elseif {Send PlayL getState($)} == allDead then Ack in
             {Send FightAnim exit(Ack "You LOST!")}
@@ -749,7 +748,7 @@ define
             thread {Wait Ack} {FigureLoop first} end
             state(player:Play enemy:Npc fighting:true)
          end
-      [] input then
+      [] endAttack then
          state(player:Play enemy:Npc fighting:false)
       [] switch(NewPkm Next) then %this signal can only be sent
          % by a valid button
@@ -761,7 +760,7 @@ define
             if Next == ia then
                {Send WaitAnim wait(FightPort Ack fightIA)}
             else
-               {Send WaitAnim wait(FightPort Ack input)}
+               {Send WaitAnim wait(FightPort Ack endAttack)}
             end
             state(player:NewPkm enemy:Npc fighting:true)
          end
@@ -800,19 +799,64 @@ define
 
 
    %%%%%%% THE EXTERN FUNCTIONS %%%%%%
-   EXPER = exp(5:5 6:12 7:20 8:30 9:50 10:~0)
+   EXPER = exp(5:5 6:12 7:20 8:30 9:50 10:1000000)
    fun{GETTYPE Name}
       Grass = ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
                "Zoizoz" "Grozoizoz" "Machoz" "Machozman" "Ozchamp"]
       Water = ["Otirtle" "Wartoztle" "Charozard" "Rozzozoz" "Roticoz" "Coincwoz"
                "Goldoz" "Ozcool" "Ozcruel" "Magiciendoz" "Pytagyroz"]
       Fire  = ["Charmandoz" "Charmeleoz" "Charozard" "Pidgeoz" "Pidgeozoz"
-               "Ozpidgeoz" "Ozachu" "Ozmouse" "Vulpox" "9xOz" "Oz2_0"]
+               "Ozpidgeoz" "Ozachu" "Ozmouse" "Vulpoz" "9xOz" "Oz2_0"]
    in
       if {Member Name Grass} then grass
       elseif {Member Name Water} then water
       %elseif {Member Name Grass} then fire
       else fire
+      end
+   end
+   fun{GetNewName Name OldLvl NewLvl}
+      fun{GetNext L}
+         case L of nil then none %should not happen
+         [] H|T then
+            if H == Name then T.1
+            else {GetNext T}
+            end
+         end
+      end
+      fun{GetNext2 L}
+         case L of nil then none %should not happen
+         [] H|T then
+            if H == Name then T.2.1
+            else {GetNext2 T}
+            end
+         end
+      end
+      Three=  ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
+               "Machoz" "Machozman" "Ozchamp" "Pidgeoz" "Pidgeozoz" "Ozpidgeoz"
+               "Otirtle" "Wartoztle" "Blastoz" "Charmandoz" "Charmeleoz"
+               "Charozard"]
+      Two  =  ["Zoizoz" "Grozoizoz" "Magiciendoz" "Pytagyroz" "Rozzozoz"
+               "Roticoz" "Ozcool" "Ozcruel" "Coincwoz" "Goldoz" "Vulpoz"
+               "9xOz" "Ozachu" "Ozmouse"]
+      One  =  ["Oz2_0"]
+   in
+      if {Member Name One} then none
+      elseif {Member Name Two} then
+         if OldLvl < 8 andthen NewLvl >= 8 then
+            {GetNext Two}
+         else
+            none
+         end
+      else
+         if OldLvl < 7 andthen NewLvl >= 9 then
+            {GetNext2 Three}
+         elseif OldLvl < 7 andthen NewLvl >= 7 then
+            {GetNext Three}
+         elseif OldLvl < 9 andthen NewLvl >=9 then
+            {GetNext Three}
+         else
+            none
+         end
       end
    end
    proc{GetLevel Exp Lvl Ne Le}
@@ -856,11 +900,18 @@ define
                      Evolve = none
                      state(health:He exp:e(act:NExp max:Exp.max)
                      lvl:Lvl)
-                  else NMaxH = (NLvl-5)*2 + 20 in
-                     %TODO!!!
-                     Evolve = none
-                     state(health:he(act:NMaxH max:NMaxH)
-                     exp:e(act:NExp max:EXPER.NLvl) lvl:NLvl)
+                  else NMaxH = (NLvl-5)*2 + 20
+                     NewName = {GetNewName Name Lvl NLvl}
+                  in
+                     if NewName\=none then %evolution
+                        Evolve = {CreatePokemoz NewName NLvl player}
+                        {Send Evolve.pid addExp(NExp _)}
+                        state(killed)
+                     else
+                        Evolve = none
+                        state(health:he(act:NMaxH max:NMaxH)
+                              exp:e(act:NExp max:EXPER.NLvl) lvl:NLvl)
+                     end
                   end
                else % if at maxLvl allready
                   Evolve = none
@@ -967,7 +1018,7 @@ define
             if Evolve == none then
                NewState.Ind = OldState.Ind
             else
-               skip
+               NewState.Ind = Evolve
             end
             {DispatchExp OldState NewState Ind+1 List Exp Rest-1}
          else
@@ -1014,7 +1065,7 @@ define
                in
                   {AddPokemoz State NewState Pkm 1 true}
                   B = true
-                  {Browse NewState}
+                  %{Browse NewState}
                   NewState
                end
             [] switchFirst(Ind B) then
@@ -1238,7 +1289,7 @@ define
                {PlaceH set(Handles.map)}
                {CANVAS.map getFocus(force:true)}
                PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
-                           [Name3] [5] player}
+                           [Name3] [6] player}
                {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}
@@ -1282,7 +1333,7 @@ define
       %List of Names with their start Coordinates
       [npc("Red" start:init(x:5 y:5) speed:5
             states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-            poke:[poke("Charmandoz" 10)])
+            poke:[poke("Charmandoz" 8)])
        npc("Red" start:init(x:5 y:3) speed:5
             states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
             poke:[poke("Bulbasoz" 5) poke("Bulbasoz" 5)])]

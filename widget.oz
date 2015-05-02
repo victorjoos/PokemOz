@@ -247,7 +247,7 @@ define
       Img = img(alive:{LoadImage "ball_full"} dead:{LoadImage "ball_dead"})
       Dx = 23 Dy = 23
       proc{Loop L I}
-         X = I mod 2
+         X = I mod 3
          Y = I div 3
       in
          case L of nil then skip
@@ -362,16 +362,16 @@ define
          Xname Xlvl Xbar Xballs
          Yname Ylvl Ybar Yballs
          if Person == player then
-            Xname = 320+Xst Xlvl = 320+Xst Xbar = 270+Xst Xballs = 390+Xst
-            Yname = 150     Ylvl = 190     Ybar = 165     Yballs = 171
+            Xname = 320+Xst Xlvl = 320+Xst Xbar = 270+Xst Xballs = 402+Xst
+            Yname = 150     Ylvl = 190     Ybar = 165     Yballs = 165
             Tag  = Tags.attrib.1.1
             Tag2 = Tags.attrib.2.1.act
             Tag3 = Tags.attrib.2.1.1
             Tag4 = Tags.attrib.3.1
             Tok  = 1
          else
-            Xname = 160-Xst Xlvl = 160-Xst Xbar = 110-Xst Xballs = 90-Xst
-            Yname = 20      Ylvl = 60      Ybar = 35      Yballs = 41
+            Xname = 160-Xst Xlvl = 160-Xst Xbar = 110-Xst Xballs = 78-Xst
+            Yname = 20      Ylvl = 60      Ybar = 35      Yballs = 35
             Tag = Tags.attrib.1.2
             Tag2 = Tags.attrib.2.2.act
             Tag3 = Tags.attrib.2.2.1
@@ -545,34 +545,34 @@ define
             Buttons.I.3.ondeselect = proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
             Buttons.I.3.onselect   = proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
             Buttons.I.3.onclick    = proc{$}
-            {DeletePokelistTags}
-            if Event == status then
-               {Send MAINPO set(map)}
-            else
-               if {Label Event} == fight then
-                  Event.1 = none
-               else
-                  Event.1 = auto
+                                          {DeletePokelistTags}
+                                          if Event == status then
+                                             {Send MAINPO set(map)}
+                                          else
+                                             if {Label Event} == fight then
+                                                Event.1 = none
+                                             else
+                                                Event.1 = auto
+                                             end
+                                             {Send MAINPO set(fight)}
+                                          end
+                                       end
+         end
+         local
+            fun{GenProc Dir}
+               proc{$}
+                  get(OldX OldY) = {Send Arrows $}
+                  Dir(NewX NewY) = {Send Arrows $}
+               in
+                  {Buttons.OldY.OldX.ondeselect}
+                  {Buttons.NewY.NewX.onselect}
                end
-               {Send MAINPO set(fight)}
             end
-         end
-      end
-      local
-         fun{GenProc Dir}
-            proc{$}
-               get(OldX OldY) = {Send Arrows $}
-               Dir(NewX NewY) = {Send Arrows $}
-            in
-               {Buttons.OldY.OldX.ondeselect}
-               {Buttons.NewY.NewX.onselect}
-            end
-         end
-         proc{EnterCall}
-            getLast(X Y B) = {Send Arrows $}
-            if X<3 then
-               if Rec.((Y-1)*2+X) \= none then B=false
-               else B=true end
+            proc{EnterCall}
+               getLast(X Y B) = {Send Arrows $}
+               if X<3 then
+                  if Rec.((Y-1)*2+X) \= none then B=false
+                  else B=true end
                else B=true end
             in
                {Buttons.Y.X.onclick}
@@ -584,6 +584,7 @@ define
             {Canvash bind(event:"<Right>" action:{GenProc right})}
             {Canvash bind(event:"<Down>" action:{GenProc down})}
             {Canvash bind(event:"<a>" action:EnterCall)}
+            {Canvash bind(event:"<z>" action:Buttons.1.3.onclick)}
          end
       end
       {Canvash getFocus(force:true)}
