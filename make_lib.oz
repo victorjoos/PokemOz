@@ -65,10 +65,11 @@ define
 
 %%%%%% Others %%%%%%
    
-   OTHERS = others("Fight_disk" "bg_fight" "Bulbasoz_full" "Oztirtle_full"
+   OTHERS = others("Fight_disk" "bg_fight" "bg_arena" "bg_starters" "Bulbasoz_full" "Oztirtle_full"
 		   "Charmandoz_full" "leader" "ball_1" "ball_2" "ball_3" "ball_4"
 		   "run_button" "fight_button" "switch_button" "capture_button"
-		   "continue" "lost_screen" "start_screen")
+		   "continue" "start_continue" "win_continue" "lost_screen"
+		   "start_screen" "won_screen")  
    Ow     = {Width OTHERS}
    for I in 1..Ow do Name Name2 in
       Name  = OTHERS.I

@@ -30,6 +30,8 @@ define
    AnimateTrainer = AnimatePort.trainer
    DrawFight = AnimatePort.fight
    GetLostScreen = AnimatePort.getLostScreen
+   GetWelcomeScreen = AnimatePort.getWelcomeScreen
+   GetWonScreen = AnimatePort.getWonScreen
 
    DrawPokeList = Widget.drawPokeList
    InitFightTags = Widget.initFightTags
@@ -37,6 +39,7 @@ define
    DrawMap = Widget.drawMap
    StarterPokemoz = Widget.starterPokemoz
    DrawLost = Widget.drawLost
+   DrawWon  = Widget.drawWon
 
    MAINPO = Widget.mainPO
    PLAYER = Widget.player
@@ -51,13 +54,6 @@ define
    MAXX = Widget.maxX
    MAXY = Widget.maxY
    % This file will contain all the portObjects' descriptions and code
-   %declare
-   %%%%% CONSTANTS %%%%%%%%%
-   %SPEED = 5
-   %DELAY = 100
-   %MAXX  = 7
-   %MAXY  = 7
-
 
    %%%%%%% MAPRELATED PORTOBJECTS %%%%%%%%%%%%
 
@@ -93,7 +89,7 @@ define
       Tid   = {Timer}
       Tilid = {NewPortObject Init
       fun{$ Msg state(State)}
-         {Show tile#Msg}
+         %{Show tile#Msg}
          case Msg
          of get(X) then
             X=State
@@ -223,24 +219,6 @@ define
             else
                B=false
             end
-            %plus nécessaire, supprimer a la fin
-         /*[] check(x:X y:Y B) then
-            if {CheckEdges X Y} andthen
-               {Send MapRec.Y.X get($)}==empty then
-               B=true
-            else
-               B=false
-            end*/
-         [] movingTo(old:pos(OldX OldY) new:pos(X Y) B sig:Sig) then
-            if {CheckEdges X Y} andthen
-               {Send MapRec.Y.X get($)}==empty then
-               B=true
-               {Send MapRec.OldY.OldX leaving}
-               {Send MapRec.Y.X Sig}
-               %if {Label Sig.2} == player then
-            else
-               B=false
-            end
          [] movingToNew(X Y dir:Dir B sig:Sig) then
             Dx   = {GETDIR Dir}
             NewX = X+Dx.x
@@ -254,6 +232,14 @@ define
                   thread
                      {Wait Sig.3}
                      {SignalSides {GETMISSINGDIR Dir} X Y}
+                     if {Label Sig.2}==player then
+                        if NewX == 7 andthen NewY==7 then
+                           {Send Sig.2.poke refill}
+                        elseif NewX==7 andthen NewY==1 then
+                           {Send MAINPO set(won)}
+                           {GetWonScreen}
+                        end
+                     end
                   end
                end
             else B = false
@@ -338,7 +324,7 @@ define
    proc{BlockAI}
       proc{Loop L}
          case L of nil then skip
-         [] H|T then {Send H.pid block}
+         [] H|T then {Send H.pid block} {Loop T}
          end
       end
    in
@@ -347,7 +333,16 @@ define
    proc{ReleaseAI}
       proc{Loop L}
          case L of nil then skip
-         [] H|T then {Send H.pid rmBlock}
+         [] H|T then {Send H.pid rmBlock} {Loop T}
+         end
+      end
+   in
+      {Loop LISTAI}
+   end
+   proc{ReleaseWaitingAI}
+      proc{Loop L}
+         case L of nil then skip
+         [] H|T then {Send H.pid endFight}
          end
       end
    in
@@ -360,44 +355,11 @@ define
       Wid  = {Waiter}
       Plid = {NewPortObject state(still nil)
       fun{$ Msg state(State FSched)}%FSched = fight-scheduler
-         {Browse trCtrl#Msg}
          case Msg
          of getDir(X) then
             {Send Trid getDir(X)}
             state(State FSched)
-            /*[] move(NewDir) then
-            if State == still then
-            ActDir = {Send Trid getDir($)}
-         in
-         if ActDir == NewDir then
-         Pos  = {Send Trid getPos($)}
-         Dx   = {GETDIR NewDir}
-         NewX = Pos.x+Dx.x
-         NewY = Pos.y+Dx.y
-         Val %will be bound on arrival
-         ActDel = {DELAY.get}
-         Sig  = coming(Speed*ActDel TrainerObj Val)
-      in
-      %Check for boundaries and if the tile is free
-      %then send arriving signal
-      if {Send Mapid movingTo(old:pos(Pos.x Pos.y) new:pos(NewX NewY) $ sig:Sig)} then
-      {Send Trid moveTo(x:NewX y:NewY)}
 
-      {Send Wid wait(Plid  Val arrived)}
-      {Send Wid wait(Mapid Val send(x:Pos.x y:Pos.y left))}
-      state(moving FSched)
-   else
-   state(still FSched)
-   end
-   else
-   {Send Trid turn(NewDir)}
-   state(still FSched)
-   end
-   else
-   %Neglect info if moving
-   %{Browse is#State#cantmove}
-   state(State FSched)
-   end*/
          [] move(NewDir) then
             if State == still then
                ActDir = {Send Trid getDir($)}
@@ -427,8 +389,7 @@ define
                   state(still FSched)
                end
             else
-               %Neglect info if moving
-               %{Browse is#State#cantmove}
+               %Neglect info if moving/fighting
                state(State FSched)
             end
          [] startFight(Npc Ack) then %every npc has to be unique
@@ -460,6 +421,7 @@ define
          [] reset(Ack) then %on fight lost
             Pos = {Send Trid getPos($)}
          in
+            thread {ReleaseWaitingAI} end
             {Send TrainerObj.poke refill}
             {Send Mapid send(x:Pos.x y:Pos.y left)}
             {Send Mapid init(x:7 y:7 PLAYER)}
@@ -478,12 +440,13 @@ define
       Wid  = {Waiter}
       Plid = {NewPortObject state(still)
       fun{$ Msg state(State)}
-         {Browse msgAi#Msg}
+         %{Browse msgAi#Msg}
          case Msg
          of getDir(X) then
             {Send Trid getDir(X)}
             state(State)
          [] move(NewDir B) then
+            %{Browse move#asked#State}
             if State == still then
                %ActDir = {Send Trid getDir($)}
                Pos  = {Send Trid getPos($)}
@@ -505,17 +468,6 @@ define
                   B=false
                   state(still)
                end
-               /*if {Send Mapid movingTo(old:pos(Pos.x Pos.y) new:pos(NewX NewY) $ sig:Sig)} then
-                  {Send Trid moveTo(x:NewX y:NewY)}
-
-                  {Send Wid wait(Plid  Val arrived)}
-                  {Send Wid wait(Mapid Val send(x:Pos.x y:Pos.y left))}
-                  B = true
-                  state(moving)
-               else
-                  B = false
-                  state(still)
-               end*/
             else
                B = false
                state(State)
@@ -539,11 +491,11 @@ define
          [] endFight then
             state(still)
          [] rmBlock then
-            {Browse 'rmblock should be working!'}
+            %{Browse 'rmblock should be working!'}
             {Send AIid rmBlock}
             state(State)
          [] block then
-            {Browse 'sent block signal'}
+            %{Browse 'sent block signal'}
             {Send AIid block}
             state(State)
          [] arrived then%should only be bound when everything has been checked
@@ -620,7 +572,7 @@ define
          {Wait Ack}
          {Send Arrows kill}
          if {Label Npc}\=wild then %a supprimer?????
-            {Browse sentEndfight}
+            %{Browse sentEndfight}
             {Send Npc.pid endFight}
          end
          {Send Play.pid nextFight}
@@ -1176,8 +1128,8 @@ define
    %       -Init   = the initial state (<Atom>)
    %       -PlaceH = handle of the placeholder
    fun{MAIN Frames PlaceH MapName Handles}
-      Init = starters
-      Sort =[starters map fight pokelist lost]% won]
+      Init = welcome
+      Sort =[starters map fight pokelist welcome lost won]
       %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
       Main = {NewPortObjectKillable state(Init)
       fun{$ Msg state(Frame)}
@@ -1213,13 +1165,20 @@ define
                PLAYER = {CreatePlayer "Red" 7 7 SPEED MAPID
                            [Name3] [5] player}
                {Send MAPID init(x:7 y:7 PLAYER)}
-               %Transform into function to englobe every enemy!
-               for Enemy in Enemies do Npc = {CreateNpc Enemy MAPID} in
-                  LISTAI = [Npc]
-                  {Send MAPID init(x:Enemy.start.x y:Enemy.start.y
-                  Npc)}
+               local
+                  fun{EnemyList L}
+                     case L of nil then nil
+                     [] Enemy|T then
+                        Npc = {CreateNpc Enemy MAPID}
+                     in
+                        {Send MAPID init(x:Enemy.start.x y:Enemy.start.y Npc)}
+                        Npc|{EnemyList T}
+                     end
+                  end
+               in
+                  LISTAI={EnemyList Enemies}
                end
-               thread {DrawLost} end
+               thread {DrawLost} {DrawWon} end
                state(map)
             end
          end
@@ -1229,7 +1188,7 @@ define
          {PlaceH set(Frames.I)}
       end
       {PlaceH set(Handles.Init)}
-      {StarterPokemoz}
+      {GetWelcomeScreen StarterPokemoz}
       Main
    end
 
@@ -1245,7 +1204,10 @@ define
    fun{ReadEnemies _}
       %List of Names with their start Coordinates
       [npc("Red" start:init(x:5 y:5) speed:5
-      states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-      poke:[poke("Charmandoz" 10)])]
+            states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
+            poke:[poke("Charmandoz" 10)])
+       npc("Red" start:init(x:5 y:3) speed:5
+            states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
+            poke:[poke("Bulbasoz" 5) poke("Bulbasoz" 5)])]
    end
 end

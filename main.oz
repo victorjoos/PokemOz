@@ -36,24 +36,25 @@ define
    MAXX = 7
    MAXY = 7
 
-   proc{BindEvents Window Input} %Input = {keys,autofight,..}
-      if Input == keys then
+   proc{BindEvents Input}
+         Canvash = CANVAS.map
          fun{GenerateMoveProc Dir}
             proc{$}
-               if {Send MAINPO get($)} == map then
-                  {Send PLAYER.pid move(Dir)}
-               else
-                  skip
-               end
+         	   {Send PLAYER.pid move(Dir)}
             end
          end
       in
-         {Window bind(event:"<Up>" action:{GenerateMoveProc up})}
-         {Window bind(event:"<Left>" action:{GenerateMoveProc left})}
-         {Window bind(event:"<Right>" action:{GenerateMoveProc right})}
-         {Window bind(event:"<Down>" action:{GenerateMoveProc down})}
-      else skip
-      end
+         if Input == keys then
+            {Canvash bind(event:"<Up>" action:{GenerateMoveProc up})}
+            {Canvash bind(event:"<Left>" action:{GenerateMoveProc left})}
+            {Canvash bind(event:"<Right>" action:{GenerateMoveProc right})}
+            {Canvash bind(event:"<Down>" action:{GenerateMoveProc down})}
+            {Canvash bind(event:"<e>" action:proc{$}
+                                                 thread {DrawPokeList status} end
+                                                 {Send MAINPO set(pokelist)}
+                                              end)}
+         else skip
+         end
    end
    proc{SetSpeed X}
       SPEED = X
@@ -79,26 +80,26 @@ in
 
 
 %%%%%% Binding the necessary Active Input
-   {Window bind(event:"<Escape>" action:proc{$}
-					   {Window close}
-					   {Application.exit 0}
-					end)}
 
-   {BindEvents Window keys}
+   {BindEvents keys}
    {SetSpeed 5}
-   {SetDelay 150}
+   {SetDelay 50}
    {SetProb  0}
 
-% Just for testing purposes
-   {Window bind(event:"<3>" action:proc{$}
-				      thread {DrawPokeList status} end
-				      {Send MAINPO set(pokelist)}
-				   end)}
-   {Window bind(event:"<r>" action:proc{$} {Send PLAYER.poke refill} end)}
+   %Has to be always bound even when in autofight mode
+   {Window bind(event:"<Escape>" action:toplevel#close)}
    {Window bind(event:"<d>" action: proc{$} DelT={DELAY.get} X in
-                                       if DelT >= 150 then X=50
-                                       elseif DelT >= 100 then X=150
+                                       if DelT >= 200 then X=100
+                                       elseif DelT >= 150 then X=200
                                        else X=100 end
                                        {DELAY.set X}
                                     end)}
+   %For testing purposes!
+   {Window bind(event:"<r>" action:proc{$} {Send PLAYER.poke refill} end)}
+   {Window bind(event:"<p>" action:proc{$}
+				                          {Send MAINPO set(map)}
+				                      end)}
+   {Window bind(event:"<o>" action:proc{$}
+				                          {Send MAINPO set(fight)}
+				                      end)}
 end

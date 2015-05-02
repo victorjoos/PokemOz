@@ -3,6 +3,7 @@ import
    System
    Application
    OS
+   Browser
 
    PortDefinitions
    Widget
@@ -10,6 +11,7 @@ export
    ArtificialPlayer
    GetEnemyAi
 define
+   Browse = Browser.browse
    Show = System.show
    DELAY = Widget.delay
    NewPortObject = PortDefinitions.port

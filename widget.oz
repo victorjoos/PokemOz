@@ -15,6 +15,8 @@ export
    DrawMap
    StarterPokemoz
    DrawLost
+   DrawWelcome
+   DrawWon
 
    TopWidget
    placeholder:PLACEHOLDER
@@ -28,7 +30,6 @@ export
    widgets: WIDGETS % main
    canvas: CANVAS % port, animate_port, main
    tags: TAGS
-   % buttons: BUTTONS % no more buttons !!
 
    mapID: MAPID % main, port_object
 
@@ -91,20 +92,20 @@ define
 
 %%%%%%%%% ALL THE WIDGET HANDLES AND NAMES %%%%%%
 
-   WIDGETS = widgets(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_)
-   CANVAS  =  canvas(starters:_ map:_ fight:_ fight2:_ fight3:_ pokelist:_ lost:_)
-   HANDLES = handles(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_)
+   WIDGETS = widgets(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_ welcome:_)
+   CANVAS  =  canvas(starters:_ map:_ fight:_ fight2:_ fight3:_ pokelist:_ lost:_
+                        won:_ welcome:_)
+   HANDLES = handles(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_ welcome:_)
    TAGS    =    tags(           map:_ map2:_ fight:_ fight2:_ fight3:_ pokelist:_
-				lost:_)
+				           lost:_ won:_ welcome:_)
    PLACEHOLDER
 
 %%%%%%% STARTWIDGET %%%%%%%
 
    proc{StarterPokemoz}
       Canvash = CANVAS.starters
-      Yim=200 Ytx=Yim+75
-      {Canvash create(text 235 50 text:"Choose your PokemOz"
-		      font:{Font type(25)})}
+      Yim=360 Ytx=Yim+75
+       {Canvash create(image image:{LoadImage "bg_starters"} 235 235)}
       Names = all("Bulbasoz" "Charmandoz" "Oztirtle")
       Atoms = all( bulbasoz   charmandoz   oztirtle )
       BgCol    = all(c(42 154 60) c(220 35 35) c(49 71 232))
@@ -115,16 +116,16 @@ define
    in
       for I in 1..3 do
          X=(I-1)*DXX
-         Tag    = {Canvash newTag($)}
+         %Tag    = {Canvash newTag($)}
          Tagbis = {Canvash newTag($)}
       in
       %Drawing
          {Canvash create(rectangle 20+X Yim-65 150+X Yim+95
          	 fill:BgCol.I tags:Tagbis)}
          {Canvash create(text text:Names.I font:{Font type(15)}
-         	 85+X Ytx width:130 tags:Tag fill:white)}
+         	 85+X Ytx width:130 fill:white)} %tags:Tag
          {Canvash create(image image:{LoadImage [Names.I "_full"]}
-         	 85+X Yim tags:Tag)}
+         	 85+X Yim )}%tags:Tag)}
          Buttons.(Atoms.I) = Tagbis
       end
 
@@ -135,12 +136,12 @@ define
                OldX = {Send Arrows get($ _)}
                NewX = {Send Arrows Dir($ _)}
             in
-               {Buttons.(Atoms.OldX) set(fill:BgCol.OldX)}
-               {Buttons.(Atoms.NewX) set(fill:BgColSel.NewX)}
+               {Buttons.(Atoms.OldX) set(fill:BgCol.OldX width:1.0)}
+               {Buttons.(Atoms.NewX) set(fill:BgColSel.NewX width:4.0)}
             end
          end
       in
-         {Buttons.(Atoms.1) set(fill:BgColSel.1)}
+         {Buttons.(Atoms.1) set(fill:BgColSel.1 width:4.0)}
          {Canvash bind(event:"<Up>" action:{GenProc right})}
          {Canvash bind(event:"<Left>" action:{GenProc left})}
          {Canvash bind(event:"<Right>" action:{GenProc right})}
@@ -269,8 +270,8 @@ define
                fill:Color.Atm.1)}
                {Canvash create(image image:{LoadImage [Name "_button"]}
                XX+(Dx div 2) YY+(Dy div 2) tags:Tags.Atm.1)}
-               Buttons.Atm.onselect   = proc{$} {Tags.Atm.bis set(fill:Color.Atm.2)} end
-               Buttons.Atm.ondeselect = proc{$} {Tags.Atm.bis set(fill:Color.Atm.1)} end
+               Buttons.Atm.onselect   = proc{$} {Tags.Atm.bis set(fill:Color.Atm.2 width:4.0)} end
+               Buttons.Atm.ondeselect = proc{$} {Tags.Atm.bis set(fill:Color.Atm.1 width:1.0)} end
             end
          end
          local
@@ -299,6 +300,7 @@ define
          end
       end
    in
+      {CANVAS.fight create(image image:{LoadImage "bg_arena"} 235 235)}
       {RedrawFight npc    Adv }
       {RedrawFight player Play}
       {DrawButtons}
@@ -462,8 +464,8 @@ define
          	 fill:white font:{Font type(16)} tags:Tag)}
          {DrawMiniBar XX+85 YY+100 {Send Play.pid getExp($)} yellow Tag}
          %bind the events
-         Buttons.Y.X.ondeselect =   proc{$} {Tagbis set(fill:Color.1)} end
-         Buttons.Y.X.onselect   =   proc{$} {Tagbis set(fill:Color.2)} end
+         Buttons.Y.X.ondeselect =   proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
+         Buttons.Y.X.onselect   =   proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
          Buttons.Y.X.onclick    =   proc{$}
                                        if Event == status then
                                           B={Send PlayL
@@ -493,8 +495,8 @@ define
          	 tags:Tagbis)}
          {Canvash create(text text:"EMPTY" XX+90 YY+65
          	 fill:white font:{Font type(20)})}
-         Buttons.Y.X.ondeselect = proc{$} {Tagbis set(fill:Color.1)} end
-         Buttons.Y.X.onselect   = proc{$} {Tagbis set(fill:Color.2)} end
+         Buttons.Y.X.ondeselect = proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
+         Buttons.Y.X.onselect   = proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
          Buttons.Y.X.onclick    = proc{$} skip end
       end
    in
@@ -510,14 +512,14 @@ define
       local
          Tag = AllTags.back.1
          Tagbis = AllTags.back.bis
-         Color = c(black blue)
+         Color = c(black c(62 92 203))
       in
          {Canvash create(rectangle 390 20 460 450 fill:Color.1 tags:Tagbis)}
-         {Canvash create(text text:"BACK" 425 235 fill:white width:50
+         {Canvash create(text text:"BACK" 425 235 fill:c(227 197 56) width:50
          	 font:{Font type(50)} tags:Tag)}
          for I in 1..3 do
-            Buttons.I.3.ondeselect = proc{$} {Tagbis set(fill:Color.1)} end
-            Buttons.I.3.onselect   = proc{$} {Tagbis set(fill:Color.2)} end
+            Buttons.I.3.ondeselect = proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
+            Buttons.I.3.onselect   = proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
             Buttons.I.3.onclick    = proc{$}
             {DeletePokelistTags}
             if Event == status then
@@ -565,16 +567,9 @@ define
    WIDGETS.pokelist = canvas(height:470 width:470 handle:HANDLES.pokelist
 			     bg:white)
    thread CANVAS.pokelist = HANDLES.pokelist end
-%%%%%%% TOPWIDGET %%%%%%%%%%
-   TopWidget  = td( placeholder(handle:PLACEHOLDER)
-		    geometry:geometry(height:470 width:470 x:200 y:200)
-		    resizable:resizable(width:false height:false)
-		    action:proc{$}{Application.exit 0} end
-		  )
 
 %%%%%%% LOST SCREEN %%%%%%%
    proc{DrawLost}
-      {Browse called}
       Canvash = CANVAS.lost
       TAGS.lost = {Canvash newTag($)}
    in
@@ -584,4 +579,34 @@ define
    WIDGETS.lost = canvas(height:470 width:470 handle:HANDLES.lost bg:white)
    thread CANVAS.lost = HANDLES.lost end
 %%%%%%%% STARTING SCREEN %%%%%%%%%
+   proc{DrawWelcome}
+      Canvash = CANVAS.welcome
+      TAGS.welcome = {Canvash newTag($)}
+   in
+      {Canvash create(image image:{LoadImage "start_screen"} 235 235)}
+      {Canvash create(image image:{LoadImage "start_continue"} 360 350 tags:TAGS.welcome)}
+   end
+   WIDGETS.welcome = canvas(height:470 width:470 handle:HANDLES.welcome bg:white)
+   thread CANVAS.welcome = HANDLES.welcome end
+
+%%%%% WINNING END-SCREEN %%%%%%
+   proc{DrawWon}
+      Canvash = CANVAS.won
+      TAGS.won = {Canvash newTag($)}
+   in
+      {Canvash create(image image:{LoadImage "won_screen"} 235 235)}
+      {Canvash create(image image:{LoadImage "win_continue"} 330 400 tags:TAGS.won)}
+   end
+   WIDGETS.won = canvas(height:470 width:470 handle:HANDLES.won bg:white)
+   thread CANVAS.won = HANDLES.won end
+
+%%%%%%% TOPWIDGET %%%%%%%%%%
+   RET
+   TopWidget  = td( placeholder(handle:PLACEHOLDER)
+		    geometry:geometry(height:470 width:470 x:200 y:200)
+		    resizable:resizable(width:false height:false)
+		    %action:proc{$}{Application.exit 0} end
+          return:RET
+		  )
+   thread {Wait RET} {Application.exit 0} end
 end
