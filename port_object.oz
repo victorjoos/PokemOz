@@ -342,7 +342,7 @@ define
    proc{ReleaseWaitingAI}
       proc{Loop L}
          case L of nil then skip
-         [] H|T then {Send H.pid endFight}
+         [] H|T then {Send H.pid endFight} {Loop T}
          end
       end
    in
@@ -582,12 +582,12 @@ define
    proc{OnBadExit Ack}
       %{OnExit Ack}
       thread Ack2 in
-      {Wait Ack}
-      {Send Arrows kill}
-      {Send Play.pid reset(Ack2)}
-      {Wait Ack2}
-      {GetLostScreen ReleaseAI}
-   end
+         {Wait Ack}
+         {Send Arrows kill}
+         {Send Play.pid reset(Ack2)}
+         {Wait Ack2}
+         {GetLostScreen ReleaseAI}
+      end
    end
    FightPort = {NewPortObjectKillable
    state( player:{Send PlayL getFirst($)}
