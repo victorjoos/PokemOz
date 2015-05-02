@@ -74,6 +74,10 @@ define
    {OS.srand 0}
 %%%%%% Launching the main operations
    Window = {QTk.build TopWidget}
+   Args = {Application.getArgs record('speed'(single char:&s type:int default:5)
+				      'delay'(single char:&d type:int default:50)
+				      'probability'(single char:&p type:int default:30)
+				      'map'(single char:&m type:string default:"Map.txt"))}
 in
    {Window show}
    MAINPO = {MAIN WIDGETS PLACEHOLDER _ HANDLES}
@@ -82,9 +86,9 @@ in
 %%%%%% Binding the necessary Active Input
 
    {BindEvents keys}
-   {SetSpeed 5}
-   {SetDelay 50}
-   {SetProb  100}
+   {SetSpeed Args.speed}
+   {SetDelay Args.delay}
+   {SetProb  Args.probability}
 
    %Has to be always bound even when in autofight mode
    {Window bind(event:"<Escape>" action:toplevel#close)}
