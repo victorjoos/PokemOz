@@ -1,3 +1,4 @@
+ARGS = -s5 -d50 -p30 --map Map.txt
 main.oza : main.oz PortObject.ozf Widget.ozf LibImg.ozf
 	ozc -c main.oz -o main.oza
 PortObject.ozf : port_object.oz AnimatePort.ozf AI.ozf Widget.ozf PortDefinitions.ozf
@@ -15,9 +16,8 @@ LibImg.ozf : make_lib.oz
 	ozengine make_lib.ozf
 lib : LibImg.ozf
 	@echo done
-all : main.oza
-run : all lib
-	ozengine main.oza
+run : main.oza LibImg.ozf
+	ozengine main.oza $(ARGS)
 clean :
 	rm -rf PortObject.ozf AnimatePort.ozf Widget.ozf PortDefinitions.ozf AI.ozf
 cleanall : clean
