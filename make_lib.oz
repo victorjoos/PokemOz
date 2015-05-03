@@ -17,8 +17,13 @@ define
    EXTENSION      = ".gif"
 
 %%%%%%% Pokemoz %%%%%%%
-   ALL_NAMES      = pokemoz("Bulbasoz" "Oztirtle" "Charmandoz")
-   ALL_ATTRIBUTES = attrib("_back" "_front" "_small")
+   ALL_NAMES      = pokemoz("Bulbasoz" "Oztirtle" "Charmandoz" "Ivysoz" "Venusoz"
+			    "Charmeleoz" "Charozard" "Wartoztle" "Blastoz" "Ozweed"
+			    "Kakunoz" "Ozdrill" "Pidgeoz" "Pidgeozoz" "Ozpidgeoz"
+			    "Rozzozoz" "Roticoz" "Ozachu" "Ozmouse" "Vulpoz" "9xOz"
+			    "Zoizoz" "Grozoizoz" "Coincwoz" "Goldoz" "Machoz" "Machozman"
+			    "Ozchamp" "Ozcool" "Ozcruel" "Oz2_0" "Magiciendoz" "Pytagyroz")
+   ALL_ATTRIBUTES = attrib("_back" "_front" )%"_small")
 
    ANw = {Width ALL_NAMES}
    AAw = {Width ALL_ATTRIBUTES}
@@ -66,7 +71,7 @@ define
 %%%%%% Others %%%%%%
    
    OTHERS = others("Fight_disk" "bg_fight" "bg_arena" "bg_starters" "Bulbasoz_full" "Oztirtle_full"
-		   "Charmandoz_full" "leader" "ball_1" "ball_2" "ball_3" "ball_4"
+		   "Charmandoz_full" "leader" "ball_1" "ball_2" "ball_3" "ball_4" "ball_dead" "ball_full"
 		   "run_button" "fight_button" "switch_button" "capture_button"
 		   "continue" "start_continue" "win_continue" "lost_screen"
 		   "start_screen" "won_screen")  

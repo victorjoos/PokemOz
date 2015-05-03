@@ -32,14 +32,17 @@ define
    GetLostScreen = AnimatePort.getLostScreen
    GetWelcomeScreen = AnimatePort.getWelcomeScreen
    GetWonScreen = AnimatePort.getWonScreen
+   GetEvolveScreen = AnimatePort.getEvolveScreen
 
    DrawPokeList = Widget.drawPokeList
    InitFightTags = Widget.initFightTags
    InitPokeTags = Widget.initPokeTags
+   InitEvolveTags = Widget.initEvolveTags
    DrawMap = Widget.drawMap
    StarterPokemoz = Widget.starterPokemoz
    DrawLost = Widget.drawLost
    DrawWon  = Widget.drawWon
+   DrawEvolve = Widget.drawEvolve
 
    MAINPO = Widget.mainPO
    PLAYER = Widget.player
@@ -233,9 +236,9 @@ define
                      {Wait Sig.3}
                      {SignalSides {GETMISSINGDIR Dir} X Y}
                      if {Label Sig.2}==player then
-                        if NewX == 7 andthen NewY==7 then
+                        if NewX == MAXX andthen NewY==MAXY then
                            {Send Sig.2.poke refill}
-                        elseif NewX==7 andthen NewY==1 then
+                        elseif NewX==MAXX andthen NewY==1 then
                            {Send MAINPO set(won)}
                            {GetWonScreen}
                         end
@@ -263,23 +266,76 @@ define
    end
    %%%%%%%% WILD-POKEMOZ  %%%%%%%%
    CreatePokemoz CreatePokemozList
-   fun{RandomName}
-      "Bulbasoz"
+   fun{RandomName Type}
+      Names=
+      pokemoz( grass:grass( %poke("Bulbasoz" "Ivysoz" "Venusoz")
+                           poke("Ozweed" "Kakunoz" "Ozdrill")
+                           poke("Machoz" "Machozman" "Ozchamp")
+                           poke("Rozzozoz" "Roticoz"))
+
+               water:water(%poke("Otirtle" "Wartoztle" "Blastoz")
+                           poke("Zoizoz" "Grozoizoz")
+                           poke("Magiciendoz" "Pytagyroz")
+                           poke("Ozcool" "Ozcruel")
+                           poke("Coincwoz" "Goldoz"))
+
+               fire:fire(  %poke("Charmandoz" "Charmeleoz" "Charozard")
+                           poke("Vulpoz" "9xOz")
+                           poke("Oz2_0")
+                           poke("Ozachu" "Ozmouse")
+                           poke("Pidgeoz" "Pidgeozoz" "Ozpidgeoz")))
+      X R
+   in
+      if Type == grass then X = 3
+      else X = 4
+      end
+      Names.Type.(({OS.rand} mod X)+1)
    end
    WildlingTrainer
    thread WildlingTrainer = wild(poke:{CreatePokemozList nil nil wild}) end
    %CreateTrainer Name X0 Y0 Speed Mapid Names Lvls Type}
    fun{GetWildling}
+      fun{Opposite Type}
+         case Type
+         of water then grass
+         [] grass then fire
+         [] fire  then water
+         end
+      end
+   in
       if ({OS.rand} mod 100)+1 =< PROBABILITY then
+         %Calculating lvl
          Lvl={FloatToInt {Round {Send PLAYER.poke getAverage($)}}}
          R
-         Ra = {OS.rand} mod 15
-         if Ra < 10 then R = ~1
-         elseif Ra < 13 then R = 0
-         else R = 1 end
-         NLvl = {Max Lvl+R 5}
-         %TODO add dependency on first pokemoz type
-         Pokemoz={CreatePokemoz {RandomName} {Min NLvl 10} wild}
+         Ra = {OS.rand} mod 50
+         if Ra < 35 then R = ~1
+         elseif Ra < 48 then R = 0
+         else R = 1
+         end
+         Lvl2 = {Max Lvl+R 5}
+         Lvl3 = {Min Lvl2 10}
+
+         %Choosing type
+         Type = {Send PLAYER.poke getFirst($)}.type
+         Type2
+         Ra2 = {OS.rand} mod 50
+         if Ra2 < 38 then Type2 = {Opposite {Opposite Type}}
+         elseif Ra2 < 48 then Type2 = Type
+         else Type2 = {Opposite Type}
+         end
+         %Getting pokemoz
+         Name = {RandomName Type2} Name2
+         case Name
+         of poke(X) then Name2 = X
+         [] poke(X1 X2) then
+            if Lvl3<8 then Name2 = X1
+            else Name2 = X2 end
+         [] poke(X1 X2 X3) then
+            if Lvl3<7 then Name2 = X1
+            elseif Lvl3<9 then Name2 = X2
+            else Name2 = X3 end
+         end
+         Pokemoz={CreatePokemoz Name2 Lvl3 wild}
          Ack
       in
          {Send WildlingTrainer.poke add(Pokemoz Ack)}
@@ -315,7 +371,7 @@ define
             state(Pos dir:NewDir)
          [] reset then
             {Send Anid reset}
-            state(pos(x:7 y:7) dir:up)
+            state(pos(x:MAXX y:MAXY) dir:up)
          end
       end}
    in
@@ -424,7 +480,7 @@ define
             thread {ReleaseWaitingAI} end
             {Send TrainerObj.poke refill}
             {Send Mapid send(x:Pos.x y:Pos.y left)}
-            {Send Mapid init(x:7 y:7 PLAYER)}
+            {Send Mapid init(x:MAXX y:MAXY PLAYER)}
             {Send Trid reset}
             Ack=unit
             state(still nil)
@@ -563,21 +619,30 @@ define
    fun {CatchSuccessful Play Npc}
       true
    end
-
+   proc{CreateEvoScreens L}
+      case L of nil then skip
+      [] (Name1#Name2)|T then Img Text in
+         Img#Text = {DrawEvolve Name1 Name2}
+         {Send MAINPO set(evolve)}
+         {GetEvolveScreen Img Text}
+         {CreateEvoScreens T}
+      end
+   end
    fun {FightController Play Npc FightAnim Arrows}%PlayL and NpcL are <PokemozList>
       PlayL = Play.poke NpcL=Npc.poke
       WaitAnim = {Waiter}
-      proc{OnExit Ack}
+      proc{OnExit Ack EvoL}
          thread
-         {Wait Ack}
-         {Send Arrows kill}
-         if {Label Npc}\=wild then %a supprimer?????
-            %{Browse sentEndfight}
-            {Send Npc.pid endFight}
+            {Wait Ack}
+            {Send Arrows kill}
+            if {Label Npc}\=wild then
+               {Send Npc.pid endFight}
+            end
+            % Evolution
+            {CreateEvoScreens EvoL}
+            {Send Play.pid nextFight}
+            {Send MAINPO set(map)}
          end
-         {Send Play.pid nextFight}
-         {Send MAINPO set(map)}
-      end
    end
    proc{OnBadExit Ack}
       %{OnExit Ack}
@@ -590,9 +655,9 @@ define
       end
    end
    FightPort = {NewPortObjectKillable
-   state( player:{Send PlayL getFirst($)}
-   enemy:{Send NpcL  getFirst($)}
-   fighting:false)
+   state(player:{Send PlayL getFirst($)}
+         enemy:{Send NpcL  getFirst($)}
+         fighting:false)
    fun{$ Msg state(player:Play enemy:Npc fighting:OK)}
       case Msg
       of run then
@@ -606,7 +671,7 @@ define
                {Send FightAnim exit(Ack "You ran away cowardly...")}
                %{Send WaitAnim wait(MAINPO Ack set(map))}
                {Send WaitAnim wait(NpcL Ack releaseAll)}
-               {OnExit Ack}
+               {OnExit Ack nil}
                state(killed)
             else
                % Send signal to itself for AI turn = automatic
@@ -640,11 +705,11 @@ define
             if NEState == alive then
                {Send WaitAnim wait(FightPort Ack fightIA)}
                state(player:Play enemy:Npc fighting:true)
-            elseif {Send NpcL getState($)} == allDead then Ack in
+            elseif {Send NpcL getState($)} == allDead then Ack EvoL in
                {Send FightAnim exit(Ack "You WON!")}
                %{Send WaitAnim wait(MAINPO B set(map))}
-               {OnExit Ack}
-               {Send PlayL shareExp({Send NpcL getAllExp($)})}
+               {Send PlayL shareExp({Send NpcL getAllExp($)} EvoL)}
+               {OnExit Ack EvoL}
                {Send NpcL releaseAll}
                state(killed)
             else
@@ -665,7 +730,7 @@ define
          end
 
          if NTState == alive then
-            {Send WaitAnim wait(FightPort Ack input)}
+            {Send WaitAnim wait(FightPort Ack endAttack)}
             state(player:Play enemy:Npc fighting:OK)
          elseif {Send PlayL getState($)} == allDead then Ack in
             {Send FightAnim exit(Ack "You LOST!")}
@@ -695,7 +760,7 @@ define
             thread {Wait Ack} {FigureLoop first} end
             state(player:Play enemy:Npc fighting:true)
          end
-      [] input then
+      [] endAttack then
          state(player:Play enemy:Npc fighting:false)
       [] switch(NewPkm Next) then %this signal can only be sent
          % by a valid button
@@ -707,7 +772,7 @@ define
             if Next == ia then
                {Send WaitAnim wait(FightPort Ack fightIA)}
             else
-               {Send WaitAnim wait(FightPort Ack input)}
+               {Send WaitAnim wait(FightPort Ack endAttack)}
             end
             state(player:NewPkm enemy:Npc fighting:true)
          end
@@ -728,12 +793,12 @@ define
             {Send NpcL captured}
             {Send PlayL add(Npc _)}
             {Send FightAnim catched(Ack)}
-	    {Send WaitAnim wait(MAINPO Ack set(map))}
-	    {OnExit Ack}
+            {Send WaitAnim wait(MAINPO Ack set(map))}
+      	   {OnExit Ack nil}
             state(killed)
          else Ack in
             {Send FightAnim failCatch(Ack)}
-	    {Send WaitAnim wait(FightPort Ack fightIA)}
+            {Send WaitAnim wait(FightPort Ack fightIA)}
             state(player:Play enemy:Npc fighting:true)
          end
       end
@@ -741,17 +806,70 @@ define
    in
       % TODO add chances of capture
       %      add chances of running
+      {Browse 'fight created'}
       FightPort
    end
 
 
    %%%%%%% THE EXTERN FUNCTIONS %%%%%%
-   EXPER = exp(5:5 6:12 7:20 8:30 9:50 10:~0)
+   EXPER = exp(5:5 6:12 7:20 8:30 9:50 10:1000000)
    fun{GETTYPE Name}
-      case Name
-      of "Bulbasoz"   then grass
-      [] "Charmandoz" then fire
-      [] "Oztirtle"   then water
+      Grass = ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
+               "Zoizoz" "Grozoizoz" "Machoz" "Machozman" "Ozchamp"]
+      Water = ["Otirtle" "Wartoztle" "Charozard" "Rozzozoz" "Roticoz" "Coincwoz"
+               "Goldoz" "Ozcool" "Ozcruel" "Magiciendoz" "Pytagyroz"]
+      Fire  = ["Charmandoz" "Charmeleoz" "Charozard" "Pidgeoz" "Pidgeozoz"
+               "Ozpidgeoz" "Ozachu" "Ozmouse" "Vulpoz" "9xOz" "Oz2_0"]
+   in
+      if {Member Name Grass} then grass
+      elseif {Member Name Water} then water
+      %elseif {Member Name Grass} then fire
+      else fire
+      end
+   end
+   fun{GetNewName Name OldLvl NewLvl}
+      fun{GetNext L}
+         case L of nil then none %should not happen
+         [] H|T then
+            if H == Name then T.1
+            else {GetNext T}
+            end
+         end
+      end
+      fun{GetNext2 L}
+         case L of nil then none %should not happen
+         [] H|T then
+            if H == Name then T.2.1
+            else {GetNext2 T}
+            end
+         end
+      end
+      Three=  ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
+               "Machoz" "Machozman" "Ozchamp" "Pidgeoz" "Pidgeozoz" "Ozpidgeoz"
+               "Otirtle" "Wartoztle" "Blastoz" "Charmandoz" "Charmeleoz"
+               "Charozard"]
+      Two  =  ["Zoizoz" "Grozoizoz" "Magiciendoz" "Pytagyroz" "Rozzozoz"
+               "Roticoz" "Ozcool" "Ozcruel" "Coincwoz" "Goldoz" "Vulpoz"
+               "9xOz" "Ozachu" "Ozmouse"]
+      One  =  ["Oz2_0"]
+   in
+      if {Member Name One} then none
+      elseif {Member Name Two} then
+         if OldLvl < 8 andthen NewLvl >= 8 then
+            {GetNext Two}
+         else
+            none
+         end
+      else
+         if OldLvl < 7 andthen NewLvl >= 9 then
+            {GetNext2 Three}
+         elseif OldLvl < 7 andthen NewLvl >= 7 then
+            {GetNext Three}
+         elseif OldLvl < 9 andthen NewLvl >=9 then
+            {GetNext Three}
+         else
+            none
+         end
       end
    end
    proc{GetLevel Exp Lvl Ne Le}
@@ -795,11 +913,18 @@ define
                      Evolve = none
                      state(health:He exp:e(act:NExp max:Exp.max)
                      lvl:Lvl)
-                  else NMaxH = (NLvl-5)*2 + 20 in
-                     %TODO!!!
-                     Evolve = none
-                     state(health:he(act:NMaxH max:NMaxH)
-                     exp:e(act:NExp max:EXPER.NLvl) lvl:NLvl)
+                  else NMaxH = (NLvl-5)*2 + 20
+                     NewName = {GetNewName Name Lvl NLvl}
+                  in
+                     if NewName\=none then %evolution
+                        Evolve = {CreatePokemoz NewName NLvl player}
+                        {Send Evolve.pid addExp(NExp _)}
+                        state(killed)
+                     else
+                        Evolve = none
+                        state(health:he(act:NMaxH max:NMaxH)
+                              exp:e(act:NExp max:EXPER.NLvl) lvl:NLvl)
+                     end
                   end
                else % if at maxLvl allready
                   Evolve = none
@@ -889,8 +1014,8 @@ define
          end
       end
    end
-   proc{DispatchExp OldState NewState Ind List Exp Rest}
-      if Ind > 6 then skip
+   fun{DispatchExp OldState NewState Ind List Exp Rest}
+      if Ind > 6 then nil
       else
          if List.Ind then
             Evolve ActExp ActRest
@@ -905,10 +1030,11 @@ define
             {Send OldState.Ind.pid addExp(ActExp Evolve)}
             if Evolve == none then
                NewState.Ind = OldState.Ind
-            else
-               skip
+               {DispatchExp OldState NewState Ind+1 List Exp Rest-1}
+            else Img Text in
+               NewState.Ind = Evolve
+               (OldState.Ind.name#Evolve.name)|{DispatchExp OldState NewState Ind+1 List Exp Rest-1}
             end
-            {DispatchExp OldState NewState Ind+1 List Exp Rest-1}
          else
             NewState.Ind = OldState.Ind
             {DispatchExp OldState NewState Ind+1 List Exp Rest}
@@ -924,6 +1050,15 @@ define
          State.Ind|{GetAllLiving State Ind+1}
       end
    end
+   fun{GetAllBalls State Ind}
+      if Ind==7 then nil
+      elseif State.Ind == none then nil
+      elseif{Send State.Ind.pid getHealth($)}.act == 0 then
+         dead|{GetAllBalls State Ind+1}
+      else
+         alive|{GetAllBalls State Ind+1}
+      end
+   end
    fun{CreatePokemozList Names Lvls Type}
       Init = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
       Q =  {GetPokemoz Names Lvls Init 1 $ Type}
@@ -935,109 +1070,112 @@ define
       PokeLid = {NewPortObject Init
       fun{$ Msg State}
          case Msg
-	 of add(Pkm B) then
-            if State.6 \= none then
-               B = false
-               State
-            else
-               NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-            in
-               {AddPokemoz State NewState Pkm 1 true}
-	       B = true
-	       {Browse NewState}
-               NewState
-            end
-         [] switchFirst(Ind B) then
-            if Ind == State.first then
-               B=unit State
-            else
-               NewState = all(1:State.1 2:State.2 3:State.3
-               4:State.4 5:State.5 6:State.6
-               first:Ind) in
-               B=unit
-               NewState
-            end
-         [] release(Ind B) then
-            if State.Ind == none then B=unit State
-            else
-               NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
-            in
-               {RmPokemoz State NewState 1 Ind}
-               {Send State.Ind.pid kill}
-               if Ind == State.first then
-                  NewState.first = 1
+            of add(Pkm B) then
+               if State.6 \= none then
+                  B = false
+                  State
                else
-                  NewState.first = State.first
+                  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+               in
+                  {AddPokemoz State NewState Pkm 1 true}
+                  B = true
+                  %{Browse NewState}
+                  NewState
                end
-               B=unit
+            [] switchFirst(Ind B) then
+               if Ind == State.first then
+                  B=unit State
+               else
+                  NewState = all(1:State.1 2:State.2 3:State.3
+                  4:State.4 5:State.5 6:State.6
+                  first:Ind) in
+                  B=unit
+                  NewState
+               end
+            [] release(Ind B) then
+               if State.Ind == none then B=unit State
+               else
+                  NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
+               in
+                  {RmPokemoz State NewState 1 Ind}
+                  {Send State.Ind.pid kill}
+                  if Ind == State.first then
+                     NewState.first = 1
+                  else
+                     NewState.first = State.first
+                  end
+                  B=unit
+                  NewState
+               end
+            [] get(X Ind) then  X=State.Ind State
+            [] getAll(X) then X=State State
+            [] getFirst(X) then
+               if State.first == none then X = none
+               else X=State.(State.first) end
+               State
+            [] getAverage(X) then %TODO : refaire pour faire le MAX
+               %returns the average of the first 3 Pkm
+               if State.2 == none then
+                  X = {IntToFloat {Send State.1.pid getLvl($)}}
+               elseif State.3 == none then
+                  X = ({IntToFloat {Send State.1.pid getLvl($)}} +
+                  {IntToFloat {Send State.2.pid getLvl($)}})/2.0
+               else
+                  X = ({IntToFloat {Send State.1.pid getLvl($)}} +
+                  {IntToFloat {Send State.2.pid getLvl($)}} +
+                  {IntToFloat {Send State.3.pid getLvl($)}})/3.0
+               end
+               State
+            [] refill then
+               for I in 1..6 do
+                  if State.I \= none then
+                     {Send State.I.pid refill}
+                  end
+               end
+               State
+            [] releaseAll then
+               for I in 1..6 do
+                  if State.I \= none then
+                     {Send State.I.pid kill}
+                  end
+               end
+               all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
+            [] getAllExp(X) then
+               X={GatherExp State 1 0}
+               State
+            [] captured then %only possible with wild pokemoz!
+               all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
+            [] shareExp(TotExp EvoL) then
+               NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:State.first)
+               First %checks if the first one is alive
+               Length %number of alive pokemoz
+               XP Rest List=list(1:_ 2:_ 3:_ 4:_ 5:_ 6:_)
+               {GetAlive State First Length 1 0 State.first List}
+               if First then
+                  XP = TotExp div (Length+1)
+                  Rest = TotExp mod (Length+1)
+               else
+                  XP = TotExp div Length
+                  Rest = TotExp mod Length
+               end
+            in
+               EvoL = {DispatchExp State NewState 1 List XP Rest }
                NewState
-            end
-         [] get(X Ind) then  X=State.Ind State
-         [] getAll(X) then X=State State
-         [] getFirst(X) then
-            if State.first == none then X = none
-            else X=State.(State.first) end
-            State
-         [] getAverage(X) then %TODO : refaire pour faire le MAX
-            %returns the average of the first 3 Pkm
-            if State.2 == none then
-               X = {IntToFloat {Send State.1.pid getLvl($)}}
-            elseif State.3 == none then
-               X = ({IntToFloat {Send State.1.pid getLvl($)}} +
-               {IntToFloat {Send State.2.pid getLvl($)}})/2.0
-            else
-               X = ({IntToFloat {Send State.1.pid getLvl($)}} +
-               {IntToFloat {Send State.2.pid getLvl($)}} +
-               {IntToFloat {Send State.3.pid getLvl($)}})/3.0
-            end
-            State
-         [] refill then
-            for I in 1..6 do
-               if State.I \= none then
-                  {Send State.I.pid refill}
+            [] getAllLiving(X) then
+               X={GetAllLiving State 1}
+               State
+            [] getState(X) then
+               if {Length {GetAllLiving State 1}} == 0 then
+                  X=allDead
+               else
+                  X=alive
                end
+               State
+            [] getBalls(X) then
+               X={GetAllBalls State 1}
+               State
             end
-            State
-         [] releaseAll then
-            for I in 1..6 do
-               if State.I \= none then
-                  {Send State.I.pid kill}
-               end
-            end
-            all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
-         [] getAllExp(X) then
-            X={GatherExp State 1 0}
-            State
-         [] captured then %only possible with wild pokemoz!
-            all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
-         [] shareExp(TotExp) then
-            NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:State.first)
-            First %checks if the first one is alive
-            Length %number of alive pokemoz
-            XP Rest List=list(1:_ 2:_ 3:_ 4:_ 5:_ 6:_)
-            {GetAlive State First Length 1 0 State.first List}
-            if First then
-               XP = TotExp div (Length+1)
-               Rest = TotExp mod (Length+1)
-            else
-               XP = TotExp div Length
-               Rest = TotExp mod Length
-            end
-         in
-            {DispatchExp State NewState 1 List XP Rest }
-            NewState
-         [] getAllLiving(X) then
-            X={GetAllLiving State 1}
-            State
-         [] getState(X) then
-            if {Length {GetAllLiving State 1}} == 0 then
-               X=allDead
-            else
-               X=alive
-            end
-            State
-         end
-      end}
+         end}
    in
       PokeLid
    end
@@ -1090,7 +1228,6 @@ define
       {Send MAINPO set(fight)}
       %Buttons Arrows
       Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
-      %Add support for on exit of buttons!
       Fight = {FightController Player NPC Animation Arrows}
    in
       {Wait Buttons}
@@ -1131,7 +1268,7 @@ define
    %       -PlaceH = handle of the placeholder
    fun{MAIN Frames PlaceH MapName Handles}
       Init = welcome
-      Sort =[starters map fight pokelist welcome lost won]
+      Sort =[starters map fight pokelist welcome lost won evolve]
       %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
       Main = {NewPortObjectKillable state(Init)
       fun{$ Msg state(Frame)}
@@ -1156,17 +1293,16 @@ define
                Enemies = {ReadEnemies _}
             in
                % Initialize the tags
-               thread {InitFightTags} end
-               thread {InitPokeTags} end
+               thread {InitFightTags} {InitPokeTags} {InitEvolveTags} end
                % Create the Map Environment
                MAPID = {MapController Map}
-               {DrawMap Map 7 7}%should NOT EVER
+               {DrawMap Map MAXX MAXY}%should NOT EVER
                % be threaded!!!
                {PlaceH set(Handles.map)}
                {CANVAS.map getFocus(force:true)}
-               PLAYER = {CreatePlayer "Red" 7 7 SPEED MAPID
-                           [Name3] [5] player}
-               {Send MAPID init(x:7 y:7 PLAYER)}
+               PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
+                           [Name3 "Bulbasoz"] [6 6] player}
+               {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}
                      case L of nil then nil
@@ -1195,6 +1331,8 @@ define
    end
 
    fun{ReadMap _}%should be replaced by 'Name' afterwards
+      MAXX = 7
+      MAXY = 7
       map(  r(1 1 1 0 0 0 0)
             r(1 1 1 0 0 1 1)
             r(1 1 1 0 0 1 1)
@@ -1207,7 +1345,7 @@ define
       %List of Names with their start Coordinates
       [npc("Red" start:init(x:5 y:5) speed:5
             states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-            poke:[poke("Charmandoz" 10)])
+            poke:[poke("Charmandoz" 8)])
        npc("Red" start:init(x:5 y:3) speed:5
             states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
             poke:[poke("Bulbasoz" 5) poke("Bulbasoz" 5)])]

@@ -62,14 +62,15 @@ define
    end
    fun {NewPortObjectKillable Init Func}
       proc {Loop S State}
-	 case State of state(killed) then
-	    {Show 'thread_killed'}
-	    skip
-	 else
-	    case S of Msg|S2 then
-	       {Loop S2 {Func Msg State}}
-	    end
-	 end
+         case State of state(killed) then
+            {Delay 500}
+            {Show 'thread_killed'}
+            skip
+         else
+            case S of Msg|S2 then
+               {Loop S2 {Func Msg State}}
+            end
+         end
       end
       P S
    in
@@ -79,14 +80,14 @@ define
    end
    fun {NewPortObjectKillableOnExit Init Func OnExit}
       proc {Loop S State}
-	 case State of state(killed) then
-	    {Show 'thread_killed'}
-	    {OnExit}
-	 else
-	    case S of Msg|S2 then
-	       {Loop S2 {Func Msg State}}
-	    end
-	 end
+         case State of state(killed) then
+            {Show 'thread_killed'}
+            {OnExit}
+         else
+            case S of Msg|S2 then
+               {Loop S2 {Func Msg State}}
+            end
+         end
       end
       P S
    in

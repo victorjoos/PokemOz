@@ -32,9 +32,9 @@ define
    PROBABILITY = Widget.probability
    MAXX = Widget.maxX
    MAXY = Widget.maxY
-
-   MAXX = 7
-   MAXY = 7
+   %Moved to ReadMap
+   %MAXX = 7
+   %MAXY = 7
 
    proc{BindEvents Input}
          Canvash = CANVAS.map
@@ -62,7 +62,7 @@ define
    proc{SetDelay X}
       Delid = {NewPortObject X fun{$ Msg State}
 				  case Msg
-				  of set(Y) then Y
+				  of set(Y) then {Show set(Y)} Y
 				  [] get(Y) then Y=State State end end}
    in
       DELAY= delay(get:fun{$} {Send Delid get($)} end
@@ -80,7 +80,7 @@ define
 				      'map'(single char:&m type:string default:"Map.txt"))}
 in
    {Window show}
-   MAINPO = {MAIN WIDGETS PLACEHOLDER _ HANDLES}
+   MAINPO = {MAIN WIDGETS PLACEHOLDER Args.map HANDLES}
 
 
 %%%%%% Binding the necessary Active Input
@@ -93,8 +93,10 @@ in
    %Has to be always bound even when in autofight mode
    {Window bind(event:"<Escape>" action:toplevel#close)}
    {Window bind(event:"<d>" action: proc{$} DelT={DELAY.get} X in
-                                       if DelT >= 200 then X=100
+                                       {Show set#delay}
+                                       if DelT >= 200 then X=50
                                        elseif DelT >= 150 then X=200
+                                       elseif DelT >= 100 then X=150
                                        else X=100 end
                                        {DELAY.set X}
                                     end)}
@@ -106,4 +108,7 @@ in
    {Window bind(event:"<o>" action:proc{$}
 				                          {Send MAINPO set(fight)}
 				                      end)}
+   {Window bind(event:"<t>" action:proc{$}
+                           {Send {Send PLAYER.poke getFirst($)}.pid addExp(10 _)}
+                        end)}
 end

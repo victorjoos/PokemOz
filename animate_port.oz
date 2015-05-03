@@ -9,6 +9,7 @@ export
    GetLostScreen
    GetWelcomeScreen
    GetWonScreen
+   GetEvolveScreen
 define
 % Imports
    Browse = Browser.browse
@@ -95,17 +96,18 @@ define
    proc{AllTagsToList AllTags L1 L2}
       case AllTags
          of tags(plateau:plateau(disk(D1 D2) pokemoz(P1 P2))
-         attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
-         bar(act:Ba2 Bb2)))
-         others:_ ball:_) then
-         L1 = [D1 P1 T1 Ba1 Bb1]
-         L2 = [D2 P2 T2 Ba2 Bb2]
+                  attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
+                                                bar(act:Ba2 Bb2))
+                                 balls(B1 B2))
+                  others:_ ball:_) then
+         L1 = [D1 P1 T1 Ba1 Bb1 B1]
+         L2 = [D2 P2 T2 Ba2 Bb2 B2]
       end
    end
    %Intern
    fun{GetMove Dx} Cst = 20 in
       if     Dx ==  1 then proc{$ Tag} {Tag move( Cst 0)} end
-   elseif Dx == ~1 then proc{$ Tag} {Tag move(~Cst 0)} end end
+      elseif Dx == ~1 then proc{$ Tag} {Tag move(~Cst 0)} end end
    end
    %Intern
    proc{Apply L F}
@@ -180,7 +182,7 @@ define
    %Inter
    proc{MoveBall Tag}
       Canvas = CANVAS.fight
-      Dt = {DELAY.get} div 4
+      Dt = {DELAY.get} div 3
       XX = 195
       YY = 190
       Dx = dx( 20  18  15  15  15  15  10 10 10 10 9  6)
@@ -307,7 +309,7 @@ define
                         end
                         {Apply LTagsPlay proc{$ T} {T delete} end}
                         %Switch the images here
-                        {RedrawFight player New}
+                        {RedrawFight player New {Send PlayL getBalls($)}}
                         for _ in 1..25 do
                            {MoveFight LTagsPlay ~1}
                            {Delay DT}
@@ -322,7 +324,7 @@ define
                         end
                         {Apply LTagsNpc proc{$ T} {T delete} end}
                         %Switch the images here
-                        {RedrawFight npc New}
+                        {RedrawFight npc New {Send NpcL getBalls($)}}
                         for _ in 1..25 do
                            {MoveFight LTagsNpc 1}
                            {Delay DT}
@@ -352,7 +354,7 @@ define
                   %handles the special exit too
                      {MoveBall Tag}
                      {Text {Flatten ["Your OzBall catched a wild " Npc.name "!"]}}
-                     {AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
+                     %{AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
                      {Delay DT*2}
                      {Apply LTagsNpc.2 proc{$ X} {X delete} end}
                      {Delay DT*4}
@@ -385,7 +387,7 @@ define
          {Text "Choose your action"}
       end
       thread
-         Buttons#Arrows={FightScene FirstPlay FirstNpc}
+         Buttons#Arrows={FightScene FirstPlay FirstNpc {Send PlayL getBalls($)} {Send NpcL getBalls($)}}
       in
          Btn = Buttons Arw = Arrows
          AllTags = TAGS.fight
@@ -496,5 +498,25 @@ define
                                        {Send MAINPO set(map)} end)}
       {Canvash bind(event:"<z>" action:toplevel#close)}
       {Send Wonid next}
+   end
+
+%%%%% EVOLUTION ANIMATION %%%%%%
+   proc{GetEvolveScreen Img Text} %todo: thread maybe?
+      Tags = TAGS.evolve
+      %{DrawEvolve Name1 Name2}
+      Dt = dt( 6 1 1 5 1
+               4 2 5 2 4
+               4 3 2 1 1)
+      DelT = ({DELAY.get}*4) div 3
+   in
+      {Delay DelT*10}
+      for I in 1..15 do
+         {Tags.img set(image:Img.(I mod 2))}
+         if I mod 5 == 0 then
+            {Tags.text set(text:Text.I)}
+         end
+         {Delay (DelT*Dt.I)}
+      end
+      {Delay DelT*10}
    end
 end

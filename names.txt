@@ -20,7 +20,7 @@ ozdrill
 
 fire:
 pidgeoz
-pidgeoztoz //a voir
+pidgeozoz
 ozpidgeoz
 
 water:
@@ -33,7 +33,7 @@ ozmouse
 
 fire:
 vulpoz
-9xoz
+9xOz
 
 grass:
 zoizoz (zubat)
@@ -53,8 +53,7 @@ ozcool (tentacool)
 ozcruel
 
 fire:
-oz2.0         (slowpoke)
-oz2.0(alpha)
+oz2_0         (slowpoke)
 
 water:
 magiciendoz
@@ -62,6 +61,5 @@ pytagyroz
 
 /// a voir si on veut vivre petervanoz (snorlax) + rajouter tete vanroy
 
-moztoz (mewtwo)
 
 
