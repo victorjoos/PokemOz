@@ -108,4 +108,7 @@ in
    {Window bind(event:"<o>" action:proc{$}
 				                          {Send MAINPO set(fight)}
 				                      end)}
+   {Window bind(event:"<t>" action:proc{$}
+                           {Send {Send PLAYER.poke getFirst($)}.pid addExp(10 _)}
+                        end)}
 end

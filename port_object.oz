@@ -32,14 +32,17 @@ define
    GetLostScreen = AnimatePort.getLostScreen
    GetWelcomeScreen = AnimatePort.getWelcomeScreen
    GetWonScreen = AnimatePort.getWonScreen
+   GetEvolveScreen = AnimatePort.getEvolveScreen
 
    DrawPokeList = Widget.drawPokeList
    InitFightTags = Widget.initFightTags
    InitPokeTags = Widget.initPokeTags
+   InitEvolveTags = Widget.initEvolveTags
    DrawMap = Widget.drawMap
    StarterPokemoz = Widget.starterPokemoz
    DrawLost = Widget.drawLost
    DrawWon  = Widget.drawWon
+   DrawEvolve = Widget.drawEvolve
 
    MAINPO = Widget.mainPO
    PLAYER = Widget.player
@@ -616,21 +619,30 @@ define
    fun {CatchSuccessful Play Npc}
       true
    end
-
+   proc{CreateEvoScreens L}
+      case L of nil then skip
+      [] (Name1#Name2)|T then Img Text in
+         Img#Text = {DrawEvolve Name1 Name2}
+         {Send MAINPO set(evolve)}
+         {GetEvolveScreen Img Text}
+         {CreateEvoScreens T}
+      end
+   end
    fun {FightController Play Npc FightAnim Arrows}%PlayL and NpcL are <PokemozList>
       PlayL = Play.poke NpcL=Npc.poke
       WaitAnim = {Waiter}
-      proc{OnExit Ack}
+      proc{OnExit Ack EvoL}
          thread
-         {Wait Ack}
-         {Send Arrows kill}
-         if {Label Npc}\=wild then %a supprimer?????
-            %{Browse sentEndfight}
-            {Send Npc.pid endFight}
+            {Wait Ack}
+            {Send Arrows kill}
+            if {Label Npc}\=wild then
+               {Send Npc.pid endFight}
+            end
+            % Evolution
+            {CreateEvoScreens EvoL}
+            {Send Play.pid nextFight}
+            {Send MAINPO set(map)}
          end
-         {Send Play.pid nextFight}
-         {Send MAINPO set(map)}
-      end
    end
    proc{OnBadExit Ack}
       %{OnExit Ack}
@@ -643,9 +655,9 @@ define
       end
    end
    FightPort = {NewPortObjectKillable
-   state( player:{Send PlayL getFirst($)}
-   enemy:{Send NpcL  getFirst($)}
-   fighting:false)
+   state(player:{Send PlayL getFirst($)}
+         enemy:{Send NpcL  getFirst($)}
+         fighting:false)
    fun{$ Msg state(player:Play enemy:Npc fighting:OK)}
       case Msg
       of run then
@@ -659,7 +671,7 @@ define
                {Send FightAnim exit(Ack "You ran away cowardly...")}
                %{Send WaitAnim wait(MAINPO Ack set(map))}
                {Send WaitAnim wait(NpcL Ack releaseAll)}
-               {OnExit Ack}
+               {OnExit Ack nil}
                state(killed)
             else
                % Send signal to itself for AI turn = automatic
@@ -693,11 +705,11 @@ define
             if NEState == alive then
                {Send WaitAnim wait(FightPort Ack fightIA)}
                state(player:Play enemy:Npc fighting:true)
-            elseif {Send NpcL getState($)} == allDead then Ack in
+            elseif {Send NpcL getState($)} == allDead then Ack EvoL in
                {Send FightAnim exit(Ack "You WON!")}
                %{Send WaitAnim wait(MAINPO B set(map))}
-               {OnExit Ack}
-               {Send PlayL shareExp({Send NpcL getAllExp($)})}
+               {Send PlayL shareExp({Send NpcL getAllExp($)} EvoL)}
+               {OnExit Ack EvoL}
                {Send NpcL releaseAll}
                state(killed)
             else
@@ -781,12 +793,12 @@ define
             {Send NpcL captured}
             {Send PlayL add(Npc _)}
             {Send FightAnim catched(Ack)}
-	    {Send WaitAnim wait(MAINPO Ack set(map))}
-	    {OnExit Ack}
+            {Send WaitAnim wait(MAINPO Ack set(map))}
+      	   {OnExit Ack nil}
             state(killed)
          else Ack in
             {Send FightAnim failCatch(Ack)}
-	    {Send WaitAnim wait(FightPort Ack fightIA)}
+            {Send WaitAnim wait(FightPort Ack fightIA)}
             state(player:Play enemy:Npc fighting:true)
          end
       end
@@ -794,6 +806,7 @@ define
    in
       % TODO add chances of capture
       %      add chances of running
+      {Browse 'fight created'}
       FightPort
    end
 
@@ -1001,8 +1014,8 @@ define
          end
       end
    end
-   proc{DispatchExp OldState NewState Ind List Exp Rest}
-      if Ind > 6 then skip
+   fun{DispatchExp OldState NewState Ind List Exp Rest}
+      if Ind > 6 then nil
       else
          if List.Ind then
             Evolve ActExp ActRest
@@ -1017,10 +1030,11 @@ define
             {Send OldState.Ind.pid addExp(ActExp Evolve)}
             if Evolve == none then
                NewState.Ind = OldState.Ind
-            else
+               {DispatchExp OldState NewState Ind+1 List Exp Rest-1}
+            else Img Text in
                NewState.Ind = Evolve
+               (OldState.Ind.name#Evolve.name)|{DispatchExp OldState NewState Ind+1 List Exp Rest-1}
             end
-            {DispatchExp OldState NewState Ind+1 List Exp Rest-1}
          else
             NewState.Ind = OldState.Ind
             {DispatchExp OldState NewState Ind+1 List Exp Rest}
@@ -1131,7 +1145,7 @@ define
                State
             [] captured then %only possible with wild pokemoz!
                all(1:none 2:none 3:none 4:none 5:none 6:none first:none)
-            [] shareExp(TotExp) then
+            [] shareExp(TotExp EvoL) then
                NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:State.first)
                First %checks if the first one is alive
                Length %number of alive pokemoz
@@ -1145,7 +1159,7 @@ define
                   Rest = TotExp mod Length
                end
             in
-               {DispatchExp State NewState 1 List XP Rest }
+               EvoL = {DispatchExp State NewState 1 List XP Rest }
                NewState
             [] getAllLiving(X) then
                X={GetAllLiving State 1}
@@ -1214,7 +1228,6 @@ define
       {Send MAINPO set(fight)}
       %Buttons Arrows
       Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
-      %Add support for on exit of buttons!
       Fight = {FightController Player NPC Animation Arrows}
    in
       {Wait Buttons}
@@ -1255,7 +1268,7 @@ define
    %       -PlaceH = handle of the placeholder
    fun{MAIN Frames PlaceH MapName Handles}
       Init = welcome
-      Sort =[starters map fight pokelist welcome lost won]
+      Sort =[starters map fight pokelist welcome lost won evolve]
       %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
       Main = {NewPortObjectKillable state(Init)
       fun{$ Msg state(Frame)}
@@ -1280,8 +1293,7 @@ define
                Enemies = {ReadEnemies _}
             in
                % Initialize the tags
-               thread {InitFightTags} end
-               thread {InitPokeTags} end
+               thread {InitFightTags} {InitPokeTags} {InitEvolveTags} end
                % Create the Map Environment
                MAPID = {MapController Map}
                {DrawMap Map MAXX MAXY}%should NOT EVER
@@ -1289,7 +1301,7 @@ define
                {PlaceH set(Handles.map)}
                {CANVAS.map getFocus(force:true)}
                PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
-                           [Name3] [6] player}
+                           [Name3 "Bulbasoz"] [6 6] player}
                {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}

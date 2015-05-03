@@ -9,6 +9,7 @@ export
    GetLostScreen
    GetWelcomeScreen
    GetWonScreen
+   GetEvolveScreen
 define
 % Imports
    Browse = Browser.browse
@@ -497,5 +498,25 @@ define
                                        {Send MAINPO set(map)} end)}
       {Canvash bind(event:"<z>" action:toplevel#close)}
       {Send Wonid next}
+   end
+
+%%%%% EVOLUTION ANIMATION %%%%%%
+   proc{GetEvolveScreen Img Text} %todo: thread maybe?
+      Tags = TAGS.evolve
+      %{DrawEvolve Name1 Name2}
+      Dt = dt( 6 1 1 5 1
+               4 2 5 2 4
+               4 3 2 1 1)
+      DelT = ({DELAY.get}*4) div 3
+   in
+      {Delay DelT*10}
+      for I in 1..15 do
+         {Tags.img set(image:Img.(I mod 2))}
+         if I mod 5 == 0 then
+            {Tags.text set(text:Text.I)}
+         end
+         {Delay (DelT*Dt.I)}
+      end
+      {Delay DelT*10}
    end
 end

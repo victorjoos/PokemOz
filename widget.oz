@@ -12,11 +12,13 @@ export
    DrawPokeList
    InitFightTags
    InitPokeTags
+   InitEvolveTags
    DrawMap
    StarterPokemoz
    DrawLost
    DrawWelcome
    DrawWon
+   DrawEvolve
 
    TopWidget
    placeholder:PLACEHOLDER
@@ -92,12 +94,14 @@ define
 
 %%%%%%%%% ALL THE WIDGET HANDLES AND NAMES %%%%%%
 
-   WIDGETS = widgets(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_ welcome:_)
+   WIDGETS = widgets(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_ welcome:_
+                     evolve:_)
    CANVAS  =  canvas(starters:_ map:_ fight:_ fight2:_ fight3:_ pokelist:_ lost:_
-                        won:_ welcome:_)
-   HANDLES = handles(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_ welcome:_)
+                        won:_ welcome:_ evolve:_)
+   HANDLES = handles(starters:_ map:_ fight:_ pokelist:_ lost:_ won:_ welcome:_
+                     evolve:_)
    TAGS    =    tags(           map:_ map2:_ fight:_ fight2:_ fight3:_ pokelist:_
-				           lost:_ won:_ welcome:_)
+				           lost:_ won:_ welcome:_ evolve:_)
    PLACEHOLDER
 
 %%%%%%% STARTWIDGET %%%%%%%
@@ -319,7 +323,7 @@ define
          end
       end
    in
-      {CANVAS.fight create(image image:{LoadImage "bg_arena"} 235 235)}
+      {CANVAS.fight create(image image:{LoadImage "bg_arena"} 235 190)}
       {RedrawFight npc    Adv  AdvList}
       {RedrawFight player Play PlayList}
       {DrawButtons}
@@ -624,6 +628,30 @@ define
    end
    WIDGETS.won = canvas(height:470 width:470 handle:HANDLES.won bg:white)
    thread CANVAS.won = HANDLES.won end
+
+%%%%%%% EVOLUTION %%%%%%%%%
+   proc{InitEvolveTags}
+      Canvash = CANVAS.evolve
+   in
+      TAGS.evolve = tags(img:{Canvash newTag($)} text:{Canvash newTag($)})
+   end
+   fun{DrawEvolve Name1 Name2}
+      Canvash = CANVAS.evolve
+      Tags = TAGS.evolve
+      Img = imgs(0:{LoadImage [Name1 "_front"]} 1:{LoadImage [Name2 "_front"]})
+      Text = text( 5:{Flatten ["Your " Name1 " is evolving!"]}
+                  10:{Flatten [Name1 " evolved into..."]}
+                  15:Name2 )
+   in
+      {Canvash create(image image:{LoadImage "bg_arena"} 235 190)}
+      {Canvash create(image image:{LoadImage "bg_fight"} 235 425)}
+      {Canvash create(image image:Img.0 235 190 tags:Tags.img)}
+      {Canvash create(text   text:"What is happening!?" 235 425
+                        font:{Font type(18)} tags:Tags.text)}
+      Img#Text
+   end
+   WIDGETS.evolve = canvas(height:470 width:470 handle:HANDLES.evolve bg:white)
+   thread CANVAS.evolve = HANDLES.evolve end
 
 %%%%%%% TOPWIDGET %%%%%%%%%%
    RET
