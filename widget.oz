@@ -174,10 +174,11 @@ define
 
    proc{DrawMap Map MaxX MaxY}
       Canvash = CANVAS.map
-      ColorGrass = c(38 133 30)
-      ColorPath  = c(49 025 05)
-      Color = color(0:ColorPath 1:ColorGrass)
-      DX = 67 DXn = 66
+      %ColorGrass = c(38 133 30)
+      %ColorPath  = c(49 025 05)
+      %Color = color(0:ColorPath 1:ColorGrass)
+      TileImg = img(0:{LoadImage "ground_tile"} 1:{LoadImage "grass_tile"})
+      DX = 67 %DXn = 66
       Tag={Canvash newTag($)}
       CanvasH = CANVAS.map
       proc{DrawSquare index(X Y)}
@@ -186,9 +187,9 @@ define
             ActX = 1+DX*(X-1)
             ActY = 1+DX*(Y-1)
          in
-            {CanvasH create(rectangle ActX ActY ActX+DXn ActY+DXn
-            fill:Color.(Map.Y.X)
-            tags:Tag)}
+            %{CanvasH create(rectangle ActX ActY ActX+DXn ActY+DXn
+            %         fill:Color.(Map.Y.X) tags:Tag)}
+            {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33)}
             if X==MaxX then NewX=1 NewY=Y+1
             else NewX=X+1 NewY=Y end
             {DrawSquare index(NewX NewY)}

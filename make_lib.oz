@@ -56,7 +56,7 @@ define
    end
 
 %%%%% FIGHT %%%%%%%%
-   TYPES = types("grass")
+   TYPES = types("grass" "water" "fire")
    Wty = {Width TYPES}
    DIRTYPES = "Attacks/"
    for J in 1..Wty do
@@ -74,7 +74,7 @@ define
 		   "Charmandoz_full" "leader" "ball_1" "ball_2" "ball_3" "ball_4" "ball_dead" "ball_full"
 		   "run_button" "fight_button" "switch_button" "capture_button"
 		   "continue" "start_continue" "win_continue" "lost_screen"
-		   "start_screen" "won_screen")  
+		   "start_screen" "won_screen" "ground_tile" "grass_tile")  
    Ow     = {Width OTHERS}
    for I in 1..Ow do Name Name2 in
       Name  = OTHERS.I

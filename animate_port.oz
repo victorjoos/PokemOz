@@ -247,7 +247,7 @@ define
                         {MoveForward AllTags.plateau.2.2 ~1}
                         {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
                                        125 143)}
-                        {MoveDamage  AllTags.plateau.2.1  1 NTag grass}
+                        {MoveDamage  AllTags.plateau.2.1  1 NTag Npc.type}
                         {ChangeBar AllTags.attrib.2.1.act PlayHe 270 165}
                         thread
                            if PlayHe.act \= 0 then
@@ -268,7 +268,7 @@ define
                         {MoveForward AllTags.plateau.2.1  1}
                         {Canvas create(image image:{LoadImage ["grass_1"]} tags:NTag
                         345 45)}
-                        {MoveDamage  AllTags.plateau.2.2 ~1 NTag grass}
+                        {MoveDamage  AllTags.plateau.2.2 ~1 NTag Play.type}
                         %Show damage taken on enemy health bar
                         {ChangeBar AllTags.attrib.2.2.act
                         NpcHe 110 35}
