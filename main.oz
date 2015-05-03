@@ -62,16 +62,9 @@ define
          {Window bind(event:"<Down>" action:{GenSig down})}
          {Window bind(event:"<a>" action:{GenSig a})}
          {Window bind(event:"<z>" action:{GenSig z})}
+         {Window bind(event:"<Control-Shift-A>" action:{GenSig csa})}
       else skip
       end
-         /* {Canvash bind(event:"<Up>" action:{GenerateMoveProc up})}
-            {Canvash bind(event:"<Left>" action:{GenerateMoveProc left})}
-            {Canvash bind(event:"<Right>" action:{GenerateMoveProc right})}
-            {Canvash bind(event:"<Down>" action:{GenerateMoveProc down})}
-            {Canvash bind(event:"<e>" action:proc{$}
-                                                 thread {DrawPokeList status} end
-                                                 {Send MAINPO set(pokelist)}
-                                              end)}*/
    end
    proc{SetSpeed X}
       SPEED = X
@@ -126,6 +119,6 @@ in
 				                          {Send MAINPO set(fight)}
 				                      end)}
    {Window bind(event:"<t>" action:proc{$}
-                           {Send {Send PLAYER.poke getFirst($)}.pid addExp(10 _)}
+                           {Send {Send PLAYER.poke getFirst($)}.pid damage(40 _)}
                         end)}
 end

@@ -357,13 +357,13 @@ define
             TagD = Tags.plateau.1.1
             TagP = Tags.plateau.2.1
             Ximg = 135+Xst  Xdisk = 125+Xst
-            Yimg = 143      Ydisk = 210
+            Yimg = 120      Ydisk = 210
          else
             Img = {LoadImage [NewPkm.name "_front" ]}
             TagD = Tags.plateau.1.2
             TagP = Tags.plateau.2.2
-            Ximg = 345-Xst  Xdisk = 345-Xst
-            Yimg = 45       Ydisk = 60
+            Ximg = 340-Xst  Xdisk = 345-Xst
+            Yimg = 55       Ydisk = 60
         end
       in
          {CanvasH create(image image:Disk  Xdisk  Ydisk tags:TagD)}
@@ -452,15 +452,15 @@ define
                            %For binding
       {Show called#pokelist}
       Arrows = {GetArrows 3 3}
-      Buttons = all( 1:x(  1:button(onclick:_ onselect:_ ondeselect:_)
-                           2:button(onclick:_ onselect:_ ondeselect:_)
-                           3:button(onclick:_ onselect:_ ondeselect:_))
-                     2:x(  1:button(onclick:_ onselect:_ ondeselect:_)
-                           2:button(onclick:_ onselect:_ ondeselect:_)
-                           3:button(onclick:_ onselect:_ ondeselect:_))
-                     3:x(  1:button(onclick:_ onselect:_ ondeselect:_)
-                           2:button(onclick:_ onselect:_ ondeselect:_)
-                           3:button(onclick:_ onselect:_ ondeselect:_)))
+      Buttons = all( 1:x(  1:button(onclick:_ csonclick:_ onselect:_ ondeselect:_)
+                           2:button(onclick:_ csonclick:_ onselect:_ ondeselect:_)
+                           3:button(onclick:_ csonclick:_ onselect:_ ondeselect:_))
+                     2:x(  1:button(onclick:_ csonclick:_ onselect:_ ondeselect:_)
+                           2:button(onclick:_ csonclick:_ onselect:_ ondeselect:_)
+                           3:button(onclick:_ csonclick:_ onselect:_ ondeselect:_))
+                     3:x(  1:button(onclick:_ csonclick:_ onselect:_ ondeselect:_)
+                           2:button(onclick:_ csonclick:_ onselect:_ ondeselect:_)
+                           3:button(onclick:_ csonclick:_ onselect:_ ondeselect:_)))
 
       PlayL = PLAYER.poke
       First = {Send PlayL getFirst($)}
@@ -505,12 +505,22 @@ define
          %bind the events
          Buttons.Y.X.ondeselect =   proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
          Buttons.Y.X.onselect   =   proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
+         Buttons.Y.X.csonclick  =   proc{$ Ack}
+                                       if Event == status then
+                                          B={Send PlayL release((Y-1)*2+X $)}
+                                          {Wait B}
+                                       in
+                                          {Send MAINPO set(map)}
+                                          Ack = back
+                                       else
+                                          Ack = none
+                                       end
+                                    end
          Buttons.Y.X.onclick    =   proc{$ Ack}
                                        if Event == status then
                                           B={Send PlayL switchFirst((Y-1)*2+X $)}
                                           {Wait B}
                                        in
-                                          {Show set#map}
                                           {Send MAINPO set(map)}
                                           Ack = back
                                        else
@@ -540,6 +550,7 @@ define
          Buttons.Y.X.ondeselect = proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
          Buttons.Y.X.onselect   = proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
          Buttons.Y.X.onclick    = proc{$ Ack} Ack=none end
+         Buttons.Y.X.csonclick  = proc{$ Ack} Ack=none end
       end
    in
       for X in 1..2 do
@@ -562,6 +573,7 @@ define
          for I in 1..3 do
             Buttons.I.3.ondeselect = proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
             Buttons.I.3.onselect   = proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
+            Buttons.I.3.csonclick  = proc{$ Ack} Ack=none end
             Buttons.I.3.onclick    = proc{$ Ack}
                                           {DeletePokelistTags}
                                           if Event == status then
@@ -569,7 +581,7 @@ define
                                              Ack = back
                                           else
                                              if {Label Event} == fight then
-                                                Event.1 = none
+                                                Event.1 = back
                                              else
                                                 Event.1 = auto
                                              end
@@ -589,32 +601,35 @@ define
                   {Buttons.NewY.NewX.onselect}
                end
             end
-            proc{EnterCall M}
-               {Show entercall}
+            proc{EnterCall Ack}
                getLast(X Y B) = {Send Arrows $}
                if X<3 then
                   if Rec.((Y-1)*2+X) \= none then B=false
                   else B=true end
                else B=true end
             in
-               M = {Buttons.Y.X.onclick}
+               Ack = {Buttons.Y.X.onclick}
+            end
+            proc{CSEnterCall Ack}
+               getLast(X Y B) = {Send Arrows $}
+               if X<3 then
+                  if Rec.((Y-1)*2+X) \= none then B=false
+                  else B=true end
+               else B=true end
+            in
+               Ack = {Buttons.Y.X.csonclick}
             end
          in
             {Buttons.1.1.onselect}
-            /*{Canvash bind(event:"<Up>" action:{GenProc up})}
-            {Canvash bind(event:"<Left>" action:{GenProc left})}
-            {Canvash bind(event:"<Right>" action:{GenProc right})}
-            {Canvash bind(event:"<Down>" action:{GenProc down})}
-            {Canvash bind(event:"<a>" action:EnterCall)}
-            {Canvash bind(event:"<z>" action:Buttons.1.3.onclick)}*/
             {Send KEYS set(actions(pokelist(  up:{GenProc up}
                                              down:{GenProc down}
                                              left:{GenProc left}
                                              right:{GenProc right}
                                              a:EnterCall
                                              z:Buttons.1.3.onclick
+                                             csa:CSEnterCall
                                           )
-                                    [a z up down left right]))}
+                                    [a z csa up down left right]))}
          end
       end
       {Canvash getFocus(force:true)}

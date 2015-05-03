@@ -209,7 +209,7 @@ define
       LTagsNpc
       LTagsPlay
       Canvas = CANVAS.fight
-      FirstPlay = {Send PlayL getFirst($)}
+      FirstPlay = {Send PlayL getFirstNonDead($)}
       FirstNpc  = {Send NpcL  getFirst($)}
       Text = proc{$ X} {TAGS.fight2 set(text:X)} end
       Fid={NewPortObjectKillable
@@ -359,7 +359,6 @@ define
                   %handles the special exit too
                      {MoveBall Tag}
                      {Text {Flatten ["Your OzBall catched a wild " Npc.name "!"]}}
-                     %{AllTags.plateau.2.2 set(image:{LoadImage [Npc.name "_small"]})}
                      {Delay DT*2}
                      {Apply LTagsNpc.2 proc{$ X} {X delete} end}
                      {Delay DT*4}
@@ -433,11 +432,6 @@ define
          end
       end}
    in
-      /*{Canvash bind(event:"<a>" action:proc{$}
-                                          {Send Lostid kill}
-                                          {ReleaseAI}
-                                          {Send MAINPO set(map)}
-                                       end)}*/
       {Send KEYS set(actions(lost(a:proc{$ X}
                                           {Send Lostid kill}
                                           {ReleaseAI}
@@ -506,12 +500,6 @@ define
                         end
                      end}
    in
-      %{Canvash getFocus(force:true)}
-      /*{Canvash bind(event:"<a>" action:proc{$ X}
-                                       {Send Wonid kill}
-                                       {Send MAINPO set(map)}
-                                       X = map end)}
-      {Canvash bind(event:"<z>" action:toplevel#close)}*/
       {Send KEYS set(actions(won(  a:proc{$ X}
                                              {Send Wonid kill}
                                              {Send MAINPO set(map)}

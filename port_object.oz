@@ -274,7 +274,7 @@ define
                            poke("Machoz" "Machozman" "Ozchamp")
                            poke("Rozzozoz" "Roticoz"))
 
-               water:water(%poke("Otirtle" "Wartoztle" "Blastoz")
+               water:water(%poke("Oztirtle" "Wartoztle" "Blastoz")
                            poke("Zoizoz" "Grozoizoz")
                            poke("Magiciendoz" "Pytagyroz")
                            poke("Ozcool" "Ozcruel")
@@ -317,7 +317,7 @@ define
          Lvl3 = {Min Lvl2 10}
 
          %Choosing type
-         Type = {Send PLAYER.poke getFirst($)}.type
+         Type = {Send PLAYER.poke getFirstNonDead($)}.type
          Type2
          Ra2 = {OS.rand} mod 50
          if Ra2 < 38 then Type2 = {Opposite {Opposite Type}}
@@ -656,7 +656,7 @@ define
       end
    end
    FightPort = {NewPortObjectKillable
-   state(player:{Send PlayL getFirst($)}
+   state(player:{Send PlayL getFirstNonDead($)}
          enemy:{Send NpcL  getFirst($)}
          fighting:false)
    fun{$ Msg state(player:Play enemy:Npc fighting:OK)}
@@ -670,7 +670,6 @@ define
                state(player:Play enemy:Npc fighting:OK)
             elseif {RunSuccessful Play Npc} then Ack in
                {Send FightAnim exit(Ack "You ran away cowardly...")}
-               %{Send WaitAnim wait(MAINPO Ack set(map))}
                {Send WaitAnim wait(NpcL Ack releaseAll)}
                {OnExit Ack nil}
                state(killed)
@@ -721,6 +720,7 @@ define
       [] fightIA then NTState Ack in
          if {AttackSuccessful Play Npc npc} then
             Damage = {GetDamage Play.type Npc.type player}
+            {Show getting#Damage#damage#Play.type#Npc.type}
          in
             {Send Play.pid damage(Damage NTState)}
             {Wait NTState}%actually not necessary
@@ -805,9 +805,6 @@ define
       end
    end}
    in
-      % TODO add chances of capture
-      %      add chances of running
-      {Browse 'fight created'}
       FightPort
    end
 
@@ -817,7 +814,7 @@ define
    fun{GETTYPE Name}
       Grass = ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
                "Zoizoz" "Grozoizoz" "Machoz" "Machozman" "Ozchamp"]
-      Water = ["Otirtle" "Wartoztle" "Charozard" "Rozzozoz" "Roticoz" "Coincwoz"
+      Water = ["Oztirtle" "Wartoztle" "Charozard" "Rozzozoz" "Roticoz" "Coincwoz"
                "Goldoz" "Ozcool" "Ozcruel" "Magiciendoz" "Pytagyroz"]
       Fire  = ["Charmandoz" "Charmeleoz" "Charozard" "Pidgeoz" "Pidgeozoz"
                "Ozpidgeoz" "Ozachu" "Ozmouse" "Vulpoz" "9xOz" "Oz2_0"]
@@ -847,7 +844,7 @@ define
       end
       Three=  ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
                "Machoz" "Machozman" "Ozchamp" "Pidgeoz" "Pidgeozoz" "Ozpidgeoz"
-               "Otirtle" "Wartoztle" "Blastoz" "Charmandoz" "Charmeleoz"
+               "Oztirtle" "Wartoztle" "Blastoz" "Charmandoz" "Charmeleoz"
                "Charozard"]
       Two  =  ["Zoizoz" "Grozoizoz" "Magiciendoz" "Pytagyroz" "Rozzozoz"
                "Roticoz" "Ozcool" "Ozcruel" "Coincwoz" "Goldoz" "Vulpoz"
@@ -1096,7 +1093,7 @@ define
                   NewState
                end
             [] release(Ind B) then
-               if State.Ind == none then B=unit State
+               if State.Ind == none orelse State.2 == none then B=unit State
                else
                   NewState = all(1:_ 2:_ 3:_ 4:_ 5:_ 6:_ first:_)
                in
@@ -1115,6 +1112,25 @@ define
             [] getFirst(X) then
                if State.first == none then X = none
                else X=State.(State.first) end
+               State
+            [] getFirstNonDead(X) then
+               if State.first == none then X = none
+               else X2=State.(State.first) in
+                  if {Send X2.pid getHealth($)}.act == 0 then
+                     {Show first#dead}
+                     fun{GetFirstAlive I}
+                        if I>6 then none
+                        elseif {Send State.I.pid getHealth($)}.act \= 0 then
+                           State.I
+                        else {GetFirstAlive I+1}
+                        end
+                     end
+                  in
+                     X={GetFirstAlive 1}
+                  else
+                     X=X2
+                  end
+               end
                State
             [] getAverage(X) then %TODO : refaire pour faire le MAX
                %returns the average of the first 3 Pkm
@@ -1243,11 +1259,11 @@ define
                if Status == first then
                   {Send MAINPO set(pokelist)}
                end
-               if B\=none then
+               if B==back then skip
+               elseif B\=none then
                   {Send Fight switch(B ia)}
                else
-                  skip
-                  %{FigureLoop xth}
+                  {FigureLoop xth}
                end
             end
          in
