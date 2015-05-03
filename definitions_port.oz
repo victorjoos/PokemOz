@@ -13,6 +13,7 @@ export
    Timer
    Waiter
    GetArrows
+   KeyPort
 define
    Show = System.show
    fun{GETDIR Dir}
@@ -174,5 +175,61 @@ define
 		 end}
    in
       ArrowId
+   end
+
+   fun{KeyPort MapButtons}
+      KeyId  = {NewPortObject state(pending pending)
+         fun{$ Msg state(Frame Prev)}
+            {Show keys#Msg}
+            case Msg
+            of set(NewFrame) then
+               if Frame\=pending andthen Frame\=map andthen
+                  {Label Frame.1} == pokelist then
+                  state(NewFrame Prev)
+               else
+                  state(NewFrame Frame)
+               end
+            else
+               if Frame == map then
+                  if {Member Msg [up down left right a]} then
+                     thread {MapButtons.Msg} end
+                  else skip
+                  end
+                  state(Frame Prev)
+               else
+                  case Frame
+                  of actions(FButtons FList) then
+                     if {Member Msg FList} then
+                        Fun = FButtons.Msg
+                     in
+                        if {ProcedureArity Fun} == 0 then
+                           thread {FButtons.Msg} end
+                           state(Frame Prev)
+                        else X = {Fun $} in
+                           {Show multargs}
+                           if X==none then
+                              {Show set#none}
+                              state(Frame Prev)
+                           elseif X==back then
+                              {Show setback#Prev}
+                              state(Prev pending)
+                           else
+                              state(X Frame)
+                           end
+                        end
+                     else
+                        state(Frame Prev)
+                     end
+                  [] pending then
+                     state(Frame Prev)
+                  else
+                     {Show error#keys}
+                     state(Frame Prev)
+                  end
+               end
+            end
+         end}
+   in
+      KeyId
    end
 end

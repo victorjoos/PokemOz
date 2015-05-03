@@ -25,6 +25,7 @@ export
    handles:HANDLES
 
    mainPO: MAINPO % port_object, main
+   keys: KEYS % main
    player: PLAYER % port_object, main
    wild: WILD % port_object, main
    listAI: LISTAI % port_object, main
@@ -47,7 +48,7 @@ define
    Browse = Browser.browse
    GetArrows = PortDefinitions.getArrows
    % Exports
-   MAINPO PLAYER WILD LISTAI WIDGETS CANVAS MAPID SPEED DELAY PROBABILITY MAXX MAXY
+   MAINPO PLAYER WILD LISTAI WIDGETS CANVAS MAPID SPEED DELAY PROBABILITY MAXX MAXY KEYS
 % This file will contain all the widget-containers used in this project
 % each time with a brief description of what they do
 
@@ -120,16 +121,15 @@ define
    in
       for I in 1..3 do
          X=(I-1)*DXX
-         %Tag    = {Canvash newTag($)}
          Tagbis = {Canvash newTag($)}
       in
       %Drawing
          {Canvash create(rectangle 20+X Yim-65 150+X Yim+95
          	 fill:BgCol.I tags:Tagbis)}
          {Canvash create(text text:Names.I font:{Font type(15)}
-         	 85+X Ytx width:130 fill:white)} %tags:Tag
+         	 85+X Ytx width:130 fill:white)}
          {Canvash create(image image:{LoadImage [Names.I "_full"]}
-         	 85+X Yim )}%tags:Tag)}
+         	                 85+X Yim )}
          Buttons.(Atoms.I) = Tagbis
       end
 
@@ -146,16 +146,19 @@ define
          end
       in
          {Buttons.(Atoms.1) set(fill:BgColSel.1 width:4.0)}
-         {Canvash bind(event:"<Up>" action:{GenProc right})}
-         {Canvash bind(event:"<Left>" action:{GenProc left})}
-         {Canvash bind(event:"<Right>" action:{GenProc right})}
-         {Canvash bind(event:"<Down>" action:{GenProc left})}
-         {Canvash bind(event:"<a>" action:proc{$}
-					     Starter = Atoms.{Send Arrows get($ _)}
-					  in
-					     {Send Arrows kill}
-					     {Send MAINPO makeTrainer(Starter)}
-					  end)}
+         {Send KEYS set(actions(starters( up:   {GenProc right}
+                                          left: {GenProc left}
+                                          right:{GenProc right}
+                                          down: {GenProc left}
+                                          a: proc{$ X}
+                        					         Starter = Atoms.{Send Arrows get($ _)}
+                  					            in
+                  					               {Send Arrows kill}
+                  					               {Send MAINPO makeTrainer(Starter)}
+                                                X=pending
+                           					   end
+                                       )
+                                 [up down right left a]))}
       end
    end
    WIDGETS.starters = canvas( width:470 height:470 handle:HANDLES.starters
@@ -315,11 +318,18 @@ define
             NewCanvash = CANVAS.fight
          in
             {Buttons.fight.onselect}
-            {NewCanvash bind(event:"<Up>" action:{GenProc up})}
+            /*{NewCanvash bind(event:"<Up>" action:{GenProc up})}
             {NewCanvash bind(event:"<Left>" action:{GenProc left})}
             {NewCanvash bind(event:"<Right>" action:{GenProc right})}
             {NewCanvash bind(event:"<Down>" action:{GenProc down})}
-            {NewCanvash bind(event:"<a>" action:EnterCall)}
+            {NewCanvash bind(event:"<a>" action:EnterCall)}*/
+            {Send KEYS set(actions(fight( up:{GenProc up}
+                                          down:{GenProc down}
+                                          left:{GenProc left}
+                                          right:{GenProc right}
+                                          a:EnterCall
+                                          )
+                                    [a up down left right]))}
          end
       end
    in
@@ -440,6 +450,7 @@ define
 
    proc{DrawPokeList Event}% Event = status or fight(X) or dead(X)
                            %For binding
+      {Show called#pokelist}
       Arrows = {GetArrows 3 3}
       Buttons = all( 1:x(  1:button(onclick:_ onselect:_ ondeselect:_)
                            2:button(onclick:_ onselect:_ ondeselect:_)
@@ -494,21 +505,24 @@ define
          %bind the events
          Buttons.Y.X.ondeselect =   proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
          Buttons.Y.X.onselect   =   proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
-         Buttons.Y.X.onclick    =   proc{$}
+         Buttons.Y.X.onclick    =   proc{$ Ack}
                                        if Event == status then
-                                          B={Send PlayL
-                                          switchFirst((Y-1)*2+X $)}
+                                          B={Send PlayL switchFirst((Y-1)*2+X $)}
                                           {Wait B}
                                        in
+                                          {Show set#map}
                                           {Send MAINPO set(map)}
+                                          Ack = back
                                        else
                                           if {Send Play.pid getHealth($)}.act
                                           > 0 then
                                              Event.1 = Play
                                              {DeletePokelistTags}
                                              {Send MAINPO set(fight)}
+                                             Ack = back
                                           else
                                              Event.1 = none
+                                             Ack = none
                                           end
                                        end
                                     end
@@ -525,7 +539,7 @@ define
          	 fill:white font:{Font type(20)})}
          Buttons.Y.X.ondeselect = proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
          Buttons.Y.X.onselect   = proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
-         Buttons.Y.X.onclick    = proc{$} skip end
+         Buttons.Y.X.onclick    = proc{$ Ack} Ack=none end
       end
    in
       for X in 1..2 do
@@ -548,10 +562,11 @@ define
          for I in 1..3 do
             Buttons.I.3.ondeselect = proc{$} {Tagbis set(fill:Color.1 width:1.0)} end
             Buttons.I.3.onselect   = proc{$} {Tagbis set(fill:Color.2 width:4.0)} end
-            Buttons.I.3.onclick    = proc{$}
+            Buttons.I.3.onclick    = proc{$ Ack}
                                           {DeletePokelistTags}
                                           if Event == status then
                                              {Send MAINPO set(map)}
+                                             Ack = back
                                           else
                                              if {Label Event} == fight then
                                                 Event.1 = none
@@ -559,6 +574,7 @@ define
                                                 Event.1 = auto
                                              end
                                              {Send MAINPO set(fight)}
+                                             Ack = back
                                           end
                                        end
          end
@@ -568,27 +584,37 @@ define
                   get(OldX OldY) = {Send Arrows $}
                   Dir(NewX NewY) = {Send Arrows $}
                in
+                  {Show 'moved arrow'}
                   {Buttons.OldY.OldX.ondeselect}
                   {Buttons.NewY.NewX.onselect}
                end
             end
-            proc{EnterCall}
+            proc{EnterCall M}
+               {Show entercall}
                getLast(X Y B) = {Send Arrows $}
                if X<3 then
                   if Rec.((Y-1)*2+X) \= none then B=false
                   else B=true end
                else B=true end
             in
-               {Buttons.Y.X.onclick}
+               M = {Buttons.Y.X.onclick}
             end
          in
             {Buttons.1.1.onselect}
-            {Canvash bind(event:"<Up>" action:{GenProc up})}
+            /*{Canvash bind(event:"<Up>" action:{GenProc up})}
             {Canvash bind(event:"<Left>" action:{GenProc left})}
             {Canvash bind(event:"<Right>" action:{GenProc right})}
             {Canvash bind(event:"<Down>" action:{GenProc down})}
             {Canvash bind(event:"<a>" action:EnterCall)}
-            {Canvash bind(event:"<z>" action:Buttons.1.3.onclick)}
+            {Canvash bind(event:"<z>" action:Buttons.1.3.onclick)}*/
+            {Send KEYS set(actions(pokelist(  up:{GenProc up}
+                                             down:{GenProc down}
+                                             left:{GenProc left}
+                                             right:{GenProc right}
+                                             a:EnterCall
+                                             z:Buttons.1.3.onclick
+                                          )
+                                    [a z up down left right]))}
          end
       end
       {Canvash getFocus(force:true)}

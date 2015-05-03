@@ -16,7 +16,7 @@ LibImg.ozf : make_lib.oz
 	ozengine make_lib.ozf
 lib : LibImg.ozf
 	@echo done
-run : main.oza LibImg.ozf
+run : main.oza lib
 	ozengine main.oza $(ARGS)
 clean :
 	rm -rf PortObject.ozf AnimatePort.ozf Widget.ozf PortDefinitions.ozf AI.ozf

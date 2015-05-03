@@ -27,6 +27,7 @@ define
    TAGS = Widget.tags
    DELAY = Widget.delay
    MAINPO = Widget.mainPO
+   KEYS = Widget.keys
    DrawWelcome = Widget.drawWelcome
    %%%%%%% TRAINER ON MAP %%%%%%
 
@@ -95,13 +96,16 @@ define
    % Intern
    proc{AllTagsToList AllTags L1 L2}
       case AllTags
-         of tags(plateau:plateau(disk(D1 D2) pokemoz(P1 P2))
-                  attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
-                                                bar(act:Ba2 Bb2))
-                                 balls(B1 B2))
-                  others:_ ball:_) then
+      of tags(plateau:plateau(disk(D1 D2) pokemoz(P1 P2))
+               attrib:attrib(text(T1 T2) bars(bar(act:Ba1 Bb1)
+                                             bar(act:Ba2 Bb2))
+                              balls(B1 B2))
+               others:_ ball:_) then
          L1 = [D1 P1 T1 Ba1 Bb1 B1]
          L2 = [D2 P2 T2 Ba2 Bb2 B2]
+      [] tags(fight:    all(T1 bis:T2) run:     all(T3 bis:T4)
+               switch:  all(T5 bis:T6) capture: all(T7 bis:T8)) then
+         L1 = [T1 T2 T3 T4 T5 T6 T7 T8] L2 = nil
       end
    end
    %Intern
@@ -225,6 +229,7 @@ define
                      {Apply LTagsNpc  proc{$ T} {T delete} end}
                      {Apply LTagsPlay proc{$ T} {T delete} end}
                      {TAGS.fight2 delete}
+                     {Apply {AllTagsToList TAGS.fight3 $ _} proc{$ T} {T delete} end}
                      B = unit
                      state(killed)
                   [] attack(P B) then NTag = AllTags.others.1 in
@@ -428,10 +433,18 @@ define
          end
       end}
    in
-      {Canvash bind(event:"<a>" action:proc{$}
-      {Send Lostid kill}
-      {ReleaseAI}
-      {Send MAINPO set(map)} end)}
+      /*{Canvash bind(event:"<a>" action:proc{$}
+                                          {Send Lostid kill}
+                                          {ReleaseAI}
+                                          {Send MAINPO set(map)}
+                                       end)}*/
+      {Send KEYS set(actions(lost(a:proc{$ X}
+                                          {Send Lostid kill}
+                                          {ReleaseAI}
+                                          {Send MAINPO set(map)}
+                                          X = map
+                                       end)
+                              [a]))}
       {Send Lostid next}
    end
 
@@ -460,11 +473,12 @@ define
                         end
                      end}
    in
-      {Canvash getFocus(force:true)}
-      {Canvash bind(event:"<a>" action:proc{$}
+      {Send KEYS set(actions(welcome(a:proc{$ X}
                                        {StarterPokemoz}
                                        {Send Welcid kill}
-                                       {Send MAINPO set(starters)} end)}
+                                       {Send MAINPO set(starters)}
+                                       X = pending end)
+                                       [a]))}
       {Send Welcid next}
    end
 
@@ -492,11 +506,22 @@ define
                         end
                      end}
    in
-      {Canvash getFocus(force:true)}
-      {Canvash bind(event:"<a>" action:proc{$}
+      %{Canvash getFocus(force:true)}
+      /*{Canvash bind(event:"<a>" action:proc{$ X}
                                        {Send Wonid kill}
-                                       {Send MAINPO set(map)} end)}
-      {Canvash bind(event:"<z>" action:toplevel#close)}
+                                       {Send MAINPO set(map)}
+                                       X = map end)}
+      {Canvash bind(event:"<z>" action:toplevel#close)}*/
+      {Send KEYS set(actions(won(  a:proc{$ X}
+                                             {Send Wonid kill}
+                                             {Send MAINPO set(map)}
+                                             X = map
+                                          end
+                                       z: proc{$ X}
+                                             {Send MAINPO close}
+                                             X = pending
+                                          end)
+                              [a z]))}
       {Send Wonid next}
    end
 

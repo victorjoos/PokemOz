@@ -14,6 +14,7 @@ define
    Show = System.show
 
    NewPortObject = PortDefinitions.port
+   KeyPort = PortDefinitions.keyPort
    MAIN = PortObject.main
 
    TopWidget = Widget.topWidget
@@ -21,6 +22,7 @@ define
    HANDLES = Widget.handles
    DrawPokeList = Widget.drawPokeList
    MAINPO = Widget.mainPO
+   KEYS = Widget.keys
    PLAYER = Widget.player
    WILD = Widget.wild
    LISTAI = Widget.listAI
@@ -37,24 +39,39 @@ define
    %MAXY = 7
 
    proc{BindEvents Input}
+      if Input == keys then
          Canvash = CANVAS.map
          fun{GenerateMoveProc Dir}
             proc{$}
          	   {Send PLAYER.pid move(Dir)}
             end
          end
+         fun{GenSig Sig}
+            proc{$} {Send KEYS Sig} end
+         end
+         MapButtons = buttons(up:{GenerateMoveProc up} down:{GenerateMoveProc down}
+                     left:{GenerateMoveProc left} right:{GenerateMoveProc right}
+                     a:proc{$}
+                           {DrawPokeList status} {Send MAINPO set(pokelist)}
+                         end)
       in
-         if Input == keys then
-            {Canvash bind(event:"<Up>" action:{GenerateMoveProc up})}
+         KEYS = {KeyPort MapButtons}
+         {Window bind(event:"<Up>" action:{GenSig up})}
+         {Window bind(event:"<Left>" action:{GenSig left})}
+         {Window bind(event:"<Right>" action:{GenSig right})}
+         {Window bind(event:"<Down>" action:{GenSig down})}
+         {Window bind(event:"<a>" action:{GenSig a})}
+         {Window bind(event:"<z>" action:{GenSig z})}
+      else skip
+      end
+         /* {Canvash bind(event:"<Up>" action:{GenerateMoveProc up})}
             {Canvash bind(event:"<Left>" action:{GenerateMoveProc left})}
             {Canvash bind(event:"<Right>" action:{GenerateMoveProc right})}
             {Canvash bind(event:"<Down>" action:{GenerateMoveProc down})}
             {Canvash bind(event:"<e>" action:proc{$}
                                                  thread {DrawPokeList status} end
                                                  {Send MAINPO set(pokelist)}
-                                              end)}
-         else skip
-         end
+                                              end)}*/
    end
    proc{SetSpeed X}
       SPEED = X
@@ -79,13 +96,13 @@ define
 				      'probability'(single char:&p type:int default:30)
 				      'map'(single char:&m type:string default:"Map.txt"))}
 in
+   {BindEvents keys}
    {Window show}
-   MAINPO = {MAIN WIDGETS PLACEHOLDER Args.map HANDLES}
+   MAINPO = {MAIN WIDGETS PLACEHOLDER Args.map HANDLES Window}
 
 
 %%%%%% Binding the necessary Active Input
 
-   {BindEvents keys}
    {SetSpeed Args.speed}
    {SetDelay Args.delay}
    {SetProb  Args.probability}

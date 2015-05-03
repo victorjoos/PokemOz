@@ -45,6 +45,7 @@ define
    DrawEvolve = Widget.drawEvolve
 
    MAINPO = Widget.mainPO
+   KEYS = Widget.keys
    PLAYER = Widget.player
    WILD = Widget.wild
    LISTAI = Widget.listAI
@@ -150,34 +151,34 @@ define
                   else Ack2=unit
                   end
                   thread
-                  {Wait Ack2} %to be sure that the trainer can't move away
-                  % before being set to fightmode or fightWait
-                  Ack = unit
+                     {Wait Ack2} %to be sure that the trainer can't move away
+                     % before being set to fightmode or fightWait
+                     Ack = unit
+                  end
+               else Ack = unit
                end
-            else Ack = unit
+               state(State)
+            else
+               % We don't care
+               Ack = unit
+               state(State)
             end
-            state(State)
-         else
-            % We don't care
-            Ack = unit
-            state(State)
-         end
-      [] restart then
-         case State
-         of occupied(Y) then
-            if{Label Y} == npc then
-               {Send Y.pid rmBlock}
+         [] restart then
+            case State
+            of occupied(Y) then
+               if{Label Y} == npc then
+                  {Send Y.pid rmBlock}
+               else skip
+               end
             else skip
             end
-         else skip
+            state(State)
+         [] left then
+            state(empty)
+         [] init(X) then
+            state(occupied(X))
          end
-         state(State)
-      [] left then
-         state(empty)
-      [] init(X) then
-         state(occupied(X))
-      end
-   end}
+      end}
    in
       Tilid
    end
@@ -1069,6 +1070,7 @@ define
       else Init.first = none end
       PokeLid = {NewPortObject Init
       fun{$ Msg State}
+         {Show pokel#Msg}
          case Msg
             of add(Pkm B) then
                if State.6 \= none then
@@ -1087,8 +1089,9 @@ define
                   B=unit State
                else
                   NewState = all(1:State.1 2:State.2 3:State.3
-                  4:State.4 5:State.5 6:State.6
-                  first:Ind) in
+                                 4:State.4 5:State.5 6:State.6
+                                 first:Ind)
+               in
                   B=unit
                   NewState
                end
@@ -1243,7 +1246,8 @@ define
                if B\=none then
                   {Send Fight switch(B ia)}
                else
-                  {FigureLoop xth}
+                  skip
+                  %{FigureLoop xth}
                end
             end
          in
@@ -1266,7 +1270,7 @@ define
    % @pre: -Frames = a record with all the frame-descriptions in it
    %       -Init   = the initial state (<Atom>)
    %       -PlaceH = handle of the placeholder
-   fun{MAIN Frames PlaceH MapName Handles}
+   fun{MAIN Frames PlaceH MapName Handles Window}
       Init = welcome
       Sort =[starters map fight pokelist welcome lost won evolve]
       %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
@@ -1278,7 +1282,7 @@ define
                state(Frame)
             else
                {Show set#NewFrame}
-               {CANVAS.NewFrame getFocus(force:true)}
+               if NewFrame == map then {Send KEYS set(map)} end
                {PlaceH set(Handles.NewFrame)}
                state(NewFrame)
             end
@@ -1299,7 +1303,6 @@ define
                {DrawMap Map MAXX MAXY}%should NOT EVER
                % be threaded!!!
                {PlaceH set(Handles.map)}
-               {CANVAS.map getFocus(force:true)}
                PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
                            [Name3 "Bulbasoz"] [6 6] player}
                {Send MAPID init(x:MAXX y:MAXY PLAYER)}
@@ -1317,8 +1320,12 @@ define
                   LISTAI={EnemyList Enemies}
                end
                thread {DrawLost} {DrawWon} end
+               {Send KEYS set(map)}
                state(map)
             end
+         [] close then
+            {Window close}
+            state(Frame)
          end
       end}
    in
