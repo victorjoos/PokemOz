@@ -290,7 +290,7 @@ define
                            poke("Oz2_0")
                            poke("Ozachu" "Ozmouse")
                            poke("Pidgeoz" "Pidgeozoz" "Ozpidgeoz")))
-      X R
+      X
    in
       if Type == grass then X = 3
       else X = 4
@@ -649,10 +649,22 @@ define
       {List.nth LivingList Rand}
    end
    fun {RunSuccessful Play Npc} % Npc is a WILD pokemoz guaranteed!!
-      true % TODO(victor) : add probability
+      PlayLvl = {Send Play.pid getLvl($)}
+      NpcLvl = {Send Npc.pid getLvl($)}
+      Rand = ({OS.rand} mod 100)+1
+   in
+      if Rand =< (6+PlayLvl-NpcLvl)*9+1 then true
+      else false
+      end
    end
    fun {CatchSuccessful Play Npc}
-      true
+      h(act:NpcActH max:NpcMaxH) = {Send Npc.pid getHealth($)}
+      Rand = ({OS.rand} mod NpcMaxH)+1
+      Rand2 = ({OS.rand} mod NpcMaxH)+1
+   in
+      if Rand >= NpcActH then true
+      elseif Rand2 >= NpcActH then true
+      else false end
    end
    proc{CreateEvoScreens L}
       case L of nil then skip
