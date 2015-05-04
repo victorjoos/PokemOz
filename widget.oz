@@ -511,7 +511,7 @@ define
       %Draw the element
          {Canvash create(rectangle XX YY XX+180 YY+130 fill:Color.1
          	              tags:Tagbis)}
-         {Canvash create(image image:{LoadImage [Play.name "_front"]}
+         {Canvash create(image image:{LoadImage [Play.name "_small"]}
          	              XX+40 YY+80 tags:Tag)}
          if Play == First then
           {Canvash create(image image:{LoadImage "leader"}

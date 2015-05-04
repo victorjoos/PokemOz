@@ -5,7 +5,7 @@ import
    OS
    Pickle
    System
-   
+
    PortDefinitions
    AI
    AnimatePort
@@ -1449,7 +1449,7 @@ define
                L = List List
             end
          end}
-   fun{ReadMap Name}%should be replaced by 'Name' afterwards
+   fun{ReadMap Name}
 
       try Map in
 	 Map = {Pickle.load Name}

@@ -2,10 +2,12 @@ functor
 import
    PortDefinitions
    Widget
+   System
 export
    ArtificialPlayer
    GetEnemyAi
 define
+Show = System.show
    DELAY = Widget.delay
    KEYS = Widget.keys
    NewPortObject = PortDefinitions.port
@@ -215,7 +217,7 @@ define
 				 end
 			      end}
    in
-      thread {Delay 500} {Send ArtificialPlayerPort restart} end
+      thread {Show called} {Send ArtificialPlayerPort restart} end
       ArtificialPlayerPort
    end
 
