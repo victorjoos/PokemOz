@@ -38,7 +38,7 @@ define
    end
 
 %%%%%%%% Trainers %%%%%%
-   TRAINERS = trainers("Red")
+   TRAINERS = trainers("Red" "Blue" "Rocket" "SwagLord")
    TRAINERS_DIR = directions("_down"  "_left"  "_right" "_up")
    TRAINERS_ATT = attributes("_still" "_walk1" "_walk2")
    Trw = {Width TRAINERS}
