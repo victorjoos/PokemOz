@@ -18,7 +18,7 @@ We programmed every part of our program using port-objects. Using these port-obj
 #### Tile {-}
 ![Tile State Diagram](TileState.pdf)
 
-A Tile on the map has an easy state diagram. Each tile has a set of fixed coordinates that can be used by other port-objects to send a tile some messages, through the MapController. The `reserved` and `leaving` intermediate states allow a tile to refuse new Trainers wanting to go on a tile while another trainer is not yet on the tile, but is animating to it at the moment.
+A Tile on the map has an easy state diagram. Each tile has a set of fixed coordinates that can be used by other port-objects to send a tile some messages, through the MapController. The `reserved` and `leaving` intermediate states allow a tile to refuse new Trainers wanting to go on a tile while another trainer is not yet on the tile, but is animating to it at the moment. The text next to the arrows are the messages received by a tile that trigger the state change.
 
 
 #### PlayerController {-}
