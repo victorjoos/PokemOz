@@ -1375,7 +1375,7 @@ define
    % @pre: -Frames = a record with all the frame-descriptions in it
    %       -Init   = the initial state (<Atom>)
    %       -PlaceH = handle of the placeholder
-   fun{MAIN Frames PlaceH MapName NpcName Handles Window}
+   fun{MAIN Frames PlaceH MapName NpcName AIType Handles Window}
       Init = welcome
       Sort =[starters map fight pokelist welcome lost won evolve]
       %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
@@ -1408,7 +1408,7 @@ define
                                        % be threaded!!!
                {PlaceH set(Handles.map)}
                PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
-                           [Name3 "Bulbasoz"] [6 6] none}
+                           [Name3 "Bulbasoz"] [6 6] AIType}
                {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}

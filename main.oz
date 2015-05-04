@@ -86,11 +86,19 @@ define
 				      'delay'(single char:&d type:int default:50)
 				      'probability'(single char:&p type:int default:30)
 				      'map'(single char:&m type:string default:"Map.txt")
-				      'npc'(single char:&n type:string default:"Npc.txt"))}
+				      'npc'(single char:&n type:string default:"Npc.txt")
+				      'ai'(single char:&a type:bool default:false)
+				      'autorun'(single char:&r type:bool default:false)
+				      'autofight'(single char:&f type:bool default:false))}
+   AIType
 in
    {BindEvents keys}
    {Window show}
-   MAINPO = {MAIN WIDGETS PLACEHOLDER Args.map Args.npc HANDLES Window}
+   if Args.ai then AIType=auto
+   elseif Args.autofight then AIType=autofight
+   elseif Args.autorun then AIType=autorun
+   else AIType=none end
+   MAINPO = {MAIN WIDGETS PLACEHOLDER Args.map Args.npc AIType HANDLES Window}
 
 
 %%%%%% Binding the necessary Active Input
