@@ -59,7 +59,7 @@ define
       {Window bind(event:"<Right>" action:{GenSig right})}
       {Window bind(event:"<Down>" action:{GenSig down})}
       {Window bind(event:"<a>" action:{GenSig a})}
-      if Input == auto then
+      if Input \= auto then
          {Window bind(event:"<z>" action:{GenSig z})}
          {Window bind(event:"<Control-Shift-A>" action:{GenSig csa})}
       end
@@ -70,7 +70,7 @@ define
    proc{SetDelay X}
       Delid = {NewPortObject X fun{$ Msg State}
 				  case Msg
-				  of set(Y) then {Show set(Y)} Y
+				  of set(Y) then Y
 				  [] get(Y) then Y=State State end end}
    in
       DELAY= delay(get:fun{$} {Send Delid get($)} end
@@ -98,6 +98,7 @@ in
    elseif Args.autofight then AIType=autofight
    elseif Args.autorun then AIType=autorun
    else AIType=none end
+   {Show AIType}
    MAINPO = {MAIN WIDGETS PLACEHOLDER Args.map Args.npc AIType HANDLES Window}
 
 
@@ -110,7 +111,6 @@ in
    %Has to be always bound even when in autofight mode
    {Window bind(event:"<Escape>" action:toplevel#close)}
    {Window bind(event:"<d>" action: proc{$} DelT={DELAY.get} X in
-                                       {Show set#delay}
                                        if DelT >= 200 then X=50
                                        elseif DelT >= 150 then X=200
                                        elseif DelT >= 100 then X=150

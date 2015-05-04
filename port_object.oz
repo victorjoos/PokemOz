@@ -5,7 +5,7 @@ import
    OS
    Pickle
    System
-   
+
    PortDefinitions
    AI
    AnimatePort
@@ -1408,7 +1408,7 @@ define
                                        % be threaded!!!
                {PlaceH set(Handles.map)}
                PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
-                           [Name3 "Bulbasoz"] [6 6] AIType}
+                           [Name3] [5] AIType}
                {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}
@@ -1449,7 +1449,7 @@ define
                L = List List
             end
          end}
-   fun{ReadMap Name}%should be replaced by 'Name' afterwards
+   fun{ReadMap Name}
 
       try Map in
 	 Map = {Pickle.load Name}

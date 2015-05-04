@@ -1,18 +1,13 @@
 functor
 import
-   System
-   Application
-   OS
-   Browser
-
    PortDefinitions
    Widget
+   System
 export
    ArtificialPlayer
    GetEnemyAi
 define
-   Browse = Browser.browse
-   Show = System.show
+Show = System.show
    DELAY = Widget.delay
    KEYS = Widget.keys
    NewPortObject = PortDefinitions.port
@@ -25,10 +20,10 @@ define
    fun {ArtificialPlayer}
       MapPort = proc{$ send(x:X y:Y Sig)} {Send MAPREC.Y.X Sig} end
       KeysPort = KEYS
-      TRAINERADD=1
-      GRASSPENALTY=100
-      DIRBONUS=10
-      RECURSIONLIMIT=1
+      %TRAINERADD=1
+      %GRASSPENALTY=100
+      %DIRBONUS=10
+      %RECURSIONLIMIT=1
 
       % Checks if the coordinates aren't out of bounds
       fun{CheckEdges X Y}
@@ -198,9 +193,7 @@ define
 				 case Msg
 				 of go(pos:Pos dir:Dir) then
 				    Path
-				    NewCoord NewDir NewPath
 				    Next
-				    TrainerList = {GetTrainerList 1 1}
 				    MoveDir
 				 in
 				    if Pos.x==MAXX andthen Pos.y==1 then skip
@@ -215,15 +208,8 @@ define
 					  {Send KeysPort MoveDir}
 				       end
 				    end
-				    %state(map)
-				 % [] fight then
-				 %    state(fight)
-				 % [] goFight then
-				 %    {Send KeysPort fight}
-				 %    state(fight)
-				 [] goFight(play:PlayerP npc:EnemyP) then
+				 [] goFight(play:_ npc:_) then
 				    {Send KeysPort fight}
-				    %state(fight)
 				 [] change then
                 thread {Delay 1000} {Send KeysPort z} end
 				 [] restart then
@@ -231,7 +217,7 @@ define
 				 end
 			      end}
    in
-      thread {Delay 500} {Send ArtificialPlayerPort restart} end
+      thread {Show called} {Send ArtificialPlayerPort restart} end
       ArtificialPlayerPort
    end
 

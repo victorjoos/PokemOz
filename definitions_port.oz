@@ -14,7 +14,7 @@ export
    GetArrows
    KeyPort
 define
-   Show = System.show
+Show =System.show
    fun{GETDIR Dir}
       case Dir
       of up   then dx(x: 0 y:~1)
@@ -58,12 +58,10 @@ define
       P={NewPort S}
       thread {Loop S Init} end
       P
-   %replace by proc{$ X} {Send P X} end ?
    end
    fun {NewPortObjectKillable Init Func}
       proc {Loop S State}
          case State of state(killed) then
-            {Show 'thread_killed'}
             skip
          else
             case S of Msg|S2 then
@@ -157,11 +155,10 @@ define
    in
       ArrowId
    end
-
+%%%%%%%% THE KEY-THREAD-PORTOBJECT %%%%%
    fun{KeyPort MapButtons}
       KeyId  = {NewPortObject state(pending pending)
          fun{$ Msg state(Frame Prev)}
-            {Show keys#Msg#Frame}
             case Msg
             of set(NewFrame) then
                if Frame\=pending andthen Frame\=map andthen
@@ -197,10 +194,8 @@ define
                            state(Frame Prev)
                         else X = {Fun $} in
                            if X==none then
-                              {Show set#none}
                               state(Frame Prev)
                            elseif X==back then
-                              {Show setback#Prev}
                               state(Prev pending)
                            else
                               state(X Frame)
@@ -212,7 +207,6 @@ define
                   [] pending then
                      state(Frame Prev)
                   else
-                     {Show error#keys}
                      state(Frame Prev)
                   end
                end

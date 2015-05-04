@@ -4,7 +4,7 @@ import
    System
    Application
    PortDefinitions
-   Browser
+
 export
    LoadImage
    RedrawFight
@@ -49,7 +49,6 @@ export
 define
    % Imports
    Show = System.show
-   Browse = Browser.browse
    GetArrows = PortDefinitions.getArrows
    % Exports
    MAINPO PLAYER WILD LISTAI WIDGETS CANVAS MAPID SPEED DELAY PROBABILITY
@@ -188,19 +187,16 @@ define
       DX = 67 %DXn = 66
       Tag={Canvash newTag($)}
       Tag2={Canvash newTag($)}
-      CanvasH = CANVAS.map
       proc{DrawSquare index(X Y)}
          if Y>MaxY then skip
          else NewX NewY
             ActX = 1+DX*(X-1+XSTART)
             ActY = 1+DX*(Y-1+YSTART)
          in
-            %{CanvasH create(rectangle ActX ActY ActX+DXn ActY+DXn
-            %         fill:Color.(Map.Y.X) tags:Tag)}
             {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33
                            tags:Tag)}
             if X==MAXX andthen Y==MAXY then
-               {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33
+               {Canvash create(image image:nil ActX+33 ActY+33
                               tags:Tag2)}
             end
             if X==MaxX then NewX=1 NewY=Y+1
@@ -326,7 +322,6 @@ define
             in
                {Buttons.(Atoms.Y.X).onclick}
             end
-            NewCanvash = CANVAS.fight
          in
             if AiObj==none then
                {Buttons.fight.onselect}
@@ -385,14 +380,14 @@ define
             Img = {LoadImage [NewPkm.name "_back" ]}
             TagD = Tags.plateau.1.1
             TagP = Tags.plateau.2.1
-            Ximg = 135+Xst  Xdisk = 125+Xst
-            Yimg = 120      Ydisk = 210
+            Ximg = 135+Xst  Xdisk = 140+Xst
+            Yimg = 120      Ydisk = 205
          else
             Img = {LoadImage [NewPkm.name "_front" ]}
             TagD = Tags.plateau.1.2
             TagP = Tags.plateau.2.2
-            Ximg = 340-Xst  Xdisk = 345-Xst
-            Yimg = 55       Ydisk = 60
+            Ximg = 340-Xst  Xdisk = 350-Xst
+            Yimg = 55       Ydisk = 85
         end
       in
          {CanvasH create(image image:Disk  Xdisk  Ydisk tags:TagD)}
@@ -516,7 +511,7 @@ define
       %Draw the element
          {Canvash create(rectangle XX YY XX+180 YY+130 fill:Color.1
          	              tags:Tagbis)}
-         {Canvash create(image image:{LoadImage [Play.name "_front"]}
+         {Canvash create(image image:{LoadImage [Play.name "_small"]}
          	              XX+40 YY+80 tags:Tag)}
          if Play == First then
           {Canvash create(image image:{LoadImage "leader"}
