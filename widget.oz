@@ -4,7 +4,7 @@ import
    System
    Application
    PortDefinitions
-   Browser
+
 export
    LoadImage
    RedrawFight
@@ -49,7 +49,6 @@ export
 define
    % Imports
    Show = System.show
-   Browse = Browser.browse
    GetArrows = PortDefinitions.getArrows
    % Exports
    MAINPO PLAYER WILD LISTAI WIDGETS CANVAS MAPID SPEED DELAY PROBABILITY
@@ -188,15 +187,12 @@ define
       DX = 67 %DXn = 66
       Tag={Canvash newTag($)}
       Tag2={Canvash newTag($)}
-      CanvasH = CANVAS.map
       proc{DrawSquare index(X Y)}
          if Y>MaxY then skip
          else NewX NewY
             ActX = 1+DX*(X-1+XSTART)
             ActY = 1+DX*(Y-1+YSTART)
          in
-            %{CanvasH create(rectangle ActX ActY ActX+DXn ActY+DXn
-            %         fill:Color.(Map.Y.X) tags:Tag)}
             {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33
                            tags:Tag)}
             if X==MAXX andthen Y==MAXY then
@@ -326,7 +322,6 @@ define
             in
                {Buttons.(Atoms.Y.X).onclick}
             end
-            NewCanvash = CANVAS.fight
          in
             if AiObj==none then
                {Buttons.fight.onselect}

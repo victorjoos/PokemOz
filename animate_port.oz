@@ -2,7 +2,6 @@ functor
 import
    PortDefinitions
    Widget
-   Browser
 export
    trainer:AnimateTrainer
    fight:DrawFight
@@ -12,13 +11,11 @@ export
    GetEvolveScreen
 define
 % Imports
-   Browse = Browser.browse
    GETDIR = PortDefinitions.getDir
    GETDIRSIDE = PortDefinitions.getDirSide
    NewPortObjectKillable = PortDefinitions.kPort
    NewPortObjectMinor = PortDefinitions.mPort
    Timer = PortDefinitions.timer
-   Waiter = PortDefinitions.waiter
 
    RedrawFight = Widget.redrawFight
    LoadImage = Widget.loadImage
@@ -449,7 +446,6 @@ define
    proc{GetLostScreen ReleaseAI}
       {Send MAINPO set(lost)}
       Tid = {Timer}
-      Canvash = CANVAS.lost
       Lostid = {NewPortObjectKillable state(true)
       fun{$ Msg state(State)}
          case Msg
@@ -488,7 +484,6 @@ define
    proc{GetWelcomeScreen StarterPokemoz}
       {DrawWelcome}
       Tid = {Timer}
-      Canvash = CANVAS.welcome
       Welcid = {NewPortObjectKillable state(true)
                      fun{$ Msg state(State)}
                         case Msg
@@ -521,7 +516,6 @@ define
    end
    proc{GetWonScreen}
       Tid = {Timer}
-      Canvash = CANVAS.won
       Wonid = {NewPortObjectKillable state(true)
                      fun{$ Msg state(State)}
                         case Msg
