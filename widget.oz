@@ -343,8 +343,12 @@ define
                                           [fight]) Ack)}
                   thread {Wait Ack} {Delay {DELAY.get}*3}
                         {Send AiObj.pid goFight(play:Play npc:Adv)} end
-               else %AiObj==auto
-                  skip
+               else Ack in %AiObj==auto
+                  {Buttons.fight.onselect}
+                  {Send KEYS set(actions(fight(fight:Buttons.fight.onclick)
+                                          [fight]) Ack)}
+                  thread {Wait Ack} {Delay {DELAY.get}*3}
+                        {Send AiObj.pid goFight(play:Play npc:Adv)} end
                end
             end
          end

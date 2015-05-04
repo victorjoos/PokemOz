@@ -458,6 +458,10 @@ define
                      {Send Wid wait(Mapid Val send(x:Pos.x y:Pos.y left))}
                      state(moving FSched)
                   else
+                     if AiBool then
+                        {Send TrainerObj.ai.pid go(pos:{Send Trid getPos($)}
+                                                   dir:{Send Trid getDir($)})}
+                     end
                      state(still FSched)
                   end
                else
@@ -497,7 +501,6 @@ define
          [] arrived then
             if State == moving then
                if AiBool then
-                  {Browse sentToAI}
                   {Send TrainerObj.ai.pid go(pos:{Send Trid getPos($)}
                                              dir:{Send Trid getDir($)})}
                end
@@ -780,7 +783,12 @@ define
                state(killed)
             else
                proc{FigureLoop Status} B in
-                  thread {DrawPokeList dead(B)} end
+                  thread
+                     {DrawPokeList dead(B)}
+                     if AiBool then
+                        {Send PlayObj.ai.pid change}
+                     end
+                  end
                   if Status == first then
                      {Send MAINPO set(pokelist)}
                   end
@@ -796,9 +804,6 @@ define
                end
             in
                thread {Wait Ack} {FigureLoop first} end
-               if AiBool then
-                  {Send WaitAnim wait(PlayObj.ai.pid Ack goFight(play:Play npc:Npc))}
-               end
                state(player:Play enemy:Npc fighting:true)
             end
          [] endAttack then
@@ -1263,6 +1268,8 @@ define
                                     case Msg
                                     of goFight(npc:_ play:_) then
                                        {Send KEYS fight}
+                                    [] change then
+                                       {Send KEYS z}
                                     end
                                  end}
                            type:autofight)
@@ -1277,6 +1284,8 @@ define
                                        else
                                           {Send KEYS fight}
                                        end
+                                    [] change then
+                                       {Send KEYS z}
                                     end
                                  end}
                               type:autorun)
