@@ -73,18 +73,21 @@ define
 	    Down = c(x:X y:Y+1)|Up else Down=Up end
 	 Down
       end
-      fun {InitRecord Type}
+      fun {InitRecord Type X Y}
 	 MapRec = {MakeTuple 'map' MAXY}
       in
+	 {Show MAXX#MAXY}
 	 for J in 1..MAXY do
 	    MapRec.J = {MakeTuple 'r' MAXX}
 	    for I in 1..MAXX do
-	       if J==MAXY andthen I==MAXX then
+	       if J==Y andthen I==X then
+		  {Show here}
 		  if Type==cost then MapRec.J.I = 0
 		  else MapRec.J.I=none end
 	       else MapRec.J.I = nil end
 	    end
 	 end
+	 {Browse MapRec}
 	 MapRec
       end
       fun {PathFinder Frontier CameFrom CostMap}
@@ -153,13 +156,13 @@ define
 	    end
 	 end
       end
-      fun {SearchBest Current FromMap}
+      fun {SearchBest Current FromMap Px Py}
 	 X = Current.x
 	 Y = Current.y
       in
 	 {Browse Current}
-	 if FromMap.Y.X.x==MAXX andthen FromMap.Y.X.y==MAXY then Current|nil
-	 else Current|{SearchBest FromMap.Y.X FromMap}
+	 if FromMap.Y.X.x==Px andthen FromMap.Y.X.y==Py then Current|nil
+	 else Current|{SearchBest FromMap.Y.X FromMap Px Py}
 	 end
       end
       fun {CompDir Dx Dy}
@@ -192,7 +195,7 @@ define
       fun {MakePath X Y}
 	 {Reverse {SearchBest c(x:MAXX y:1)
 		   {PathFinder c(x:X y:Y)|nil
-		    {InitRecord map} {InitRecord cost}}}}
+		    {InitRecord map X Y} {InitRecord cost X Y}} X Y}}
       end
       Init = map
       ArtificialPlayerPort = {NewPortObjectMinor
