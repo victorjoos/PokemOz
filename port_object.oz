@@ -1247,10 +1247,11 @@ define
       TrainerObj = npc(poke:Pokemoz pid:Trpid)
 
       AIid = {GetEnemyAi Trpid LDir}
-      Anid = {AnimateTrainer X0-1 Y0-1 Speed TName}
+      Anid#ImgTag = {AnimateTrainer X0-1 Y0-1 Speed TName}
       Trid = {Trainer pos(x:X0 y:Y0) Anid npc}
       Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
    in
+      {Send AITAGS add(ImgTag)}
       TrainerObj
    end
 
