@@ -130,9 +130,11 @@ define
             else
                AckL={SignalArrival Plid [{Send Plid.pid getDir($)}] false}
             end
-            {WaitList AckL}%It slows down the whole process but blocks EVERY
-                           %concurrency issue we had!
-            Val=unit
+            thread
+               {WaitList AckL}%It slows down the whole process but blocks EVERY
+                              %concurrency issue we had!
+               Val=unit
+            end
             state(occupied(Plid))
          [] new(Dir Trainer Ack) then
             case State
@@ -140,12 +142,14 @@ define
                if LblY\={Label Trainer} then
                   if LblY==player then
                      if {Send Trainer.poke getFirst($)} \= none then
+                        {Show sent#startfight}
                         {Send Y.pid startFight(Trainer Ack2)}
                      else Ack2 = unit
                      end
 
                   elseif {Send Y.pid getDir($)} == Dir then
                      if {Send Y.poke       getFirst($)} \= none then
+                        {Show sent#startfight}
                         {Send Trainer.pid startFight(Y Ack2)}
                      else Ack2 = unit
                      end
@@ -370,9 +374,9 @@ define
                {Send Anid move(Dir normal)}
             else
                if (Dir == up    andthen Y < (MAXY-4) andthen Y>2) orelse
-                  (Dir == down  andthen Y < (MAXY-3) andthen Y>4) orelse
+                  (Dir == down  andthen Y < (MAXY-3) andthen Y>3) orelse
                   (Dir == left  andthen X < (MAXX-4) andthen X>2) orelse
-                  (Dir == right andthen X < (MAXX-3) andthen X>4) then
+                  (Dir == right andthen X < (MAXX-3) andthen X>3) then
                   {Send Anid move(Dir special)}
                else {Send Anid move(Dir normal)}
                end
@@ -382,7 +386,7 @@ define
             {Send Anid turn(NewDir)}
             state(Pos dir:NewDir)
          [] reset then
-            {Send Anid reset}
+            {Send Anid reset(Pos.x Pos.y)}
             state(pos(x:MAXX y:MAXY) dir:up)
          end
       end}
@@ -557,6 +561,7 @@ define
          [] waitFight then
             state(waiting)
          [] endFight then
+            {Send AIid go}
             state(still)
          [] rmBlock then
             %{Browse 'rmblock should be working!'}
@@ -825,7 +830,7 @@ define
    fun{GETTYPE Name}
       Grass = ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
                "Zoizoz" "Grozoizoz" "Machoz" "Machozman" "Ozchamp"]
-      Water = ["Oztirtle" "Wartoztle" "Charozard" "Rozzozoz" "Roticoz" "Coincwoz"
+      Water = ["Oztirtle" "Wartoztle" "Blastoz" "Rozzozoz" "Roticoz" "Coincwoz"
                "Goldoz" "Ozcool" "Ozcruel" "Magiciendoz" "Pytagyroz"]
       Fire  = ["Charmandoz" "Charmeleoz" "Charozard" "Pidgeoz" "Pidgeozoz"
                "Ozpidgeoz" "Ozachu" "Ozmouse" "Vulpoz" "9xOz" "Oz2_0"]
@@ -1257,38 +1262,42 @@ define
 
    % Function that creates a fight
    proc{CreateFight Player NPC}
-      {Send MAINPO set(fight)}
-      %Buttons Arrows
-      Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
-      Fight = {FightController Player NPC Animation Arrows}
-   in
-      {Wait Buttons}
-      Buttons.fight.onclick  = proc{$} {Send Fight fight} end
-      Buttons.run.onclick    = proc{$} {Send Fight run} end
-      Buttons.switch.onclick = proc{$} B in
-         if {Send Fight action($)} == false then
-            proc{FigureLoop Status} B in
-               thread {DrawPokeList fight(B)} end
-               if Status == first then
-                  {Send MAINPO set(pokelist)}
+      if {Send NPC.poke getFirst($)}==none then
+         {Send Player.pid nextFight}
+      else
+         {Send MAINPO set(fight)}
+         %Buttons Arrows
+         Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
+         Fight = {FightController Player NPC Animation Arrows}
+      in
+         {Wait Buttons}
+         Buttons.fight.onclick  = proc{$} {Send Fight fight} end
+         Buttons.run.onclick    = proc{$} {Send Fight run} end
+         Buttons.switch.onclick = proc{$} B in
+            if {Send Fight action($)} == false then
+               proc{FigureLoop Status} B in
+                  thread {DrawPokeList fight(B)} end
+                  if Status == first then
+                     {Send MAINPO set(pokelist)}
+                  end
+                  if B==back then skip
+                  elseif B\=none then
+                     {Send Fight switch(B ia)}
+                  else
+                     {FigureLoop xth}
+                  end
                end
-               if B==back then skip
-               elseif B\=none then
-                  {Send Fight switch(B ia)}
-               else
-                  {FigureLoop xth}
-               end
+            in
+               thread {FigureLoop first} end
+            else skip
             end
-         in
-            thread {FigureLoop first} end
-         else skip
          end
-      end
-      Buttons.capture.onclick =  proc{$}
-                                    if {Send Fight action($)} == false then
-                                       {Send Fight catching}
+         Buttons.capture.onclick =  proc{$}
+                                       if {Send Fight action($)} == false then
+                                          {Send Fight catching}
+                                       end
                                     end
-                                 end
+      end
    end
 
    %%%%% MAIN THREAD %%%%%%%
@@ -1376,21 +1385,24 @@ define
          end}
    fun{ReadMap _}%should be replaced by 'Name' afterwards
       MAXX = 14
-      MAXY = 7
+      MAXY = 10
       map(  r(1 1 1 0 0 0 0 1 1 1 0 0 0 0)
             r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
             r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
             r(0 0 0 0 0 1 1 0 0 0 0 0 1 1)
             r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
             r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
+            r(0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+            r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
+            r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
             r(0 0 0 0 0 0 0 0 0 0 0 0 0 0))
    end
    fun{ReadEnemies _}
       %List of Names with their start Coordinates
-      [npc("Red" start:init(x:5 y:5) speed:5
+      [npc("Red" start:init(x:12 y:5) speed:5
             states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-            poke:[poke("Charmandoz" 8)])
-       npc("Red" start:init(x:5 y:3) speed:5
+            poke:[poke("Charozard" 10)])
+       npc("Red" start:init(x:12 y:3) speed:5
             states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
             poke:[poke("Bulbasoz" 5) poke("Bulbasoz" 5)])]
    end

@@ -121,4 +121,7 @@ in
    {Window bind(event:"<t>" action:proc{$}
                            {Send {Send PLAYER.poke getFirst($)}.pid damage(40 _)}
                         end)}
+   {Window bind(event:"<e>" action:proc{$}
+                           {Send PLAYER.pid reset(_)}
+                        end)}
 end

@@ -405,6 +405,7 @@ define
       fun{SendMove Msg} B in
          case Msg
          of move(Dir) then
+            %{Show sent#move#Lmoves}
             {Send CtrlId move(Dir $)}
          [] turn(Dir) then
             thread {Delay {DELAY.get}} {Send CtrlId turn(Dir $)} end

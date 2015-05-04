@@ -116,14 +116,13 @@ define
                end
             else DXX TagCtr in
                if Dir == "up" orelse Dir == "down" then
-                  DXX=dx(~DX.x     ~(DX.y+Sup))
+                  DXX=move(~DX.x     ~(DX.y+Sup))
                else
-                  DXX=dx(~(DX.x+Sup) ~DX.y)
+                  DXX=move(~(DX.x+Sup) ~DX.y)
                end
                TagCtr = {Send AITAGS get($)}
-               {Apply TagCtr proc{$ X} {X move(DXX.1 DXX.2)}end}
-               %{Apply TagCtr proc{$ X} {Send X DXX} end}
-               {TAGS.map move(DXX.1 DXX.2)}
+               {Apply TagCtr proc{$ X} {X DXX}end}
+               {TAGS.map DXX}
             end
             {Animate Dir DT DX Ind+1 Mod2 DMod Status}
          else
@@ -150,10 +149,19 @@ define
             {Animate Dir2 DT Delta 0 Mod DMod Status}
          [] turn(Dir) then Dir2 = {AtomToString Dir} in
             {TagIm set(image:{LoadImage [Name "_" Dir2 "_still"]})}
-         [] reset then
+         [] reset(X Y) then
+            Dx Dy
+            if X<MAXX-4 then Dx = X+XSTART-3 else Dx=0 end
+            if Y<MAXY-4 then Dy = Y+YSTART-3 else Dy=0 end
+            DXX = move(Dx*67 Dy*67)
+            TagCtr
+         in
             {TagIm delete}
             {Canvash create(image image:{LoadImage [Name "_up" "_still"]}
-            X0*67+33 Y0*67+33 tags:TagIm)}
+                              (X0+XSTART)*67+33 (Y0+YSTART)*67+33 tags:TagIm)}
+            TagCtr = {Send AITAGS get($)}
+            {Apply TagCtr proc{$ X} {X DXX}end}
+            {TAGS.map DXX}
          end
       end}
    in
