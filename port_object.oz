@@ -57,6 +57,7 @@ define
    PROBABILITY = Widget.probability
    MAXX = Widget.maxX
    MAXY = Widget.maxY
+   AITAGS = Widget.aiTags
    % This file will contain all the portObjects' descriptions and code
 
    %%%%%%% MAPRELATED PORTOBJECTS %%%%%%%%%%%%
@@ -353,7 +354,7 @@ define
    %       Anid = Pid of animation thread
    %@post: Returns the Pid of the trainer
 
-   fun{Trainer C Anid}
+   fun{Trainer C Anid Person}
       Init = state(C dir:up)
       Trid = {NewPortObject Init
       fun{$ Msg state(Pos dir:Dir)}
@@ -365,7 +366,17 @@ define
             X=Pos
             state(Pos dir:Dir)
          [] moveTo(x:X y:Y) then
-            {Send Anid move(Dir)}
+            if Person\=player then
+               {Send Anid move(Dir normal)}
+            else
+               if (Dir == up    andthen Y < (MAXY-4) andthen Y>2) orelse
+                  (Dir == down  andthen Y < (MAXY-3) andthen Y>4) orelse
+                  (Dir == left  andthen X < (MAXX-4) andthen X>2) orelse
+                  (Dir == right andthen X < (MAXX-3) andthen X>4) then
+                  {Send Anid move(Dir special)}
+               else {Send Anid move(Dir normal)}
+               end
+            end
             state(pos(x:X y:Y) dir:Dir)
          [] turn(NewDir) then
             {Send Anid turn(NewDir)}
@@ -1206,7 +1217,7 @@ define
       AIid
       TrainerObj = Type(poke:Pokemoz pid:Trpid)
       Anid = {AnimateTrainer X0-1 Y0-1 Speed Name}
-      Trid = {Trainer pos(x:X0 y:Y0) Anid}
+      Trid = {Trainer pos(x:X0 y:Y0) Anid player}
       % Trpid = {TrainerController Mapid Trid Speed TrainerObj}
    in
       if Type==player then
@@ -1236,9 +1247,10 @@ define
 
       AIid = {GetEnemyAi Trpid LDir}
       Anid = {AnimateTrainer X0-1 Y0-1 Speed TName}
-      Trid = {Trainer pos(x:X0 y:Y0) Anid}
+      Trid = {Trainer pos(x:X0 y:Y0) Anid npc}
       Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
    in
+      {Send AITAGS add(Anid)}
       TrainerObj
    end
 
@@ -1352,17 +1364,25 @@ define
       {GetWelcomeScreen StarterPokemoz}
       Main
    end
-
+   AITAGS = {NewPortObject nil
+         fun{$ Msg List}
+            case Msg
+            of add(AnimId) then
+               {Append List [AnimId]}
+            [] get(L) then
+               L = List List
+            end
+         end}
    fun{ReadMap _}%should be replaced by 'Name' afterwards
-      MAXX = 7
+      MAXX = 14
       MAXY = 7
-      map(  r(1 1 1 0 0 0 0)
-            r(1 1 1 0 0 1 1)
-            r(1 1 1 0 0 1 1)
-            r(0 0 0 0 0 1 1)
-            r(0 0 0 1 1 1 1)
-            r(0 0 0 1 1 0 0)
-            r(0 0 0 0 0 0 0))
+      map(  r(1 1 1 0 0 0 0 1 1 1 0 0 0 0)
+            r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
+            r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
+            r(0 0 0 0 0 1 1 0 0 0 0 0 1 1)
+            r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
+            r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
+            r(0 0 0 0 0 0 0 0 0 0 0 0 0 0))
    end
    fun{ReadEnemies _}
       %List of Names with their start Coordinates

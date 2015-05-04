@@ -28,6 +28,9 @@ define
    DELAY = Widget.delay
    MAINPO = Widget.mainPO
    KEYS = Widget.keys
+   AITAGS = Widget.aiTags
+   MAXX = Widget.maxX
+   MAXY = Widget.maxY
    DrawWelcome = Widget.drawWelcome
    %%%%%%% TRAINER ON MAP %%%%%%
 
@@ -41,7 +44,7 @@ define
    %       Name    = Name of the drawings template
    %@post: Returns a PortObject capable of drawing an animation
    STATES = states("_walk1" "_still" "_walk2" "_still")
-   fun{AnimateTrainer X0 Y0 Speed Name}
+   /*fun{AnimateTrainer X0 Y0 Speed Name}
       Canvash = CANVAS.map
       proc{Animate Dir DT DX Ind Mod DMod} Sup Mod2 in
          if Mod \= 0 then Sup = DMod Mod2=Mod-DMod else Sup = 0 Mod2=0 end
@@ -79,6 +82,73 @@ define
             {Animate Dir2 DT Delta 0 Mod DMod}
          [] turn(Dir) then Dir2 = {AtomToString Dir} in
             {TagIm set(image:{LoadImage [Name "_" Dir2 "_still"]})}
+         end
+      end}
+   in
+      {Canvash create(image image:{LoadImage [Name "_up" "_still"]}
+      X0*67+33 Y0*67+33 tags:TagIm)}
+      Anid
+   end*/
+   %Intern
+   proc{Apply L F}
+      case L of nil then skip
+      [] H|T then
+         {F H}
+         {Apply T F}
+      end
+   end
+   fun{AnimateTrainer X0 Y0 Speed Name}
+      Canvash = CANVAS.map
+      XSTART = 7-MAXX
+      YSTART = 7-MAXY
+      proc{Animate Dir DT DX Ind Mod DMod Status} Sup Mod2 in
+         if Mod \= 0 then Sup = DMod Mod2=Mod-DMod else Sup = 0 Mod2=0 end
+         if Ind < 8 then
+            Next = ((Ind) mod 4)+1
+         in
+            {Delay DT}
+            {TagIm set(image:{LoadImage [Name "_" Dir STATES.Next]})}
+            if Status==normal then
+               if Dir == "up" orelse Dir == "down" then
+                  {TagIm move(DX.x     DX.y+Sup)}
+               else
+                  {TagIm move(DX.x+Sup DX.y)}
+               end
+            else DXX TagCtr in
+               if Dir == "up" orelse Dir == "down" then
+                  DXX=dx(~DX.x     ~(DX.y+Sup))
+               else
+                  DXX=dx(~(DX.x+Sup) ~DX.y)
+               end
+               TagCtr = {Send AITAGS get($)}
+               {Apply TagCtr proc{$ X} {Send X DXX} end}
+               {TAGS.map move(DXX.1 DXX.2)}
+            end
+            {Animate Dir DT DX Ind+1 Mod2 DMod Status}
+         else
+            skip
+         end
+      end
+      TagIm = {Canvash newTag($)}
+      Anid  = {NewPortObjectMinor
+      proc{$ Msg}
+         case Msg
+         of dx(Dx Dy) then
+            {TagIm move(Dx Dy)}
+         [] move(Dir Status) then
+            Numb = 8
+            Dir2 = {AtomToString Dir}
+            DT    = ({DELAY.get}*Speed) div (Numb+1)
+            DX    = {GETDIR Dir}
+            Delta = delta(x:(DX.x*67) div Numb y:(DX.y*67) div Numb)
+            Mod
+            if DX.x == 0 then Mod = (DX.y*67) mod Numb
+            else              Mod = (DX.x*67) mod Numb end
+            DMod  = {GETDIRSIDE Dir}
+         in
+            {Animate Dir2 DT Delta 0 Mod DMod Status}
+         [] turn(Dir) then Dir2 = {AtomToString Dir} in
+            {TagIm set(image:{LoadImage [Name "_" Dir2 "_still"]})}
          [] reset then
             {TagIm delete}
             {Canvash create(image image:{LoadImage [Name "_up" "_still"]}
@@ -87,7 +157,7 @@ define
       end}
    in
       {Canvash create(image image:{LoadImage [Name "_up" "_still"]}
-      X0*67+33 Y0*67+33 tags:TagIm)}
+      (X0+XSTART)*67+33 (Y0+YSTART)*67+33 tags:TagIm)}
       Anid
    end
 
@@ -113,14 +183,7 @@ define
       if     Dx ==  1 then proc{$ Tag} {Tag move( Cst 0)} end
       elseif Dx == ~1 then proc{$ Tag} {Tag move(~Cst 0)} end end
    end
-   %Intern
-   proc{Apply L F}
-      case L of nil then skip
-      [] H|T then
-         {F H}
-         {Apply T F}
-      end
-   end
+
    %Intern
    proc{MoveFight LTags Dx}
       {Apply LTags {GetMove Dx}}
