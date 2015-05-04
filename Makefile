@@ -1,4 +1,4 @@
-ARGS = -s5 -d50 -p30 -f --map Map1.txt --npc Npc1.txt -a
+ARGS = -s5 -d50 -p30 -f --map Map1.txt --npc Npc1.txt
 main.oza : main.oz PortObject.ozf Widget.ozf
 	ozc -c main.oz -o main.oza
 PortObject.ozf : port_object.oz AnimatePort.ozf AI.ozf Widget.ozf PortDefinitions.ozf
