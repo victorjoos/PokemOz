@@ -121,7 +121,8 @@ define
                   DXX=dx(~(DX.x+Sup) ~DX.y)
                end
                TagCtr = {Send AITAGS get($)}
-               {Apply TagCtr proc{$ X} {Send X DXX} end}
+               {Apply TagCtr proc{$ X} {X move(DXX.1 DXX.2)}end}
+               %{Apply TagCtr proc{$ X} {Send X DXX} end}
                {TAGS.map move(DXX.1 DXX.2)}
             end
             {Animate Dir DT DX Ind+1 Mod2 DMod Status}
@@ -158,7 +159,7 @@ define
    in
       {Canvash create(image image:{LoadImage [Name "_up" "_still"]}
       (X0+XSTART)*67+33 (Y0+YSTART)*67+33 tags:TagIm)}
-      Anid
+      Anid#TagIm
    end
 
 

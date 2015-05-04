@@ -1216,13 +1216,14 @@ define
       Trpid
       AIid
       TrainerObj = Type(poke:Pokemoz pid:Trpid)
-      Anid = {AnimateTrainer X0-1 Y0-1 Speed Name}
+      Anid#ImgTag = {AnimateTrainer X0-1 Y0-1 Speed Name}
       Trid = {Trainer pos(x:X0 y:Y0) Anid player}
       % Trpid = {TrainerController Mapid Trid Speed TrainerObj}
    in
       if Type==player then
          Trpid = {TrainerController Mapid Trid Speed TrainerObj}
       else
+         {Send AITAGS add(ImgTag)}
          AIid = {ArtificialPlayer pos(x:X0 y:Y0) Mapid Trpid}
          Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
       end
@@ -1250,7 +1251,6 @@ define
       Trid = {Trainer pos(x:X0 y:Y0) Anid npc}
       Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
    in
-      {Send AITAGS add(Anid)}
       TrainerObj
    end
 
