@@ -76,18 +76,15 @@ define
       fun {InitRecord Type X Y}
 	 MapRec = {MakeTuple 'map' MAXY}
       in
-	 {Show MAXX#MAXY}
 	 for J in 1..MAXY do
 	    MapRec.J = {MakeTuple 'r' MAXX}
 	    for I in 1..MAXX do
 	       if J==Y andthen I==X then
-		  {Show here}
 		  if Type==cost then MapRec.J.I = 0
 		  else MapRec.J.I=none end
 	       else MapRec.J.I = nil end
 	    end
 	 end
-	 {Browse MapRec}
 	 MapRec
       end
       fun {PathFinder Frontier CameFrom CostMap}
@@ -145,12 +142,10 @@ define
       in
 	 case Frontier of nil then error
 	 [] c(x:X y:Y)|T then
-	    {Show cost#CostMap}
 	    if X==MAXX andthen Y==1 then CameFrom
 	    else NeighbourL={Neighbours X Y} NewFrontier NewFrom NewCost in
 	       NewFrontier#NewFrom#NewCost =
 	       {Loop c(x:X y:Y) NeighbourL nil CameFrom CostMap}
-	       {Show newCost#NewCost}
 	       LastFrontier = {Sort {Append T NewFrontier} {SortFun NewCost}}
 	       {PathFinder LastFrontier NewFrom NewCost}
 	    end
@@ -200,7 +195,6 @@ define
       Init = map
       ArtificialPlayerPort = {NewPortObjectMinor
 			      proc{$ Msg}
-				 {Show aiMsg#Msg}
 				 case Msg
 				 of go(pos:Pos dir:Dir) then
 				    Path
@@ -209,14 +203,17 @@ define
 				    TrainerList = {GetTrainerList 1 1}
 				    MoveDir
 				 in
-				    Path = {MakePath Pos.x Pos.y}
-				    Next = Path.1
-				    MoveDir = {Intelligence Pos.x Pos.y Dir Next}
-				    if Dir == MoveDir then
-				       {Send KeysPort MoveDir}
+				    if Pos.x==MAXX andthen Pos.y==1 then skip
 				    else
-				       {Send KeysPort MoveDir}
-				       {Send KeysPort MoveDir}
+				       Path = {MakePath Pos.x Pos.y}
+				       Next = Path.1
+				       MoveDir = {Intelligence Pos.x Pos.y Dir Next}
+				       if Dir == MoveDir then
+					  {Send KeysPort MoveDir}
+				       else
+					  {Send KeysPort MoveDir}
+					  {Send KeysPort MoveDir}
+				       end
 				    end
 				    %state(map)
 				 % [] fight then
