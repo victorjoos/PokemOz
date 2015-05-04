@@ -29,6 +29,7 @@ export
    player: PLAYER % port_object, main
    wild: WILD % port_object, main
    listAI: LISTAI % port_object, main
+   aiTags:AITAGS
 
    widgets: WIDGETS % main
    canvas: CANVAS % port, animate_port, main
@@ -48,7 +49,8 @@ define
    Browse = Browser.browse
    GetArrows = PortDefinitions.getArrows
    % Exports
-   MAINPO PLAYER WILD LISTAI WIDGETS CANVAS MAPID SPEED DELAY PROBABILITY MAXX MAXY KEYS
+   MAINPO PLAYER WILD LISTAI WIDGETS CANVAS MAPID SPEED DELAY PROBABILITY
+   MAXX MAXY KEYS AITAGS
 % This file will contain all the widget-containers used in this project
 % each time with a brief description of what they do
 
@@ -174,6 +176,8 @@ define
 
    proc{DrawMap Map MaxX MaxY}
       Canvash = CANVAS.map
+      XSTART = 7-MAXX
+      YSTART = 7-MAXY
       %ColorGrass = c(38 133 30)
       %ColorPath  = c(49 025 05)
       %Color = color(0:ColorPath 1:ColorGrass)
@@ -184,12 +188,13 @@ define
       proc{DrawSquare index(X Y)}
          if Y>MaxY then skip
          else NewX NewY
-            ActX = 1+DX*(X-1)
-            ActY = 1+DX*(Y-1)
+            ActX = 1+DX*(X-1+XSTART)
+            ActY = 1+DX*(Y-1+YSTART)
          in
             %{CanvasH create(rectangle ActX ActY ActX+DXn ActY+DXn
             %         fill:Color.(Map.Y.X) tags:Tag)}
-            {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33)}
+            {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33
+                           tags:Tag)}
             if X==MaxX then NewX=1 NewY=Y+1
             else NewX=X+1 NewY=Y end
             {DrawSquare index(NewX NewY)}
@@ -202,9 +207,6 @@ define
    end
 %@pre: Shifts the map (decribed by the list of handles)
 %       in the direction Dir
-   proc{ShiftMap Tag Dir}
-      skip
-   end
 
    WIDGETS.map = td( canvas( height:470 width:470
                			     handle:CANVAS.map

@@ -57,6 +57,7 @@ define
    PROBABILITY = Widget.probability
    MAXX = Widget.maxX
    MAXY = Widget.maxY
+   AITAGS = Widget.aiTags
    % This file will contain all the portObjects' descriptions and code
 
    %%%%%%% MAPRELATED PORTOBJECTS %%%%%%%%%%%%
@@ -129,9 +130,11 @@ define
             else
                AckL={SignalArrival Plid [{Send Plid.pid getDir($)}] false}
             end
-            {WaitList AckL}%It slows down the whole process but blocks EVERY
-                           %concurrency issue we had!
-            Val=unit
+            thread
+               {WaitList AckL}%It slows down the whole process but blocks EVERY
+                              %concurrency issue we had!
+               Val=unit
+            end
             state(occupied(Plid))
          [] new(Dir Trainer Ack) then
             case State
@@ -139,12 +142,14 @@ define
                if LblY\={Label Trainer} then
                   if LblY==player then
                      if {Send Trainer.poke getFirst($)} \= none then
+                        {Show sent#startfight}
                         {Send Y.pid startFight(Trainer Ack2)}
                      else Ack2 = unit
                      end
 
                   elseif {Send Y.pid getDir($)} == Dir then
                      if {Send Y.poke       getFirst($)} \= none then
+                        {Show sent#startfight}
                         {Send Trainer.pid startFight(Y Ack2)}
                      else Ack2 = unit
                      end
@@ -353,7 +358,7 @@ define
    %       Anid = Pid of animation thread
    %@post: Returns the Pid of the trainer
 
-   fun{Trainer C Anid}
+   fun{Trainer C Anid Person}
       Init = state(C dir:up)
       Trid = {NewPortObject Init
       fun{$ Msg state(Pos dir:Dir)}
@@ -365,13 +370,23 @@ define
             X=Pos
             state(Pos dir:Dir)
          [] moveTo(x:X y:Y) then
-            {Send Anid move(Dir)}
+            if Person\=player then
+               {Send Anid move(Dir normal)}
+            else
+               if (Dir == up    andthen Y < (MAXY-4) andthen Y>2) orelse
+                  (Dir == down  andthen Y < (MAXY-3) andthen Y>3) orelse
+                  (Dir == left  andthen X < (MAXX-4) andthen X>2) orelse
+                  (Dir == right andthen X < (MAXX-3) andthen X>3) then
+                  {Send Anid move(Dir special)}
+               else {Send Anid move(Dir normal)}
+               end
+            end
             state(pos(x:X y:Y) dir:Dir)
          [] turn(NewDir) then
             {Send Anid turn(NewDir)}
             state(Pos dir:NewDir)
          [] reset then
-            {Send Anid reset}
+            {Send Anid reset(Pos.x Pos.y)}
             state(pos(x:MAXX y:MAXY) dir:up)
          end
       end}
@@ -546,6 +561,7 @@ define
          [] waitFight then
             state(waiting)
          [] endFight then
+            {Send AIid go}
             state(still)
          [] rmBlock then
             %{Browse 'rmblock should be working!'}
@@ -814,7 +830,7 @@ define
    fun{GETTYPE Name}
       Grass = ["Bulbasoz" "Ivysoz" "Venusoz" "Ozweed" "Kakunoz" "Ozdrill"
                "Zoizoz" "Grozoizoz" "Machoz" "Machozman" "Ozchamp"]
-      Water = ["Oztirtle" "Wartoztle" "Charozard" "Rozzozoz" "Roticoz" "Coincwoz"
+      Water = ["Oztirtle" "Wartoztle" "Blastoz" "Rozzozoz" "Roticoz" "Coincwoz"
                "Goldoz" "Ozcool" "Ozcruel" "Magiciendoz" "Pytagyroz"]
       Fire  = ["Charmandoz" "Charmeleoz" "Charozard" "Pidgeoz" "Pidgeozoz"
                "Ozpidgeoz" "Ozachu" "Ozmouse" "Vulpoz" "9xOz" "Oz2_0"]
@@ -1205,13 +1221,14 @@ define
       Trpid
       AIid
       TrainerObj = Type(poke:Pokemoz pid:Trpid)
-      Anid = {AnimateTrainer X0-1 Y0-1 Speed Name}
-      Trid = {Trainer pos(x:X0 y:Y0) Anid}
+      Anid#ImgTag = {AnimateTrainer X0-1 Y0-1 Speed Name}
+      Trid = {Trainer pos(x:X0 y:Y0) Anid player}
       % Trpid = {TrainerController Mapid Trid Speed TrainerObj}
    in
       if Type==player then
          Trpid = {TrainerController Mapid Trid Speed TrainerObj}
       else
+         {Send AITAGS add(ImgTag)}
          AIid = {ArtificialPlayer pos(x:X0 y:Y0) Mapid Trpid}
          Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
       end
@@ -1235,47 +1252,52 @@ define
       TrainerObj = npc(poke:Pokemoz pid:Trpid)
 
       AIid = {GetEnemyAi Trpid LDir}
-      Anid = {AnimateTrainer X0-1 Y0-1 Speed TName}
-      Trid = {Trainer pos(x:X0 y:Y0) Anid}
+      Anid#ImgTag = {AnimateTrainer X0-1 Y0-1 Speed TName}
+      Trid = {Trainer pos(x:X0 y:Y0) Anid npc}
       Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
    in
+      {Send AITAGS add(ImgTag)}
       TrainerObj
    end
 
    % Function that creates a fight
    proc{CreateFight Player NPC}
-      {Send MAINPO set(fight)}
-      %Buttons Arrows
-      Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
-      Fight = {FightController Player NPC Animation Arrows}
-   in
-      {Wait Buttons}
-      Buttons.fight.onclick  = proc{$} {Send Fight fight} end
-      Buttons.run.onclick    = proc{$} {Send Fight run} end
-      Buttons.switch.onclick = proc{$} B in
-         if {Send Fight action($)} == false then
-            proc{FigureLoop Status} B in
-               thread {DrawPokeList fight(B)} end
-               if Status == first then
-                  {Send MAINPO set(pokelist)}
+      if {Send NPC.poke getFirst($)}==none then
+         {Send Player.pid nextFight}
+      else
+         {Send MAINPO set(fight)}
+         %Buttons Arrows
+         Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
+         Fight = {FightController Player NPC Animation Arrows}
+      in
+         {Wait Buttons}
+         Buttons.fight.onclick  = proc{$} {Send Fight fight} end
+         Buttons.run.onclick    = proc{$} {Send Fight run} end
+         Buttons.switch.onclick = proc{$} B in
+            if {Send Fight action($)} == false then
+               proc{FigureLoop Status} B in
+                  thread {DrawPokeList fight(B)} end
+                  if Status == first then
+                     {Send MAINPO set(pokelist)}
+                  end
+                  if B==back then skip
+                  elseif B\=none then
+                     {Send Fight switch(B ia)}
+                  else
+                     {FigureLoop xth}
+                  end
                end
-               if B==back then skip
-               elseif B\=none then
-                  {Send Fight switch(B ia)}
-               else
-                  {FigureLoop xth}
-               end
+            in
+               thread {FigureLoop first} end
+            else skip
             end
-         in
-            thread {FigureLoop first} end
-         else skip
          end
-      end
-      Buttons.capture.onclick =  proc{$}
-                                    if {Send Fight action($)} == false then
-                                       {Send Fight catching}
+         Buttons.capture.onclick =  proc{$}
+                                       if {Send Fight action($)} == false then
+                                          {Send Fight catching}
+                                       end
                                     end
-                                 end
+      end
    end
 
    %%%%% MAIN THREAD %%%%%%%
@@ -1352,24 +1374,35 @@ define
       {GetWelcomeScreen StarterPokemoz}
       Main
    end
-
+   AITAGS = {NewPortObject nil
+         fun{$ Msg List}
+            case Msg
+            of add(AnimId) then
+               {Append List [AnimId]}
+            [] get(L) then
+               L = List List
+            end
+         end}
    fun{ReadMap _}%should be replaced by 'Name' afterwards
-      MAXX = 7
-      MAXY = 7
-      map(  r(1 1 1 0 0 0 0)
-            r(1 1 1 0 0 1 1)
-            r(1 1 1 0 0 1 1)
-            r(0 0 0 0 0 1 1)
-            r(0 0 0 1 1 1 1)
-            r(0 0 0 1 1 0 0)
-            r(0 0 0 0 0 0 0))
+      MAXX = 14
+      MAXY = 10
+      map(  r(1 1 1 0 0 0 0 1 1 1 0 0 0 0)
+            r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
+            r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
+            r(0 0 0 0 0 1 1 0 0 0 0 0 1 1)
+            r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
+            r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
+            r(0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+            r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
+            r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
+            r(0 0 0 0 0 0 0 0 0 0 0 0 0 0))
    end
    fun{ReadEnemies _}
       %List of Names with their start Coordinates
-      [npc("Red" start:init(x:5 y:5) speed:5
+      [npc("Red" start:init(x:12 y:5) speed:5
             states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-            poke:[poke("Charmandoz" 8)])
-       npc("Red" start:init(x:5 y:3) speed:5
+            poke:[poke("Charozard" 10)])
+       npc("Red" start:init(x:12 y:3) speed:5
             states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
             poke:[poke("Bulbasoz" 5) poke("Bulbasoz" 5)])]
    end

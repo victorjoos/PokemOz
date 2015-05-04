@@ -81,8 +81,14 @@ define
       Name2 = {Flatten [DIRECTORY Name EXTENSION]}
       {LoadImage Name Name2}
    end
+   LOL = lol(b:a)
 in
    {QTk.saveImageLibrary Lib "LibImg.ozf"}
+   {QTk.flush}
+   {System.gcDo}
    {Show 'Saved lib'}
+   %{Show LOL.a}
+   %LOL.b = c
+   %{System.exit 0}
    {Application.exit 0}
 end
