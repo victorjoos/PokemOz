@@ -573,13 +573,13 @@ define
       Type = {Send MAPID send(x:MAXX y:MAXY getGround($))} Imgs
       if Type == road then
          Imgs = imgs({LoadImage "ground_tile"} {LoadImage "ground_tile_1"}
-                     {LoadImage "ground_tile_2"} {LoadImage "ground_tile_3"})
+                     {LoadImage "ground_tile_2"} {LoadImage "ground_tile_3"} nil)
       else
          Imgs = imgs({LoadImage "grass_tile"} {LoadImage "grass_tile_1"}
-                     {LoadImage "grass_tile_2"} {LoadImage "grass_tile_3"})
+                     {LoadImage "grass_tile_2"} {LoadImage "grass_tile_3"} nil)
       end
       Tag = TAGS.map2
-      Blink = blink(2 3 4 3 2 1)
+      Blink = blink(2 3 4 3 2 5)
       FTid = {NewPortObjectMinor proc{$ Msg}
                                     case Msg of anim then
                                        for I in 1..6 do Dt = {DELAY.get}*2 in

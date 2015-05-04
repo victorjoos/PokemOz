@@ -18,13 +18,13 @@ We programmed every part of our program using port-objects. Using these port-obj
 #### Tile {-}
 ![Tile State Diagram](TileState.pdf)
 
-A Tile on the map has an easy state diagram. Each tile has a set of fixed coordinates that can be used by other port-objects to send a tile some messages, through the MapController. The `reserved` and `leaving` intermediate states allow a tile to refuse new Trainers wanting to go on a tile while another trainer is not yet on the tile, but is animating to it at the moment. The text next to the arrows are the messages received by a tile that trigger the state change.
+A Tile on the map has an easy state diagram. Each tile has a set of fixed coordinates that can be used by other port-objects to send a tile some messages, through the MapController. The `reserved` and `leaving` intermediate states allow a tile to refuse new Trainers wanting to come, while another trainer has not yet arrived (but is animating to it at the moment). The text next to the arrows are the messages, received by a tile, that trigger the state change.
 
 
 #### PlayerController {-}
 ![PlayerController State Diagram](TrainerControllerState.pdf)
 
-This state diagram shows the states of both the PlayerController and the Trainer port-objects. The TrainerController receives "keys" from the keyboard or the Artificial Intelligence, and will then move the Trainer on the map or start a fight, and relinquish control to the FightController.
+This state diagram shows the states of both the PlayerController and the Trainer port-objects. The TrainerController receives "key-signals" from the keyboard (or the Artificial Intelligence) and will then move the Trainer on the map or start a fight, and relinquish control to the FightController.
 
 #### FightController {-}
 ![FightController State Diagram](FightControllerState.pdf)
@@ -33,5 +33,5 @@ The last important port-object is the FightController. Every time a fight takes 
 
 ## Artificial intelligence {-}
 
-We also want to attract the readers attention on the artificial intelligence that can be triggered using the `--ai` switch on the command-line.
-The AI is implemented using Dijkstra's shortest path algorithm. It calculates a distance between its position and the last tile with a greater distance for the grass and the trainer surroundings.
+We also want to draw the reader's attention to the artificial intelligence which can be triggered using the `--ai` switch on the command-line.
+The AI is implemented using Dijkstra's shortest path algorithm. It calculates the distance between its position and the last tile by giving a greater distance-value to the grass and the trainer in the surroundings.

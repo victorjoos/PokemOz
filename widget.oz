@@ -196,7 +196,7 @@ define
             {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33
                            tags:Tag)}
             if X==MAXX andthen Y==MAXY then
-               {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33
+               {Canvash create(image image:nil ActX+33 ActY+33
                               tags:Tag2)}
             end
             if X==MaxX then NewX=1 NewY=Y+1
@@ -380,14 +380,14 @@ define
             Img = {LoadImage [NewPkm.name "_back" ]}
             TagD = Tags.plateau.1.1
             TagP = Tags.plateau.2.1
-            Ximg = 135+Xst  Xdisk = 125+Xst
-            Yimg = 120      Ydisk = 210
+            Ximg = 135+Xst  Xdisk = 140+Xst
+            Yimg = 120      Ydisk = 205
          else
             Img = {LoadImage [NewPkm.name "_front" ]}
             TagD = Tags.plateau.1.2
             TagP = Tags.plateau.2.2
-            Ximg = 340-Xst  Xdisk = 345-Xst
-            Yimg = 55       Ydisk = 60
+            Ximg = 340-Xst  Xdisk = 350-Xst
+            Yimg = 55       Ydisk = 85
         end
       in
          {CanvasH create(image image:Disk  Xdisk  Ydisk tags:TagD)}
