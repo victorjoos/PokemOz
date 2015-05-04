@@ -31,7 +31,7 @@ This state diagram shows the states of both the PlayerController and the Trainer
 
 The last important port-object is the FightController. Every time a fight takes place a new FightController port-object is created. It waits for input from the user, or uses autofight to let the player fight.
 
-#### Artificial intelligence {-}
+## Artificial intelligence {-}
 
 We also want to attract the readers attention on the artificial intelligence that can be triggered using the `--ai` switch on the command-line.
 The AI is implemented using Dijkstra's shortest path algorithm. It calculates a distance between its position and the last tile with a greater distance for the grass and the trainer surroundings.
