@@ -36,15 +36,11 @@ define
    PROBABILITY = Widget.probability
    MAXX = Widget.maxX
    MAXY = Widget.maxY
-   %Moved to ReadMap
-   %MAXX = 7
-   %MAXY = 7
 
    proc{BindEvents Input}
       Canvash = CANVAS.map
       fun{GenerateMoveProc Dir}
          proc{$}
-            {Browse sent#message}
       	   {Send PLAYER.pid move(Dir)}
          end
       end

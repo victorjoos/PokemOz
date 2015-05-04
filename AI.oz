@@ -20,10 +20,10 @@ define
 
    MAXX = Widget.maxX
    MAXY = Widget.maxY
-   MAPID = Widget.mapID
+   MAPREC = Widget.mapRec
 
    fun {ArtificialPlayer}
-      MapPort = MAPID
+      MapPort = proc{$ send(x:X y:Y Sig)} {Send MAPREC.Y.X Sig} end
       KeysPort = KEYS
       TRAINERADD=1
       GRASSPENALTY=100
@@ -42,7 +42,7 @@ define
       % Sends a query to each tile to have the position of each
       % trainer on the map (and the direction)
       fun {GetTrainerList X Y}
-	 TileState = {Send MapPort send(x:X y:Y get($))}
+	 TileState = {MapPort send(x:X y:Y get($))}
 	 NewX NewY
       in
 	 if X==MAXX andthen Y==MAXY then nil
@@ -58,7 +58,7 @@ define
       end
 
       fun {Grass X Y}
-	 if {Send MapPort send(x:X y:Y getGround($))}==grass then true else false end
+	 if {MapPort send(x:X y:Y getGround($))}==grass then true else false end
       end
       fun {Neighbours X Y}
 	 Up Down Left Right
@@ -116,7 +116,7 @@ define
 	    TrainerCost
 	 in
 	    if {Grass X Y} then AddCost=5 else AddCost=1 end
-	    case {Send MapPort send(x:X y:Y get($))}
+	    case {MapPort send(x:X y:Y get($))}
 	    of occupied(_) then TrainerCost = 10 else TrainerCost=0 end
 	    FromCost+AddCost+TrainerCost
 	 end
@@ -155,7 +155,7 @@ define
 	 X = Current.x
 	 Y = Current.y
       in
-	 {Browse Current}
+	 %{Browse Current}
 	 if FromMap.Y.X.x==Px andthen FromMap.Y.X.y==Py then Current|nil
 	 else Current|{SearchBest FromMap.Y.X FromMap Px Py}
 	 end
@@ -225,13 +225,13 @@ define
 				    {Send KeysPort fight}
 				    %state(fight)
 				 [] change then
-				    {Send KeysPort z}
+                thread {Delay 1000} {Send KeysPort z} end
 				 [] restart then
 				    {Send ArtificialPlayerPort go(pos:pos(x:MAXX y:MAXY) dir:up)}
 				 end
 			      end}
    in
-      thread {Delay 1000} {Send ArtificialPlayerPort restart} end
+      thread {Delay 500} {Send ArtificialPlayerPort restart} end
       ArtificialPlayerPort
    end
 

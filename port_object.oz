@@ -1,10 +1,8 @@
 functor
 import
    QTk at 'x-oz://system/wp/QTk.ozf'
-   System
    Application
    OS
-   Browser
 
    PortDefinitions
    AI
@@ -13,8 +11,6 @@ import
 export
    main: MAIN
 define
-   Browse = Browser.browse
-   Show = System.show
    GETDIR  = PortDefinitions.getDir
    GETINVDIR = PortDefinitions.getInvDir
    GETMISSINGDIR = PortDefinitions.getMissingDir
@@ -51,7 +47,10 @@ define
    LISTAI = Widget.listAI
    CANVAS = Widget.canvas
    TAGS = Widget.tags
+   ANIMFIRST = Widget.animFirst
+
    MAPID = Widget.mapID
+   MAPREC = Widget.mapRec
    SPEED = Widget.speed
    DELAY = Widget.delay
    PROBABILITY = Widget.probability
@@ -94,7 +93,6 @@ define
       Tid   = {Timer}
       Tilid = {NewPortObject Init
       fun{$ Msg state(State)}
-         %{Show tile#Msg}
          case Msg
          of get(X) then
             X=State
@@ -142,14 +140,12 @@ define
                if LblY\={Label Trainer} then
                   if LblY==player then
                      if {Send Trainer.poke getFirst($)} \= none then
-                        {Show sent#startfight}
                         {Send Y.pid startFight(Trainer Ack2)}
                      else Ack2 = unit
                      end
 
                   elseif {Send Y.pid getDir($)} == Dir then
                      if {Send Y.poke       getFirst($)} \= none then
-                        {Show sent#startfight}
                         {Send Trainer.pid startFight(Y Ack2)}
                      else Ack2 = unit
                      end
@@ -244,6 +240,7 @@ define
                      if {Label Sig.2}==player then
                         if NewX == MAXX andthen NewY==MAXY then
                            {Send Sig.2.poke refill}
+                           {ANIMFIRST}
                         elseif NewX==MAXX andthen NewY==1 then
                            {Send MAINPO set(won)}
                            {GetWonScreen}
@@ -268,6 +265,7 @@ define
             Ground.(Map.J.I)}
          end
       end
+      MAPREC = MapRec
       Mapid
    end
    %%%%%%%% WILD-POKEMOZ  %%%%%%%%
@@ -430,7 +428,6 @@ define
       Wid  = {Waiter}
       Plid = {NewPortObject state(still nil)
       fun{$ Msg state(State FSched)}%FSched = fight-scheduler
-         {Browse controller#Msg}
          case Msg
          of getDir(X) then
             {Send Trid getDir(X)}
@@ -530,13 +527,11 @@ define
       Wid  = {Waiter}
       Plid = {NewPortObject state(still)
       fun{$ Msg state(State)}
-         %{Browse msgAi#Msg}
          case Msg
          of getDir(X) then
             {Send Trid getDir(X)}
             state(State)
          [] move(NewDir B) then
-            %{Browse move#asked#State}
             if State == still then
                %ActDir = {Send Trid getDir($)}
                Pos  = {Send Trid getPos($)}
@@ -582,11 +577,9 @@ define
             %{Send AIid go}
             state(still)
          [] rmBlock then
-            %{Browse 'rmblock should be working!'}
             {Send AIid rmBlock}
             state(State)
          [] block then
-            %{Browse 'sent block signal'}
             {Send AIid block}
             state(State)
          [] arrived then%should only be bound when everything has been checked
@@ -769,7 +762,7 @@ define
          [] fightIA then NTState Ack in
             if {AttackSuccessful Play Npc npc} then
                Damage = {GetDamage Play.type Npc.type player}
-               {Show getting#Damage#damage#Play.type#Npc.type}
+               %{Show getting#Damage#damage#Play.type#Npc.type}
             in
                {Send Play.pid damage(Damage NTState)}
                {Wait NTState}%actually not necessary
@@ -1140,7 +1133,6 @@ define
                in
                   {AddPokemoz State NewState Pkm 1 true}
                   B = true
-                  %{Browse NewState}
                   NewState
                end
             [] switchFirst(Ind B) then
@@ -1179,7 +1171,6 @@ define
                if State.first == none then X = none
                else X2=State.(State.first) in
                   if {Send X2.pid getHealth($)}.act == 0 then
-                     {Show first#dead}
                      fun{GetFirstAlive I}
                         if I>6 then none
                         elseif {Send State.I.pid getHealth($)}.act \= 0 then
@@ -1390,10 +1381,9 @@ define
       fun{$ Msg state(Frame)}
          case Msg
          of set(NewFrame) then
-            if NewFrame == Frame then {Show error#NewFrame}
+            if NewFrame == Frame then
                state(Frame)
             else
-               {Show set#NewFrame}
                if NewFrame == map then {Send KEYS set(map)} end
                {PlaceH set(Handles.NewFrame)}
                state(NewFrame)
@@ -1416,7 +1406,7 @@ define
                                        % be threaded!!!
                {PlaceH set(Handles.map)}
                PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
-                           [Name3 "Bulbasoz"] [6 6] auto}
+                           [Name3 "Bulbasoz"] [6 6] none}
                {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}

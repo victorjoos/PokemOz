@@ -20,6 +20,8 @@ export
    DrawWon
    DrawEvolve
 
+   animFirst:ANIMFIRST
+
    TopWidget
    placeholder:PLACEHOLDER
    handles:HANDLES
@@ -36,6 +38,7 @@ export
    tags: TAGS
 
    mapID: MAPID % main, port_object
+   mapRec: MAPREC
 
    speed: SPEED % main, port_object
    delay: DELAY % main, port, animate
@@ -50,7 +53,7 @@ define
    GetArrows = PortDefinitions.getArrows
    % Exports
    MAINPO PLAYER WILD LISTAI WIDGETS CANVAS MAPID SPEED DELAY PROBABILITY
-   MAXX MAXY KEYS AITAGS
+   MAXX MAXY KEYS AITAGS MAPREC ANIMFIRST
 % This file will contain all the widget-containers used in this project
 % each time with a brief description of what they do
 
@@ -184,6 +187,7 @@ define
       TileImg = img(0:{LoadImage "ground_tile"} 1:{LoadImage "grass_tile"})
       DX = 67 %DXn = 66
       Tag={Canvash newTag($)}
+      Tag2={Canvash newTag($)}
       CanvasH = CANVAS.map
       proc{DrawSquare index(X Y)}
          if Y>MaxY then skip
@@ -195,6 +199,10 @@ define
             %         fill:Color.(Map.Y.X) tags:Tag)}
             {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33
                            tags:Tag)}
+            if X==MAXX andthen Y==MAXY then
+               {Canvash create(image image:TileImg.(Map.Y.X) ActX+33 ActY+33
+                              tags:Tag2)}
+            end
             if X==MaxX then NewX=1 NewY=Y+1
             else NewX=X+1 NewY=Y end
             {DrawSquare index(NewX NewY)}
@@ -203,7 +211,7 @@ define
    in
       {DrawSquare index(1 1)}
       TAGS.map = Tag
-      TAGS.map2 = {Canvash newTag($)}
+      TAGS.map2 = Tag2
    end
 %@pre: Shifts the map (decribed by the list of handles)
 %       in the direction Dir

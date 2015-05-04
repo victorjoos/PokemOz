@@ -31,7 +31,9 @@ define
    AITAGS = Widget.aiTags
    MAXX = Widget.maxX
    MAXY = Widget.maxY
+   MAPID = Widget.mapID
    PLAYER = Widget.player
+   ANIMFIRST = Widget.animFirst
    DrawWelcome = Widget.drawWelcome
    %%%%%%% TRAINER ON MAP %%%%%%
 
@@ -45,51 +47,6 @@ define
    %       Name    = Name of the drawings template
    %@post: Returns a PortObject capable of drawing an animation
    STATES = states("_walk1" "_still" "_walk2" "_still")
-   /*fun{AnimateTrainer X0 Y0 Speed Name}
-      Canvash = CANVAS.map
-      proc{Animate Dir DT DX Ind Mod DMod} Sup Mod2 in
-         if Mod \= 0 then Sup = DMod Mod2=Mod-DMod else Sup = 0 Mod2=0 end
-         if Ind < 8 then
-            Next = ((Ind) mod 4)+1
-         in
-            {Delay DT}
-            {TagIm set(image:{LoadImage [Name "_" Dir STATES.Next]})}
-            if Dir == "up" orelse Dir == "down" then
-               {TagIm move(DX.x     DX.y+Sup)}
-            else
-               {TagIm move(DX.x+Sup DX.y)}
-            end
-            {Animate Dir DT DX Ind+1 Mod2 DMod}
-         else
-            skip
-         end
-      end
-      %Tid   = {Timer}
-      TagIm = {Canvash newTag($)}
-      Anid  = {NewPortObjectMinor
-      proc{$ Msg}
-         case Msg
-         of move(Dir) then
-            Numb = 8
-            Dir2 = {AtomToString Dir}
-            DT    = ({DELAY.get}*Speed) div (Numb+1)
-            DX    = {GETDIR Dir}
-            Delta = delta(x:(DX.x*67) div Numb y:(DX.y*67) div Numb)
-            Mod
-            if DX.x == 0 then Mod = (DX.y*67) mod Numb
-            else              Mod = (DX.x*67) mod Numb end
-            DMod  = {GETDIRSIDE Dir}
-         in
-            {Animate Dir2 DT Delta 0 Mod DMod}
-         [] turn(Dir) then Dir2 = {AtomToString Dir} in
-            {TagIm set(image:{LoadImage [Name "_" Dir2 "_still"]})}
-         end
-      end}
-   in
-      {Canvash create(image image:{LoadImage [Name "_up" "_still"]}
-      X0*67+33 Y0*67+33 tags:TagIm)}
-      Anid
-   end*/
    %Intern
    proc{Apply L F}
       case L of nil then skip
@@ -579,17 +536,22 @@ define
                         end
                      end}
    in
-      {Send KEYS set(actions(won(  a:proc{$ X}
-                                             {Send Wonid kill}
-                                             {Send MAINPO set(map)}
-                                             X = map
-                                          end
-                                       z: proc{$ X}
-                                             {Send MAINPO close}
-                                             X = pending
-                                          end)
-                              [a z]))}
-      {Send Wonid next}
+      if PLAYER.ai\= none andthen PLAYER.ai.type == auto then
+         {AnimWon true}
+         thread {Delay 5000} {Send MAINPO close} end
+      else
+         {Send KEYS set(actions(won(  a:proc{$ X}
+                                                {Send Wonid kill}
+                                                {Send MAINPO set(map)}
+                                                X = map
+                                             end
+                                          z: proc{$ X}
+                                                {Send MAINPO close}
+                                                X = pending
+                                             end)
+                                 [a z]))}
+         {Send Wonid next}
+      end
    end
 
 %%%%% EVOLUTION ANIMATION %%%%%%
@@ -611,4 +573,28 @@ define
       end
       {Delay DelT*10}
    end
+   %%%%%%%%% FIRST TILE ANIMATION %%%%%%%
+   proc{InitFirstTileAnim}
+      {Wait MAPID} {Delay {DELAY.get}}
+      Type = {Send MAPID send(x:MAXX y:MAXY getGround($))} Imgs
+      if Type == road then
+         Imgs = imgs({LoadImage "ground_tile"} {LoadImage "ground_tile_1"}
+                     {LoadImage "ground_tile_2"} {LoadImage "ground_tile_3"})
+      else
+         Imgs = imgs({LoadImage "grass_tile"} {LoadImage "grass_tile_1"}
+                     {LoadImage "grass_tile_2"} {LoadImage "grass_tile_3"})
+      end
+      Tag = TAGS.map2
+      Blink = blink(2 3 4 3 2 1)
+      FTid = {NewPortObjectMinor proc{$ Msg}
+                                    case Msg of anim then
+                                       for I in 1..6 do Dt = {DELAY.get}*2 in
+                                          {Tag set(image:Imgs.(Blink.I))}
+                                          {Delay Dt}
+                                       end
+                                    end
+                                 end}
+   in
+      ANIMFIRST = proc{$} {Send FTid anim} end
+   end thread {InitFirstTileAnim} end
 end
