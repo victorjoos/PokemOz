@@ -31,6 +31,7 @@ define
    AITAGS = Widget.aiTags
    MAXX = Widget.maxX
    MAXY = Widget.maxY
+   PLAYER = Widget.player
    DrawWelcome = Widget.drawWelcome
    %%%%%%% TRAINER ON MAP %%%%%%
 
@@ -276,7 +277,8 @@ define
       end
    end
    %Extern
-   fun{DrawFight PlayL NpcL}
+   fun{DrawFight Play Npc}
+      PlayL = Play.poke NpcL = Npc.poke
       AllTags
       LTagsNpc
       LTagsPlay
@@ -463,7 +465,8 @@ define
          {Text "Choose your action"}
       end
       thread
-         Buttons#Arrows={FightScene FirstPlay FirstNpc {Send PlayL getBalls($)} {Send NpcL getBalls($)}}
+         Buttons#Arrows={FightScene FirstPlay FirstNpc {Send PlayL getBalls($)} {Send NpcL getBalls($)}
+                              Play.ai}
       in
          Btn = Buttons Arw = Arrows
          AllTags = TAGS.fight
@@ -508,6 +511,10 @@ define
                                           {Send Lostid kill}
                                           {ReleaseAI}
                                           {Send MAINPO set(map)}
+                                          if PLAYER.ai\=none andthen
+                                             PLAYER.ai.type==auto then
+                                             {Send PLAYER.ai.pid restart}
+                                          end
                                           X = map
                                        end)
                               [a]))}

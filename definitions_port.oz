@@ -161,13 +161,22 @@ define
    fun{KeyPort MapButtons}
       KeyId  = {NewPortObject state(pending pending)
          fun{$ Msg state(Frame Prev)}
-            {Show keys#Msg}
+            {Show keys#Msg#Frame}
             case Msg
             of set(NewFrame) then
                if Frame\=pending andthen Frame\=map andthen
                   {Label Frame.1} == pokelist then
                   state(NewFrame Prev)
                else
+                  state(NewFrame Frame)
+               end
+            [] set(NewFrame Ack) then
+               if Frame\=pending andthen Frame\=map andthen
+                  {Label Frame.1} == pokelist then
+                  Ack = unit
+                  state(NewFrame Prev)
+               else
+                  Ack=unit
                   state(NewFrame Frame)
                end
             else

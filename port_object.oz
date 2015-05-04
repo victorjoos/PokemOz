@@ -424,9 +424,13 @@ define
    %       Trid  = the Pid of the trainer this controller is destined to
    %@post: Returns the controler of the trainer
    fun{TrainerController Mapid Trid Speed TrainerObj}
+      AiBool
+      if TrainerObj.ai\=none then AiBool= (TrainerObj.ai.type==auto)
+      else AiBool = false end
       Wid  = {Waiter}
       Plid = {NewPortObject state(still nil)
       fun{$ Msg state(State FSched)}%FSched = fight-scheduler
+         {Browse controller#Msg}
          case Msg
          of getDir(X) then
             {Send Trid getDir(X)}
@@ -478,7 +482,13 @@ define
                state(fighting FSched)
             end
          [] nextFight then %on fight won
-            case FSched of nil then {ReleaseAI} state(still FSched)
+            case FSched of nil then
+               {ReleaseAI}
+               if AiBool then
+                  {Send TrainerObj.ai.pid go(pos:{Send Trid getPos($)}
+                                             dir:{Send Trid getDir($)})}
+               end
+               state(still FSched)
             [] H|T then
                {Delay {DELAY.get}*2}
                {CreateFight TrainerObj H}
@@ -486,6 +496,11 @@ define
             end
          [] arrived then
             if State == moving then
+               if AiBool then
+                  {Browse sentToAI}
+                  {Send TrainerObj.ai.pid go(pos:{Send Trid getPos($)}
+                                             dir:{Send Trid getDir($)})}
+               end
                state(still nil)
             else
                state(State FSched)
@@ -561,7 +576,7 @@ define
          [] waitFight then
             state(waiting)
          [] endFight then
-            {Send AIid go}
+            %{Send AIid go}
             state(still)
          [] rmBlock then
             %{Browse 'rmblock should be working!'}
@@ -645,182 +660,197 @@ define
          {CreateEvoScreens T}
       end
    end
-   fun {FightController Play Npc FightAnim Arrows}%PlayL and NpcL are <PokemozList>
-      PlayL = Play.poke NpcL=Npc.poke
+   fun {FightController PlayObj NpcObj FightAnim Arrows}%PlayL and NpcL are <PokemozList>
+      AiBool = (PlayObj.ai\=none)
+      PlayL = PlayObj.poke NpcL=NpcObj.poke
       WaitAnim = {Waiter}
       proc{OnExit Ack EvoL}
          thread
             {Wait Ack}
             {Send Arrows kill}
-            if {Label Npc}\=wild then
-               {Send Npc.pid endFight}
+            if {Label NpcObj}\=wild then
+               {Send NpcObj.pid endFight}
             end
             % Evolution
             {CreateEvoScreens EvoL}
-            {Send Play.pid nextFight}
+            {Send PlayObj.pid nextFight}
             {Send MAINPO set(map)}
          end
-   end
-   proc{OnBadExit Ack}
-      %{OnExit Ack}
-      thread Ack2 in
-         {Wait Ack}
-         {Send Arrows kill}
-         {Send Play.pid reset(Ack2)}
-         {Wait Ack2}
-         {GetLostScreen ReleaseAI}
       end
-   end
-   FightPort = {NewPortObjectKillable
-   state(player:{Send PlayL getFirstNonDead($)}
-         enemy:{Send NpcL  getFirst($)}
-         fighting:false)
-   fun{$ Msg state(player:Play enemy:Npc fighting:OK)}
-      case Msg
-      of run then
-         if OK then
-            state(player:Play enemy:Npc fighting:OK)
-         else
-            if {Label Npc}\=wild then
-               {Send FightAnim illRun}
+      proc{OnBadExit Ack}
+         %{OnExit Ack}
+         thread Ack2 in
+            {Wait Ack}
+            {Send Arrows kill}
+            {Send PlayObj.pid reset(Ack2)}
+            {Wait Ack2}
+            {GetLostScreen ReleaseAI}
+         end
+      end
+      FirstPlay = {Send PlayL getFirstNonDead($)}
+      FirstNpc  = {Send NpcL  getFirst($)}
+      FightPort = {NewPortObjectKillable
+      state(player:FirstPlay
+            enemy:FirstNpc
+            fighting:false)
+      fun{$ Msg state(player:Play enemy:Npc fighting:OK)}
+         case Msg
+         of run then
+            if OK then
                state(player:Play enemy:Npc fighting:OK)
-            elseif {RunSuccessful Play Npc} then Ack in
-               {Send FightAnim exit(Ack "You ran away cowardly...")}
-               {Send WaitAnim wait(NpcL Ack releaseAll)}
-               {OnExit Ack nil}
-               state(killed)
             else
-               % Send signal to itself for AI turn = automatic
-               % attack
-               {Send FightAnim failRun}
-               {Send FightPort fightIA}
-               state(trainer:Play enemy:Npc fighting:true)
-            end
-         end
-      [] action(X) then X = OK
-         state(player:Play enemy:Npc fighting:OK)
-      [] fight then
-         if OK then
-            state(player:Play enemy:Npc fighting:OK)
-         else
-            NEState Ack
-         in
-            if {AttackSuccessful Play Npc player} then
-               Damage = {GetDamage Play.type Npc.type npc}
-            in
-               {Send Npc.pid damage(Damage NEState)}
-               {Wait NEState}
-               % ^ to avoid concurrency issues (even if they are
-               %   VERY unlikely)
-               {Send FightAnim attack(player Ack)}
-            else
-               {Send FightAnim attackFail(player Ack)}
-               NEState = alive
-            end
-
-            if NEState == alive then
-               {Send WaitAnim wait(FightPort Ack fightIA)}
-               state(player:Play enemy:Npc fighting:true)
-            elseif {Send NpcL getState($)} == allDead then Ack EvoL in
-               {Send FightAnim exit(Ack "You WON!")}
-               %{Send WaitAnim wait(MAINPO B set(map))}
-               {Send PlayL shareExp({Send NpcL getAllExp($)} EvoL)}
-               {OnExit Ack EvoL}
-               {Send NpcL releaseAll}
-               state(killed)
-            else
-               {Send WaitAnim wait(FightPort Ack switchIA)}
-               state(player:Play enemy:Npc fighting:true)
-            end
-         end
-      [] fightIA then NTState Ack in
-         if {AttackSuccessful Play Npc npc} then
-            Damage = {GetDamage Play.type Npc.type player}
-            {Show getting#Damage#damage#Play.type#Npc.type}
-         in
-            {Send Play.pid damage(Damage NTState)}
-            {Wait NTState}%actually not necessary
-            {Send FightAnim attack(npc Ack)}
-         else
-            {Send FightAnim attackFail(npc Ack)}
-            NTState = alive
-         end
-
-         if NTState == alive then
-            {Send WaitAnim wait(FightPort Ack endAttack)}
-            state(player:Play enemy:Npc fighting:OK)
-         elseif {Send PlayL getState($)} == allDead then Ack in
-            {Send FightAnim exit(Ack "You LOST!")}
-            {Send NpcL refill}
-            {OnBadExit Ack}
-            if {Label Npc}==wild then
-               {Send WaitAnim wait(NpcL Ack releaseAll)}
-            end
-            state(killed)
-         else
-            proc{FigureLoop Status} B in
-               thread {DrawPokeList dead(B)} end
-               if Status == first then
-                  {Send MAINPO set(pokelist)}
-               end
-               if B\=none andthen B\=auto then
-                  {Send FightPort switch(B play)}
-               elseif B == auto then
-                  NewPkm = {GetNewPokemoz PlayL}
-               in
-                  {Send FightPort switch(NewPkm play)}
+               if {Label Npc}\=wild then
+                  {Send FightAnim illRun}
+                  state(player:Play enemy:Npc fighting:OK)
+               elseif {RunSuccessful Play Npc} then Ack in
+                  {Send FightAnim exit(Ack "You ran away cowardly...")}
+                  {Send WaitAnim wait(NpcL Ack releaseAll)}
+                  {OnExit Ack nil}
+                  state(killed)
                else
-                  {FigureLoop xth}
+                  % Send signal to itself for AI turn = automatic
+                  % attack
+                  {Send FightAnim failRun}
+                  {Send FightPort fightIA}
+                  state(trainer:Play enemy:Npc fighting:true)
                end
             end
-         in
-            thread {Wait Ack} {FigureLoop first} end
-            state(player:Play enemy:Npc fighting:true)
-         end
-      [] endAttack then
-         state(player:Play enemy:Npc fighting:false)
-      [] switch(NewPkm Next) then %this signal can only be sent
-         % by a valid button
-         if NewPkm == Play then
+         [] action(X) then X = OK
             state(player:Play enemy:Npc fighting:OK)
-         else
-            Ack={Send FightAnim switch(player NewPkm $)}
-         in
-            if Next == ia then
-               {Send WaitAnim wait(FightPort Ack fightIA)}
+         [] fight then
+            if OK then
+               state(player:Play enemy:Npc fighting:OK)
             else
-               {Send WaitAnim wait(FightPort Ack endAttack)}
+               NEState Ack
+            in
+               if {AttackSuccessful Play Npc player} then
+                  Damage = {GetDamage Play.type Npc.type npc}
+               in
+                  {Send Npc.pid damage(Damage NEState)}
+                  {Wait NEState}
+                  % ^ to avoid concurrency issues (even if they are
+                  %   VERY unlikely)
+                  {Send FightAnim attack(player Ack)}
+               else
+                  {Send FightAnim attackFail(player Ack)}
+                  NEState = alive
+               end
+
+               if NEState == alive then
+                  {Send WaitAnim wait(FightPort Ack fightIA)}
+                  state(player:Play enemy:Npc fighting:true)
+               elseif {Send NpcL getState($)} == allDead then Ack EvoL in
+                  {Send FightAnim exit(Ack "You WON!")}
+                  %{Send WaitAnim wait(MAINPO B set(map))}
+                  {Send PlayL shareExp({Send NpcL getAllExp($)} EvoL)}
+                  {OnExit Ack EvoL}
+                  {Send NpcL releaseAll}
+                  state(killed)
+               else
+                  {Send WaitAnim wait(FightPort Ack switchIA)}
+                  state(player:Play enemy:Npc fighting:true)
+               end
             end
-            state(player:NewPkm enemy:Npc fighting:true)
-         end
-      [] switchIA then
-         NewNpc = {GetNewPokemoz NpcL} Ack
-      in
-         {Send FightAnim switch(npc NewNpc Ack)}
-         {Send WaitAnim wait(FightPort Ack fightIA)}
-         state(player:Play enemy:NewNpc fighting:true)
-      [] catching then
-         if {Label Npc} \= wild then
-            {Send FightAnim illCatch(playVsNpc)}
-            state(player:Play enemy:Npc fighting:OK)
-         elseif {Send PlayL get($ 6)}\=none then
-            {Send FightAnim illCatch(playFull)}
-            state(player:Play enemy:Npc fighting:OK)
-         elseif {CatchSuccessful PlayL Npc} then Ack in
-            {Send NpcL captured}
-            {Send PlayL add(Npc _)}
-            {Send FightAnim catched(Ack)}
-            {Send WaitAnim wait(MAINPO Ack set(map))}
-      	   {OnExit Ack nil}
-            state(killed)
-         else Ack in
-            {Send FightAnim failCatch(Ack)}
+         [] fightIA then NTState Ack in
+            if {AttackSuccessful Play Npc npc} then
+               Damage = {GetDamage Play.type Npc.type player}
+               {Show getting#Damage#damage#Play.type#Npc.type}
+            in
+               {Send Play.pid damage(Damage NTState)}
+               {Wait NTState}%actually not necessary
+               {Send FightAnim attack(npc Ack)}
+            else
+               {Send FightAnim attackFail(npc Ack)}
+               NTState = alive
+            end
+
+            if NTState == alive then
+               {Send WaitAnim wait(FightPort Ack endAttack)}
+               if AiBool then
+                  {Send WaitAnim wait(PlayObj.ai.pid Ack goFight(play:Play npc:Npc))}
+               end
+               state(player:Play enemy:Npc fighting:OK)
+            elseif {Send PlayL getState($)} == allDead then Ack in
+               {Send FightAnim exit(Ack "You LOST!")}
+               {Send NpcL refill}
+               {OnBadExit Ack}
+               if {Label Npc}==wild then
+                  {Send WaitAnim wait(NpcL Ack releaseAll)}
+               end
+               state(killed)
+            else
+               proc{FigureLoop Status} B in
+                  thread {DrawPokeList dead(B)} end
+                  if Status == first then
+                     {Send MAINPO set(pokelist)}
+                  end
+                  if B\=none andthen B\=auto then
+                     {Send FightPort switch(B play)}
+                  elseif B == auto then
+                     NewPkm = {GetNewPokemoz PlayL}
+                  in
+                     {Send FightPort switch(NewPkm play)}
+                  else
+                     {FigureLoop xth}
+                  end
+               end
+            in
+               thread {Wait Ack} {FigureLoop first} end
+               if AiBool then
+                  {Send WaitAnim wait(PlayObj.ai.pid Ack goFight(play:Play npc:Npc))}
+               end
+               state(player:Play enemy:Npc fighting:true)
+            end
+         [] endAttack then
+            state(player:Play enemy:Npc fighting:false)
+         [] switch(NewPkm Next) then %this signal can only be sent
+            % by a valid button
+            if NewPkm == Play then
+               state(player:Play enemy:Npc fighting:OK)
+            else
+               Ack={Send FightAnim switch(player NewPkm $)}
+            in
+               if Next == ia then
+                  {Send WaitAnim wait(FightPort Ack fightIA)}
+               else
+                  {Send WaitAnim wait(FightPort Ack endAttack)}
+                  if AiBool then
+                     {Send WaitAnim wait(PlayObj.ai.pid Ack goFight(play:Play npc:Npc))}
+                  end
+               end
+               state(player:NewPkm enemy:Npc fighting:true)
+            end
+         [] switchIA then
+            NewNpc = {GetNewPokemoz NpcL} Ack
+         in
+            {Send FightAnim switch(npc NewNpc Ack)}
             {Send WaitAnim wait(FightPort Ack fightIA)}
-            state(player:Play enemy:Npc fighting:true)
+            state(player:Play enemy:NewNpc fighting:true)
+         [] catching then
+            if {Label Npc} \= wild then
+               {Send FightAnim illCatch(playVsNpc)}
+               state(player:Play enemy:Npc fighting:OK)
+            elseif {Send PlayL get($ 6)}\=none then
+               {Send FightAnim illCatch(playFull)}
+               state(player:Play enemy:Npc fighting:OK)
+            elseif {CatchSuccessful PlayL Npc} then Ack in
+               {Send NpcL captured}
+               {Send PlayL add(Npc _)}
+               {Send FightAnim catched(Ack)}
+               {Send WaitAnim wait(MAINPO Ack set(map))}
+         	   {OnExit Ack nil}
+               state(killed)
+            else Ack in
+               {Send FightAnim failCatch(Ack)}
+               {Send WaitAnim wait(FightPort Ack fightIA)}
+               state(player:Play enemy:Npc fighting:true)
+            end
          end
-      end
-   end}
+      end}
    in
+      /*if AiBool then
+         {Send Play.ai.pid goFight(play:FirstPlay npc:FirstNpc)}
+      end*/
       FightPort
    end
 
@@ -1083,7 +1113,6 @@ define
       else Init.first = none end
       PokeLid = {NewPortObject Init
       fun{$ Msg State}
-         {Show pokel#Msg}
          case Msg
             of add(Pkm B) then
                if State.6 \= none then
@@ -1216,21 +1245,45 @@ define
    end
    % Function that creates a trainer
    %@post: returns the id of the PlayerController
-   fun{CreatePlayer Name X0 Y0 Speed Mapid Names Lvls Type}
-      Pokemoz = {CreatePokemozList Names Lvls Type}
+   fun{CreatePlayer Name X0 Y0 Speed Mapid Names Lvls AIType}
+      Pokemoz = {CreatePokemozList Names Lvls player}
       Trpid
       AIid
-      TrainerObj = Type(poke:Pokemoz pid:Trpid)
+      TrainerObj = player(poke:Pokemoz pid:Trpid ai:_)
       Anid#ImgTag = {AnimateTrainer X0-1 Y0-1 Speed Name}
       Trid = {Trainer pos(x:X0 y:Y0) Anid player}
       % Trpid = {TrainerController Mapid Trid Speed TrainerObj}
    in
-      if Type==player then
+      if AIType==none then
+         TrainerObj.ai = none
          Trpid = {TrainerController Mapid Trid Speed TrainerObj}
-      else
-         {Send AITAGS add(ImgTag)}
-         AIid = {ArtificialPlayer pos(x:X0 y:Y0) Mapid Trpid}
-         Trpid = {TrainerControllerWithAi Mapid Trid Speed TrainerObj AIid}
+      elseif AIType==autofight then
+         TrainerObj.ai = ai(pid:{NewPortObjectMinor
+                                 proc{$ Msg}
+                                    case Msg
+                                    of goFight(npc:_ play:_) then
+                                       {Send KEYS fight}
+                                    end
+                                 end}
+                           type:autofight)
+         Trpid = {TrainerController Mapid Trid Speed TrainerObj}
+      elseif AIType==autorun then
+         TrainerObj.ai = ai(pid:{NewPortObjectMinor
+                                 proc{$ Msg}
+                                    case Msg
+                                    of goFight(npc:Npc play:_) then
+                                       if {Label Npc} == wild then
+                                          {Send KEYS run}
+                                       else
+                                          {Send KEYS fight}
+                                       end
+                                    end
+                                 end}
+                              type:autorun)
+         Trpid = {TrainerController Mapid Trid Speed TrainerObj}
+      else %AIType ==  auto
+         TrainerObj.ai = ai(pid:{ArtificialPlayer} type:auto)
+         Trpid = {TrainerController Mapid Trid Speed TrainerObj}
       end
       %trainer(poke:<PokemOzList> pid:<TrainerController>)
       TrainerObj
@@ -1267,7 +1320,7 @@ define
       else
          {Send MAINPO set(fight)}
          %Buttons Arrows
-         Animation#Buttons#Arrows = {DrawFight Player.poke NPC.poke}
+         Animation#Buttons#Arrows = {DrawFight Player NPC}
          Fight = {FightController Player NPC Animation Arrows}
       in
          {Wait Buttons}
@@ -1339,10 +1392,10 @@ define
                % Create the Map Environment
                MAPID = {MapController Map}
                {DrawMap Map MAXX MAXY}%should NOT EVER
-               % be threaded!!!
+                                       % be threaded!!!
                {PlaceH set(Handles.map)}
                PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
-                           [Name3 "Bulbasoz"] [6 6] player}
+                           [Name3 "Bulbasoz"] [6 6] auto}
                {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}

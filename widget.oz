@@ -270,7 +270,7 @@ define
       {Loop BallL 0}
    end
 
-   fun{FightScene Play Adv PlayList AdvList}
+   fun{FightScene Play Adv PlayList AdvList AiObj}
       Arrows = {GetArrows 2 2}
       Buttons = all(   fight:button(onclick:_ onselect:_ ondeselect:_)
 		       run:button(onclick:_ onselect:_ ondeselect:_)
@@ -320,19 +320,33 @@ define
             end
             NewCanvash = CANVAS.fight
          in
-            {Buttons.fight.onselect}
-            /*{NewCanvash bind(event:"<Up>" action:{GenProc up})}
-            {NewCanvash bind(event:"<Left>" action:{GenProc left})}
-            {NewCanvash bind(event:"<Right>" action:{GenProc right})}
-            {NewCanvash bind(event:"<Down>" action:{GenProc down})}
-            {NewCanvash bind(event:"<a>" action:EnterCall)}*/
-            {Send KEYS set(actions(fight( up:{GenProc up}
-                                          down:{GenProc down}
-                                          left:{GenProc left}
-                                          right:{GenProc right}
-                                          a:EnterCall
-                                          )
-                                    [a up down left right]))}
+            if AiObj==none then
+               {Buttons.fight.onselect}
+               {Send KEYS set(actions(fight( up:{GenProc up}
+                                             down:{GenProc down}
+                                             left:{GenProc left}
+                                             right:{GenProc right}
+                                             a:EnterCall
+                                             )
+                                       [a up down left right]))}
+            else
+               if AiObj.type == autorun andthen {Label Adv}==wild then Ack in
+                  {Buttons.run.onselect}
+                  {Send KEYS set(actions(fight(fight:Buttons.fight.onclick
+                                                run: Buttons.run.onclick
+                                                )
+                                          [fight run]) Ack)}
+                  thread {Wait Ack} {Delay {DELAY.get}*3} {Send AiObj.pid goFight(play:Play npc:Adv)} end
+               elseif AiObj.type \= auto then Ack in
+                  {Buttons.fight.onselect}
+                  {Send KEYS set(actions(fight(fight:Buttons.fight.onclick)
+                                          [fight]) Ack)}
+                  thread {Wait Ack} {Delay {DELAY.get}*3}
+                        {Send AiObj.pid goFight(play:Play npc:Adv)} end
+               else %AiObj==auto
+                  skip
+               end
+            end
          end
       end
    in

@@ -4,6 +4,7 @@ import
    System
    Application
    OS
+   Browser
 
    PortDefinitions
    PortObject
@@ -12,6 +13,7 @@ define
    % This file will contain all the thread launches
 %%%% The GLOBAL Variables
    Show = System.show
+   Browse = Browser.browse
 
    NewPortObject = PortDefinitions.port
    KeyPort = PortDefinitions.keyPort
@@ -39,31 +41,31 @@ define
    %MAXY = 7
 
    proc{BindEvents Input}
-      if Input == keys then
-         Canvash = CANVAS.map
-         fun{GenerateMoveProc Dir}
-            proc{$}
-         	   {Send PLAYER.pid move(Dir)}
-            end
+      Canvash = CANVAS.map
+      fun{GenerateMoveProc Dir}
+         proc{$}
+            {Browse sent#message}
+      	   {Send PLAYER.pid move(Dir)}
          end
-         fun{GenSig Sig}
-            proc{$} {Send KEYS Sig} end
-         end
-         MapButtons = buttons(up:{GenerateMoveProc up} down:{GenerateMoveProc down}
-                     left:{GenerateMoveProc left} right:{GenerateMoveProc right}
-                     a:proc{$}
-                           {DrawPokeList status} {Send MAINPO set(pokelist)}
-                         end)
-      in
-         KEYS = {KeyPort MapButtons}
-         {Window bind(event:"<Up>" action:{GenSig up})}
-         {Window bind(event:"<Left>" action:{GenSig left})}
-         {Window bind(event:"<Right>" action:{GenSig right})}
-         {Window bind(event:"<Down>" action:{GenSig down})}
-         {Window bind(event:"<a>" action:{GenSig a})}
+      end
+      fun{GenSig Sig}
+         proc{$} {Send KEYS Sig} end
+      end
+      MapButtons = buttons(up:{GenerateMoveProc up} down:{GenerateMoveProc down}
+                  left:{GenerateMoveProc left} right:{GenerateMoveProc right}
+                  a:proc{$}
+                        {DrawPokeList status} {Send MAINPO set(pokelist)}
+                      end)
+   in
+      KEYS = {KeyPort MapButtons}
+      {Window bind(event:"<Up>" action:{GenSig up})}
+      {Window bind(event:"<Left>" action:{GenSig left})}
+      {Window bind(event:"<Right>" action:{GenSig right})}
+      {Window bind(event:"<Down>" action:{GenSig down})}
+      {Window bind(event:"<a>" action:{GenSig a})}
+      if Input == auto then
          {Window bind(event:"<z>" action:{GenSig z})}
          {Window bind(event:"<Control-Shift-A>" action:{GenSig csa})}
-      else skip
       end
    end
    proc{SetSpeed X}
