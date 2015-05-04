@@ -159,7 +159,6 @@ Show =System.show
    fun{KeyPort MapButtons}
       KeyId  = {NewPortObject state(pending pending)
          fun{$ Msg state(Frame Prev)}
-            {Show Msg#Frame}
             case Msg
             of set(NewFrame) then
                if Frame\=pending andthen Frame\=map andthen

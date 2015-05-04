@@ -1408,7 +1408,7 @@ define
                                        % be threaded!!!
                {PlaceH set(Handles.map)}
                PLAYER = {CreatePlayer "Red" MAXX MAXY SPEED MAPID
-                           [Name3 "Bulbasoz"] [6 6] AIType}
+                           [Name3] [5] AIType}
                {Send MAPID init(x:MAXX y:MAXY PLAYER)}
                local
                   fun{EnemyList L}
