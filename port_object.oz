@@ -3,7 +3,9 @@ import
    QTk at 'x-oz://system/wp/QTk.ozf'
    Application
    OS
-
+   Pickle
+   System
+   
    PortDefinitions
    AI
    AnimatePort
@@ -720,7 +722,7 @@ define
                   % attack
                   {Send FightAnim failRun}
                   {Send FightPort fightIA}
-                  state(trainer:Play enemy:Npc fighting:true)
+                  state(player:Play enemy:Npc fighting:true)
                end
             end
          [] action(X) then X = OK
@@ -1373,7 +1375,7 @@ define
    % @pre: -Frames = a record with all the frame-descriptions in it
    %       -Init   = the initial state (<Atom>)
    %       -PlaceH = handle of the placeholder
-   fun{MAIN Frames PlaceH MapName Handles Window}
+   fun{MAIN Frames PlaceH MapName NpcName Handles Window}
       Init = welcome
       Sort =[starters map fight pokelist welcome lost won evolve]
       %Handles = handles(starters:_ map:_ fight:_ lost:_ won:_)
@@ -1396,7 +1398,7 @@ define
                Name2 = {AtomToString Name}
                Name3 = (Name2.1-32)|Name2.2
                Map = {ReadMap MapName}
-               Enemies = {ReadEnemies _}
+               Enemies = {ReadEnemies NpcName}
             in
                % Initialize the tags
                thread {InitFightTags} {InitPokeTags} {InitEvolveTags} end
@@ -1447,27 +1449,41 @@ define
                L = List List
             end
          end}
-   fun{ReadMap _}%should be replaced by 'Name' afterwards
-      MAXX = 14
-      MAXY = 10
-      map(  r(1 1 1 0 0 0 0 1 1 1 0 0 0 0)
-            r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
-            r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
-            r(0 0 0 0 0 1 1 0 0 0 0 0 1 1)
-            r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
-            r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
-            r(0 0 0 0 0 0 0 0 0 0 0 0 0 0)
-            r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
-            r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
-            r(0 0 0 0 0 0 0 0 0 0 0 0 0 0))
+   fun{ReadMap Name}%should be replaced by 'Name' afterwards
+
+      try Map in
+	 Map = {Pickle.load Name}
+	 MAXX = {Width Map.1}
+	 MAXY = {Width Map}
+	 Map
+      catch _ then
+	 {System.show error#map}
+	 MAXX = 14
+	 MAXY = 10
+	 map(  r(1 1 1 0 0 0 0 1 1 1 0 0 0 0)
+	       r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
+	       r(1 1 1 0 0 1 1 1 1 1 0 0 1 1)
+	       r(0 0 0 0 0 1 1 0 0 0 0 0 1 1)
+	       r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
+	       r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
+	       r(0 0 0 0 0 0 0 0 0 0 0 0 0 0)
+	       r(0 0 0 1 1 1 1 0 0 0 1 1 1 1)
+	       r(0 0 0 1 1 0 0 0 0 0 1 1 0 0)
+	       r(0 0 0 0 0 0 0 0 0 0 0 0 0 0))
+      end
    end
-   fun{ReadEnemies _}
+   fun{ReadEnemies Name}
       %List of Names with their start Coordinates
-      [npc("Red" start:init(x:12 y:5) speed:5
-            states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-            poke:[poke("Charozard" 10)])
-       npc("Red" start:init(x:12 y:3) speed:5
-            states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
-            poke:[poke("Bulbasoz" 5) poke("Bulbasoz" 5)])]
+      try Npc in
+	 Npc = {Pickle.load Name}
+      catch _ then
+	 {System.show error#npc}
+	 [npc("Red" start:init(x:12 y:5) speed:5
+	      states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
+	      poke:[poke("Charozard" 10)])
+	  npc("Red" start:init(x:12 y:3) speed:5
+	      states:[turn(left) move(left) move(left) turn(right) move(right) move(right)]
+	      poke:[poke("Bulbasoz" 5) poke("Bulbasoz" 5)])]
+      end
    end
 end

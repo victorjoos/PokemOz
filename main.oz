@@ -85,11 +85,12 @@ define
    Args = {Application.getArgs record('speed'(single char:&s type:int default:5)
 				      'delay'(single char:&d type:int default:50)
 				      'probability'(single char:&p type:int default:30)
-				      'map'(single char:&m type:string default:"Map.txt"))}
+				      'map'(single char:&m type:string default:"Map.txt")
+				      'npc'(single char:&n type:string default:"Npc.txt"))}
 in
    {BindEvents keys}
    {Window show}
-   MAINPO = {MAIN WIDGETS PLACEHOLDER Args.map HANDLES Window}
+   MAINPO = {MAIN WIDGETS PLACEHOLDER Args.map Args.npc HANDLES Window}
 
 
 %%%%%% Binding the necessary Active Input
