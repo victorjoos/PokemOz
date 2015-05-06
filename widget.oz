@@ -288,10 +288,10 @@ define
          Tags = TAGS.fight3
          Dx = 232
          Dy = 87
-         Color = color(   fight:col(black blue)
-         run:col(black blue)
-         switch:col(black blue)
-         capture:col(black blue))
+         Color = color(   fight:col(c(71 65 65) c(93 98 123))
+                           run:col(c(71 65 65) c(93 98 123))
+                           switch:col(c(71 65 65) c(93 98 123))
+                           capture:col(c(71 65 65) c(93 98 123)))
       in
          for Y in 1..2 do
             for X in 1..2 do
@@ -303,8 +303,8 @@ define
                fill:Color.Atm.1)}
                {Canvash create(image image:{LoadImage [Name "_button"]}
                XX+(Dx div 2) YY+(Dy div 2) tags:Tags.Atm.1)}
-               Buttons.Atm.onselect   = proc{$} {Tags.Atm.bis set(fill:Color.Atm.2 width:4.0)} end
-               Buttons.Atm.ondeselect = proc{$} {Tags.Atm.bis set(fill:Color.Atm.1 width:1.0)} end
+               Buttons.Atm.onselect   = proc{$} {Tags.Atm.bis set(fill:Color.Atm.2)} end
+               Buttons.Atm.ondeselect = proc{$} {Tags.Atm.bis set(fill:Color.Atm.1)} end
             end
          end
          local
